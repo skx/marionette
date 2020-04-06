@@ -10,6 +10,10 @@ At the moment there is support for:
   * Rules can notify other rules when they're executed.
 * Executing rules.
 
+There are several builtin modules for performing tasks, and adding new primitives is simple thanks to the plugin-support documented later in this file.
+
+
+
 
 # Installation & Usage
 
@@ -20,6 +24,7 @@ Install by executing:
 Then launch the application with the path to a local set of rules, for example:
 
     marionette ./rules.txt
+
 
 
 # Rule Definition
@@ -35,8 +40,10 @@ The general form of our rules looks like this:
    }
 ```
 
-The rule starts by declaring the kind of module which is being used, then has
-a block containing "`key => value`" sections.  Different modules accept keys to configure themselves.  Unknown arguments will be ignored.
+Each rule starts by declaring the type of module which is being invoked, then
+there is a block containing "`key => value`" sections.  Different modules will
+accept and expect different keys to configure themselves.  (Unknown arguments
+will be ignored.)
 
 In addition to the general arguments passed to the available modules you can also specify dependencies via two magical keys within each rule-block:
 
@@ -50,9 +57,9 @@ As a concrete example you need to run a command which depends upon a directory b
 
 
 ```
-shell{ name         => "Test",
-       command      => "uptime > /tmp/blah/uptime",
-       dependencies => [ "Create /tmp/blah" ] }
+shell { name         => "Test",
+        command      => "uptime > /tmp/blah/uptime",
+        dependencies => [ "Create /tmp/blah" ] }
 
 directory{ name   => "Create /tmp/blah",
            target => "/tmp/blah" }
@@ -80,9 +87,11 @@ The difference in these two approaches is how often things run:
   * Because the directory-creation triggers the notification only when the rule changes (i.e. the directory goes from being "absent" to "present").
 
 
-# Primitive Types
+# Module Types
 
-We only have a small number of primitives at the moment, however the dependency resolution and notification system is reliable.
+We have a small number of primitives at the moment implemented in 100% pure golang.
+
+Adding new primitives as plugins is described later in this document.
 
 
 
@@ -120,9 +129,9 @@ dpkg { name => "Remove stuff",
        package => ["vlc", "vlc-l10n"] }
 ```
 
-Only the `packages` key is required.
+Only the `package` key is required.
 
-In the future we might have an `apt` module for installing new packages.  We'll see.
+In the future we _might_ have an `apt` module for installing new packages.  We'll see.
 
 
 ## `file`
@@ -217,6 +226,31 @@ shell { name => "I touch your file.",
 ```
 
 `command` is the only mandatory parameter.
+
+
+
+# Adding Modules
+
+Adding marionette modules can be done in two ways:
+
+* Implementing your plugin in 100% go.
+  * As you'll see done for the existing [modules/](modules/) we include.
+* Writing a plugin.
+  * You can write a plugin in __any__ language you like.
+
+Given a rule such as the following we'll look for a handler for `foo`:
+
+```
+foo { name => "My rule",
+      param1 => "One", }
+```
+
+If there is no built-in plugin with that name then the command located at `~/.marionette/foo` will be executed.  The parameters will be passed to that binary by being as JSON piped to STDIN.
+
+If that plugin makes a change, such that triggers should be executed, it should print `changed` to STDOUT and exit with a return code of 0.  If no change was made then it should print `unchanged` to STDOUT and also exit with a return code of 0.
+
+A non-zero return code will be assumed to mean something failed, and execution will terminate.
+
 
 
 # Example

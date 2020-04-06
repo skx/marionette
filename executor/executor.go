@@ -6,7 +6,12 @@
 package executor
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"os"
+	"os/exec"
+	"strings"
 
 	"github.com/skx/marionette/modules"
 	"github.com/skx/marionette/rules"
@@ -149,24 +154,51 @@ func (e *Executor) ExecuteRule(rule rules.Rule) error {
 	// Show what we're doing
 	fmt.Printf("Running %s-module rule: %s\n", rule.Type, rule.Name)
 
+	// Did this rule-execution result in a change?
+	var changed bool
+
 	// Create the instance of the module
 	helper := modules.Lookup(rule.Type)
-	if helper == nil {
-		return fmt.Errorf("unknown module-type '%s'", rule.Type)
-	}
+	if helper != nil {
 
-	// Check the arguments
-	err := helper.Check(rule.Params)
-	if err != nil {
-		return fmt.Errorf("error validating %s-module rule '%s' %s",
-			rule.Type, rule.Name, err.Error())
-	}
+		// Check the arguments
+		err := helper.Check(rule.Params)
+		if err != nil {
+			return fmt.Errorf("error validating %s-module rule '%s' %s",
+				rule.Type, rule.Name, err.Error())
+		}
 
-	// Run the change
-	changed, err := helper.Execute(rule.Params)
-	if err != nil {
-		return fmt.Errorf("error running %s-module rule '%s' %s",
-			rule.Type, rule.Name, err.Error())
+		// Run the change
+		changed, err = helper.Execute(rule.Params)
+		if err != nil {
+			return fmt.Errorf("error running %s-module rule '%s' %s",
+				rule.Type, rule.Name, err.Error())
+		}
+	} else {
+
+		path := os.Getenv("HOME") + "/.marionette/plugins/" + rule.Type
+		cmd := strings.Split(path, " ")
+		login := exec.Command(cmd[0], cmd[1:]...)
+
+		buffer := bytes.Buffer{}
+		result := bytes.Buffer{}
+		input, _ := json.Marshal(rule.Params)
+		buffer.Write(input)
+
+		login.Stdout = &result
+		login.Stdin = &buffer
+
+		err := login.Run()
+		if err != nil {
+			fmt.Printf("Error running plugin %s: %s\n", rule.Type, err)
+			return err
+		}
+
+		// What did we get ?
+		res := result.String()
+		if res == "changed" {
+			changed = true
+		}
 	}
 
 	if changed {
