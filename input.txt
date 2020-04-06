@@ -72,6 +72,12 @@ directory { name => "/tmp",
 file {  name       => "fetch file",
         target     => "/tmp/steve.txt",
         source_url => "https://steve.fi/",
+
+# Implied since I run as non-root
+#
+#       owner      => "skx",
+#       group      => "skx",
+
         requires   => "/tmp",
         notify     => [ "I count your lines uptime." ],
 }

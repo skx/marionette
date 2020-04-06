@@ -92,9 +92,11 @@ There are two ways a file can be created:
 * `source_url` - Fetched from the remote URL.
 * `source` - Copied from the existing path.
 
-TODO:
+Other valid parameters are:
 
-* Allow setting `owner`, `group` & `mode`.
+* `owner` - Username of the owner, e.g. "root".
+* `group` - Groupname of the owner, e.g. "root".
+* `mode` - THe mode to set, e.g. "0755".
 
 
 ## `directory`
@@ -110,12 +112,12 @@ directory {  name    => "My home should have a binary directory",
 }
 ```
 
-`target` is a mandatory parameter, and specifies the directory to be operated upon.
-`mode` is optional and sets the mode.
+Valid parameters are:
 
-TODO:
-
-* Allow setting `owner`, & `group`.
+* `target` is a mandatory parameter, and specifies the directory to be operated upon.
+* `owner` - Username of the owner, e.g. "root".
+* `group` - Groupname of the owner, e.g. "root".
+* `mode` - The mode to set, e.g. "0755".
 
 
 ## `shell`

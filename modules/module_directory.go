@@ -3,7 +3,9 @@ package modules
 import (
 	"fmt"
 	"os"
+	"os/user"
 	"strconv"
+	"syscall"
 )
 
 // DirectoryModule stores our state
@@ -45,6 +47,25 @@ func (f *DirectoryModule) Execute(args map[string]interface{}) (bool, error) {
 		}
 	}
 
+	// User and group changes
+	username := ""
+	user_val, user_present := args["owner"]
+	if user_present {
+		_, ok = user_val.(string)
+		if ok {
+			username = user_val.(string)
+		}
+	}
+
+	groupname := ""
+	group_val, group_present := args["group"]
+	if group_present {
+		_, ok = group_val.(string)
+		if ok {
+			groupname = group_val.(string)
+		}
+	}
+
 	// Convert mode to int
 	mode_i, _ := strconv.ParseInt(mode, 8, 64)
 
@@ -61,10 +82,50 @@ func (f *DirectoryModule) Execute(args map[string]interface{}) (bool, error) {
 	}
 
 	// Get the details of the directory, so we can see if we need
-	// to change owner (TODO) group (TODO) and mode.
+	// to change owner, group, and mode.
 	info, err := os.Stat(str)
 	if err != nil {
 		return false, err
+	}
+
+	// Are we changing owner?
+	if username != "" {
+		data, err := user.Lookup(username)
+		if err != nil {
+			return false, err
+		}
+
+		// Existing values
+		UID := int(info.Sys().(*syscall.Stat_t).Uid)
+		GID := int(info.Sys().(*syscall.Stat_t).Gid)
+
+		// proposed owner
+		uid, _ := strconv.Atoi(data.Uid)
+
+		if uid != UID {
+			os.Chown(str, uid, GID)
+			changed = true
+		}
+	}
+
+	// Are we changing owner?
+	if groupname != "" {
+		data, err := user.Lookup(groupname)
+		if err != nil {
+			return false, err
+		}
+
+		// Existing values
+		UID := int(info.Sys().(*syscall.Stat_t).Uid)
+		GID := int(info.Sys().(*syscall.Stat_t).Gid)
+
+		// proposed owner
+		gid, _ := strconv.Atoi(data.Gid)
+
+		if gid != GID {
+			os.Chown(str, UID, gid)
+			changed = true
+		}
 	}
 
 	// The current mode.
