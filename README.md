@@ -155,13 +155,14 @@ Valid parameters are:
 
 * `repository` Contain the HTTP/HTTPS repository to clone.
 * `path` - The location we'll clone to.
+* `branch` - The branch to switch to, or be upon.
+  * A missing branch will not be created.
 
-TODO
+If this module is used to `notify` another then it will trigger such a
+notification if either:
 
-* Allow __updating__ an existing clone.
-  * Right now we clone if missing, otherwise leave alone.
-* Allow changing branch after cloning/updating
-  * Right now we just clone whatever the default branch was.
+* The repository wasn't present, and had to be cloned.
+* The repository was updated.  (i.e. Remote changes were pulled in.)
 
 
 ## `link`
