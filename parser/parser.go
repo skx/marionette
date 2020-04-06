@@ -93,6 +93,10 @@ func (p *Parser) ParseVariable() error {
 	// value
 	val := p.l.NextToken()
 
+	if val.Type == token.ILLEGAL || val.Type == token.EOF {
+		return fmt.Errorf("unterminated assignment")
+	}
+
 	p.vars[name.Literal] = val.Literal
 	return nil
 }
