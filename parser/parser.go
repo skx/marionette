@@ -65,8 +65,12 @@ func (p *Parser) ParseBlock(ty string) (rules.Rule, error) {
 	r.Params = make(map[string]interface{})
 	r.Type = ty
 
-	// We should find "{"
+	// We should find either "triggered" or "{"
 	t := p.l.NextToken()
+	if t.Literal == "triggered" {
+		r.Triggered = true
+		t = p.l.NextToken()
+	}
 	if t.Type != token.LBRACE {
 		return r, fmt.Errorf("expected '{', got %v", t)
 	}

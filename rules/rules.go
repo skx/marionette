@@ -13,6 +13,12 @@ type Rule struct {
 	// Name contains the name of the rule.
 	Name string
 
+	// Triggered is true if this rule is only triggered by
+	// another rule notifying it.
+	//
+	// Triggered rules are ignored when processing our list.
+	Triggered bool
+
 	// Parameters contains the params supplied by the user.
 	Params map[string]interface{}
 }

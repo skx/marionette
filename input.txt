@@ -5,7 +5,7 @@
 # As you can guess comments are prefixed with a "#", and they are ignored
 # entirely.
 #
-###########
+#
 
 
 
@@ -24,8 +24,6 @@
 #   file -  Working with files
 #
 #   directory - Working with directories
-#
-#   package - Working with packages (NOP)
 #
 #   shell   - Executing shell commands (NOP)
 #
@@ -51,15 +49,16 @@
 #
 #  Each action has a "name", and a per-module set of key/values
 #
-#  The names must be (globally?) unique.
+#  The names must be unique.
 #
 directory { name   => "ok",
             target => "/tmp/blah",
-            mode   => "0755", }
+            mode   => "0755",
+            notify => [ "I touch your file"] }
 
 
 directory { name   => "ok",
-            target => "/tmp/blah/meow/cat/dog",
+            target => "/tmp/foo/meow/cat/dog",
             mode   => "0777", }
 
 
@@ -68,33 +67,22 @@ directory { name => "/tmp",
 }
 
 #
-# Create a file, from the given template.
+# Create a file, from the given remote URL
 #
-file {  name => "title goes here",
-        target => "/tmp/steve.txt",
-        content => "https://steve.fi/",
-        requires => "/tmp" ,
+file {  name       => "fetch file",
+        target     => "/tmp/steve.txt",
+        source_url => "https://steve.fi/",
+        requires   => "/tmp",
+        notify     => [ "I count your lines uptime." ],
 }
 
 
-#
-# Here we have a resource which requires two dependencies,
-# identified by names.
-#
-package { name => "Install this because I want it",
-          package => "less",
-          state => "installed",
-          requires => [ "title goes here", "ok" ] }
-
-
-
 
 #
-# Shell resources run only when triggered, or if a dependency
-# is updated.
+# These are some shell-commands.
 #
-shell { name => "I get ignored, mostly",
-        command => "touch /tmp/test.me" }
+shell triggered { name => "I count your lines uptime.",
+                  command => "wc -l /tmp/steve.txt > /tmp/line.count"  }
 
-shell { name => "I get ignored,",
-        command => "uptime > /tmp/up"}
+shell { name => "I touch your file.",
+        command => "touch /tmp/blah/test.me" }

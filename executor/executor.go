@@ -26,12 +26,14 @@ func New(r []rules.Rule) *Executor {
 	return &Executor{Rules: r}
 }
 
-// Get the rules a rule depends upon
-func (e *Executor) deps(rule rules.Rule) []string {
+// Get the rules a rule depends upon, via the given key.
+//
+// This is used to find any `requires` or `notify` rules.
+func (e *Executor) deps(rule rules.Rule, key string) []string {
 
 	var res []string
 
-	requires, ok := rule.Params["requires"]
+	requires, ok := rule.Params[key]
 
 	// no requirements?  Awesome
 	if !ok {
@@ -79,7 +81,7 @@ func (e *Executor) Check() error {
 	for _, r := range e.Rules {
 
 		// Get the dependencies
-		deps := e.deps(r)
+		deps := e.deps(r, "requires")
 
 		// no requirements?  Awesome
 		if len(deps) < 1 {
@@ -105,8 +107,14 @@ func (e *Executor) Execute() error {
 	// For each rule ..
 	for _, r := range e.Rules {
 
+		// Don't run rules that are only present to
+		// be notified by a trigger.
+		if r.Triggered {
+			continue
+		}
+
 		// Get the rule dependencies
-		deps := e.deps(r)
+		deps := e.deps(r, "requires")
 
 		// Process each one
 		for _, dep := range deps {
@@ -155,9 +163,22 @@ func (e *Executor) ExecuteRule(rule rules.Rule) error {
 	}
 
 	if changed {
-		fmt.Printf("CHANGED!\n")
 
-		// TODO call any notifiers
+		// Now call any rules that we should notify.
+		notify := e.deps(rule, "notify")
+
+		// Process each one
+		for _, child := range notify {
+
+			// get the actual rule, by index
+			dr := e.Rules[e.index[child]]
+
+			// Execute the rule.
+			err := e.ExecuteRule(dr)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	// All done
