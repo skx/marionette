@@ -85,6 +85,46 @@ The difference in these two approaches is how often things run:
 We only have a small number of primitives at the moment, however the dependency resolution and notification system is reliable.
 
 
+
+## `directory`
+
+The directory module allows you to create a directory, or change the permissions of one.
+
+Example usage:
+
+```
+directory {  name    => "My home should have a binary directory",
+             target  => "/home/steve/bin",
+             mode    => "0755",
+}
+```
+
+Valid parameters are:
+
+* `target` is a mandatory parameter, and specifies the directory to be operated upon.
+* `owner` - Username of the owner, e.g. "root".
+* `group` - Groupname of the owner, e.g. "root".
+* `mode` - The mode to set, e.g. "0755".
+* `state` - Set the state of the directory.
+  * `state => "absent"` remove it.
+  * `state => "present"` create it (this is the default).
+
+
+
+## `dpkg`
+
+This module allows purging a package, or set of packages:
+
+```
+dpkg { name => "Remove stuff",
+       package => ["vlc", "vlc-l10n"] }
+```
+
+Only the `packages` key is required.
+
+In the future we might have an `apt` module for installing new packages.  We'll see.
+
+
 ## `file`
 
 The file module allows a file to be created, from a local file, or via a remote HTTP-source.
@@ -114,29 +154,6 @@ Other valid parameters are:
   * `state => "absent"` remove it.
   * `state => "present"` create it (this is the default).
 
-
-## `directory`
-
-The directory module allows you to create a directory, or change the permissions of one.
-
-Example usage:
-
-```
-directory {  name    => "My home should have a binary directory",
-             target  => "/home/steve/bin",
-             mode    => "0755",
-}
-```
-
-Valid parameters are:
-
-* `target` is a mandatory parameter, and specifies the directory to be operated upon.
-* `owner` - Username of the owner, e.g. "root".
-* `group` - Groupname of the owner, e.g. "root".
-* `mode` - The mode to set, e.g. "0755".
-* `state` - Set the state of the directory.
-  * `state => "absent"` remove it.
-  * `state => "present"` create it (this is the default).
 
 
 ## `git`
