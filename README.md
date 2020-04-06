@@ -96,7 +96,10 @@ Other valid parameters are:
 
 * `owner` - Username of the owner, e.g. "root".
 * `group` - Groupname of the owner, e.g. "root".
-* `mode` - THe mode to set, e.g. "0755".
+* `mode` - The mode to set, e.g. "0755".
+* `state` - Set the state of the file.
+  * `state => "absent"` remove it.
+  * `state => "present"` create it (this is the default).
 
 
 ## `directory`
@@ -118,6 +121,9 @@ Valid parameters are:
 * `owner` - Username of the owner, e.g. "root".
 * `group` - Groupname of the owner, e.g. "root".
 * `mode` - The mode to set, e.g. "0755".
+* `state` - Set the state of the directory.
+  * `state => "absent"` remove it.
+  * `state => "present"` create it (this is the default).
 
 
 ## `shell`

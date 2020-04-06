@@ -37,6 +37,33 @@ func (f *DirectoryModule) Execute(args map[string]interface{}) (bool, error) {
 		return false, fmt.Errorf("failed to convert target to string")
 	}
 
+	// We assume we're creating the directory, but we might be removing it.
+	state := "present"
+	val, ok := args["state"]
+	if ok {
+		x, ok := val.(string)
+		if ok {
+			state = x
+		}
+	}
+
+	// Remove the directory, if we should.
+	if state == "absent" {
+
+		// Does it exist?
+		if _, err := os.Stat(str); err != nil {
+			if os.IsNotExist(err) {
+
+				// Does not exist
+				return false, nil
+			}
+		}
+
+		// OK remove
+		os.RemoveAll(str)
+		return true, nil
+	}
+
 	// Get the mode, if any.  We'll have a default here.
 	mode := "0755"
 	mode_param, mode_param_present := args["mode"]

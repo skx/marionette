@@ -42,6 +42,30 @@ func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 		return false, fmt.Errorf("failed to convert target to string")
 	}
 
+	// We assume we're creating the directory, but we might be removing it.
+	state := "present"
+	val, ok := args["state"]
+	if ok {
+		x, ok := val.(string)
+		if ok {
+			state = x
+		}
+	}
+
+	// Remove the directory, if we should.
+	if state == "absent" {
+
+		// Does it exist?
+		if f.FileExists(target) {
+
+			err := os.Remove(target)
+			return true, err
+		}
+
+		// Didn't exist, nothing to change.
+		return false, nil
+	}
+
 	// If we have a source file, copy
 	s, ok := args["source"]
 	if ok {
