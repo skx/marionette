@@ -139,6 +139,31 @@ Valid parameters are:
   * `state => "present"` create it (this is the default).
 
 
+## `git`
+
+Clone a remote repository to a local directory.
+
+Example usage:
+
+```
+git { path => "/tmp/xxx",
+      repository => "https://github.com/src-d/go-git",
+}
+```
+
+Valid parameters are:
+
+* `repository` Contain the HTTP/HTTPS repository to clone.
+* `path` - The location we'll clone to.
+
+TODO
+
+* Allow __updating__ an existing clone.
+  * Right now we clone if missing, otherwise leave alone.
+* Allow changing branch after cloning/updating
+  * Right now we just clone whatever the default branch was.
+
+
 ## `link`
 
 The `link` module allows you to create a symbolic link.
