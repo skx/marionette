@@ -11,10 +11,20 @@ At the moment there is support for:
 * Executing rules.
 
 
+# Installation & Usage
+
+Install by executing:
+
+    go get github.com/skx/marionette
+
+Then launch the application with the path to a local set of rules, for example:
+
+    marionette ./rules.txt
+
+
 # Rule Definition
 
-The general form of this a rule requires a module to be specified, along
-with some module-specific parameters:
+The general form of our rules looks like this:
 
 ```
    $MODULE [triggered] {
@@ -25,7 +35,10 @@ with some module-specific parameters:
    }
 ```
 
-In addition to the general arguments passed to the available modules you can also specify dependencies via two magical keys:
+The rule starts by declaring the kind of module which is being used, then has
+a block containing "`key => value`" sections.  Different modules accept keys to configure themselves.  Unknown arguments will be ignored.
+
+In addition to the general arguments passed to the available modules you can also specify dependencies via two magical keys within each rule-block:
 
 * `dependencies`
   * A list of any number of rules which must be executed before this.
@@ -45,7 +58,7 @@ directory{ name   => "Create /tmp/blah",
            target => "/tmp/blah" }
 ```
 
-The alternative would have been to have the directory creation trigger the other rule via notification:
+The alternative would have been to have the directory-creation trigger the shell-execution rule via an explicit notification:
 
 ```
 directory{ name   => "Create /tmp/blah",
