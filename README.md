@@ -17,7 +17,7 @@ The general form of this a rule requires a module to be specified, along
 with some module-specific parameters:
 
 ```
-   $MODULE {
+   $MODULE [triggered] {
               name => "NAME OF RULE",
               arg_1 => "Value 1 ... ",
               arg_2 => [ "array values", "are fine" ],
@@ -45,7 +45,7 @@ directory{ name   => "Create /tmp/blah",
            target => "/tmp/blah" }
 ```
 
-The alternative would have been to have the directory creation trigger other rules via notification:
+The alternative would have been to have the directory creation trigger the other rule via notification:
 
 ```
 directory{ name   => "Create /tmp/blah",
@@ -58,13 +58,13 @@ shell triggered { name         => "Test",
 }
 ```
 
-The difference in these two commands is how often things run:
+The difference in these two approaches is how often things run:
 
 * In the first case we always run `uptime > /tmp/blah/uptime`
-  * We just make sure that _before_ the directory has been created.
+  * We just make sure that _before_ that the directory has been created.
 * In the second case we run the command only once.
   * We run it only after the directory is created.
-
+  * Because the directory-creation triggers the notification only when the rule changes (i.e. the directory goes from being "absent" to "present").
 
 
 # Primitive Types
@@ -92,6 +92,10 @@ There are two ways a file can be created:
 * `source_url` - Fetched from the remote URL.
 * `source` - Copied from the existing path.
 
+TODO:
+
+* Allow setting `owner`, `group` & `mode`.
+
 
 ## `directory`
 
@@ -109,6 +113,9 @@ directory {  name    => "My home should have a binary directory",
 `target` is a mandatory parameter, and specifies the directory to be operated upon.
 `mode` is optional and sets the mode.
 
+TODO:
+
+* Allow setting `owner`, & `group`.
 
 
 ## `shell`
@@ -122,7 +129,7 @@ shell { name => "I touch your file.",
         command => "touch /tmp/blah/test.me" }
 ```
 
-`command` is a mandatory parameter.
+`command` is the only mandatory parameter.
 
 
 # Example
