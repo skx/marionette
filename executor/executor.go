@@ -12,6 +12,7 @@ import (
 	"github.com/skx/marionette/rules"
 )
 
+// Executor holds our internal state.
 type Executor struct {
 
 	// Rules are the things we'll execute

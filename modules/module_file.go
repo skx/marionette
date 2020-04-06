@@ -49,9 +49,9 @@ func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 	}
 
 	// If we have a source URL, fetch.
-	src_url, ok := args["source_url"]
+	srcURL, ok := args["source_url"]
 	if ok {
-		ret, err = f.FetchURL(src_url.(string), target)
+		ret, err = f.FetchURL(srcURL.(string), target)
 	}
 
 	//
@@ -135,10 +135,10 @@ func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 	}
 
 	// The current mode.
-	mode_i, _ := strconv.ParseInt(mode, 8, 64)
+	modeI, _ := strconv.ParseInt(mode, 8, 64)
 
-	if mode_param_present && (info.Mode().Perm() != os.FileMode(mode_i)) {
-		err := os.Chmod(target, os.FileMode(mode_i))
+	if mode_param_present && (info.Mode().Perm() != os.FileMode(modeI)) {
+		err := os.Chmod(target, os.FileMode(modeI))
 		if err != nil {
 			return false, err
 		}
@@ -203,7 +203,7 @@ func (f *FileModule) copy(src string, dst string) error {
 	return out.Close()
 }
 
-// Copy the source file to the destination, returning if we changed
+// CopyFile copies the source file to the destination, returning if we changed
 // the contents.
 func (f *FileModule) CopyFile(src string, dst string) (bool, error) {
 
@@ -214,13 +214,13 @@ func (f *FileModule) CopyFile(src string, dst string) (bool, error) {
 	}
 
 	// OK file does exist.  Compare contents
-	a, err_a := f.HashFile(src)
-	if err_a != nil {
-		return false, err_a
+	a, errA := f.HashFile(src)
+	if errA != nil {
+		return false, errA
 	}
-	b, err_b := f.HashFile(dst)
-	if err_b != nil {
-		return false, err_b
+	b, errB := f.HashFile(dst)
+	if errB != nil {
+		return false, errB
 	}
 
 	// hashes are identical?  No change
@@ -233,7 +233,8 @@ func (f *FileModule) CopyFile(src string, dst string) (bool, error) {
 	return true, err
 }
 
-// Fetch the remote URL and save to the given file.
+// FetchURL retrieves the contents of the remote URL and saves them to
+// the given file.  If the contents are identical no change is reported.
 func (f *FileModule) FetchURL(url string, dst string) (bool, error) {
 
 	// Download to temporary file
@@ -260,13 +261,13 @@ func (f *FileModule) FetchURL(url string, dst string) (bool, error) {
 	}
 
 	// OK file does exist.  Compare contents
-	a, err_a := f.HashFile(tmpfile.Name())
-	if err_a != nil {
-		return false, err_a
+	a, errA := f.HashFile(tmpfile.Name())
+	if errA != nil {
+		return false, errA
 	}
-	b, err_b := f.HashFile(dst)
-	if err_b != nil {
-		return false, err_b
+	b, errB := f.HashFile(dst)
+	if errB != nil {
+		return false, errB
 	}
 
 	// hashes are identical?  No change

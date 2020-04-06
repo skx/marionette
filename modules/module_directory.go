@@ -67,13 +67,13 @@ func (f *DirectoryModule) Execute(args map[string]interface{}) (bool, error) {
 	}
 
 	// Convert mode to int
-	mode_i, _ := strconv.ParseInt(mode, 8, 64)
+	modeI, _ := strconv.ParseInt(mode, 8, 64)
 
 	// Create the directory, if it is missing.
 	if _, err := os.Stat(str); err != nil {
 		if os.IsNotExist(err) {
 			// make it
-			os.MkdirAll(str, os.FileMode(mode_i))
+			os.MkdirAll(str, os.FileMode(modeI))
 			changed = true
 		} else {
 			// Error running the stat
@@ -129,8 +129,8 @@ func (f *DirectoryModule) Execute(args map[string]interface{}) (bool, error) {
 	}
 
 	// The current mode.
-	if mode_param_present && (info.Mode().Perm() != os.FileMode(mode_i)) {
-		err := os.Chmod(str, os.FileMode(mode_i))
+	if mode_param_present && (info.Mode().Perm() != os.FileMode(modeI)) {
+		err := os.Chmod(str, os.FileMode(modeI))
 		if err != nil {
 			return false, err
 		}

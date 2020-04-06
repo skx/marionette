@@ -5,13 +5,17 @@ package modules
 
 import "sync"
 
+// ModuleAPI is the interface to which all our modules must
+// confirm.
 type ModuleAPI interface {
 
-	// Check ensures that any mandatory parameters are present,
-	// returning an error if not.
+	// Check allows a module to ensures that any mandatory parameters
+	// are present, or perform similar setup-work.
+	//
+	// If no error is returned then the module will be executed later.
 	Check(map[string]interface{}) error
 
-	// Execute runs the module with the given arguments
+	// Execute runs the module with the given arguments.
 	//
 	// The return value is true if the module made a change
 	// and false otherwise.
