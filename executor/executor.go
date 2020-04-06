@@ -8,6 +8,7 @@ package executor
 import (
 	"fmt"
 
+	"github.com/skx/marionette/modules"
 	"github.com/skx/marionette/rules"
 )
 
@@ -119,7 +120,10 @@ func (e *Executor) Execute() error {
 		}
 
 		// Now the rule itself
-		e.ExecuteRule(r)
+		err := e.ExecuteRule(r)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -127,7 +131,33 @@ func (e *Executor) Execute() error {
 // ExecuteRule creates the appropriate module, and runs the single rule.
 func (e *Executor) ExecuteRule(rule rules.Rule) error {
 
-	fmt.Printf("Running rule: %s\n", rule.Name)
+	// Show what we're doing
+	fmt.Printf("Running %s-module rule: %s\n", rule.Type, rule.Name)
 
+	// Create the instance of the module
+	helper := modules.Lookup(rule.Type)
+	if helper == nil {
+		return fmt.Errorf("unknown module-type '%s'", rule.Type)
+	}
+
+	// Check the arguments
+	err := helper.Check(rule.Params)
+	if err != nil {
+		return err
+	}
+
+	// Run the change
+	changed, err := helper.Execute(rule.Params)
+	if err != nil {
+		return err
+	}
+
+	if changed {
+		fmt.Printf("CHANGED!\n")
+
+		// TODO call any notifiers
+	}
+
+	// All done
 	return nil
 }
