@@ -313,7 +313,7 @@ func (f *FileModule) FetchURL(url string, dst string) (bool, error) {
 	return true, err
 }
 
-// init is used to dynamically register our file-module
+// init is used to dynamically register our module.
 func init() {
 	Register("file", func() ModuleAPI {
 		return &FileModule{}

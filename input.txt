@@ -100,3 +100,10 @@ shell triggered { name => "I count your lines uptime.",
 
 shell { name => "I touch your file.",
         command => "touch /tmp/blah/test.me" }
+
+
+#
+# Create a symlink /tmp/password.txt, pointing to /etc/passwd.
+#
+link { name => "Symlink test",
+       source => "/etc/passwd",  target => "/tmp/password.txt" }

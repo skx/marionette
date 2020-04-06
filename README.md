@@ -139,6 +139,23 @@ Valid parameters are:
   * `state => "present"` create it (this is the default).
 
 
+## `link`
+
+The `link` module allows you to create a symbolic link.
+
+Example usage:
+
+```
+link { name => "Symlink test",
+       source => "/etc/passwd",  target => "/tmp/password.txt" }
+```
+
+Valid parameters are:
+
+* `target` is a mandatory parameter, and specifies the location of the symlink to create.
+* `source` is a mandatory parameter, and specifies the item the symlink should point to.
+
+
 ## `shell`
 
 The shell module allows you to run shell-commands.
