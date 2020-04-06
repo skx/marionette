@@ -35,7 +35,6 @@ func (p *Parser) Parse() ([]rules.Rule, error) {
 	for {
 		tok := p.l.NextToken()
 		if tok.Type == token.ILLEGAL {
-
 			return rules, fmt.Errorf("illegal token: %v", tok)
 		}
 		if tok.Type == token.EOF {
@@ -108,7 +107,7 @@ func (p *Parser) ParseBlock(ty string) (rules.Rule, error) {
 
 		// Now look for "="
 		next := p.l.NextToken()
-		if next.Literal != "=>" {
+		if next.Literal != token.LASSIGN {
 			return r, fmt.Errorf("expected => after name %s, got %v", name, next)
 		}
 

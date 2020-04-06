@@ -22,10 +22,6 @@ const (
 	RSQUARE = "]"
 	LBRACE  = "{"
 	RBRACE  = "}"
-	ASSIGN  = "=>"
+	LASSIGN = "=>"
+	ASSIGN  = "="
 )
-
-// LookupIdentifier used to determinate whether identifier is keyword nor not
-func LookupIdentifier(identifier string) Type {
-	return IDENT
-}

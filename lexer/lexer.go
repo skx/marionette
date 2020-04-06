@@ -53,6 +53,15 @@ func (l *Lexer) NextToken() token.Token {
 	}
 
 	switch l.ch {
+	case rune('='):
+		tok.Literal = "="
+		tok.Type = token.ASSIGN
+		if l.peekChar() == rune('>') {
+			l.readChar()
+
+			tok.Type = token.LASSIGN
+			tok.Literal = "=>"
+		}
 	case rune('['):
 		tok.Literal = "["
 		tok.Type = token.LSQUARE
@@ -83,7 +92,7 @@ func (l *Lexer) NextToken() token.Token {
 		tok.Type = token.EOF
 	default:
 		tok.Literal = l.readIdentifier()
-		tok.Type = token.LookupIdentifier(tok.Literal)
+		tok.Type = token.IDENT
 		return tok
 	}
 	l.readChar()
