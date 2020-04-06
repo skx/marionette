@@ -1,8 +1,6 @@
 package modules
 
 import (
-	"crypto/sha1"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -11,6 +9,8 @@ import (
 	"os/user"
 	"strconv"
 	"syscall"
+
+	"github.com/skx/marionette/file"
 )
 
 // FileModule stores our state
@@ -197,29 +197,6 @@ func (f *FileModule) FileExists(name string) bool {
 	return true
 }
 
-// HashFile returns the SHA1-hash of the contents of the specified file.
-func (f *FileModule) HashFile(filePath string) (string, error) {
-	var returnSHA1String string
-
-	file, err := os.Open(filePath)
-	if err != nil {
-		return returnSHA1String, err
-	}
-
-	defer file.Close()
-
-	hash := sha1.New()
-
-	if _, err := io.Copy(hash, file); err != nil {
-		return returnSHA1String, err
-	}
-
-	hashInBytes := hash.Sum(nil)[:20]
-	returnSHA1String = hex.EncodeToString(hashInBytes)
-
-	return returnSHA1String, nil
-}
-
 func (f *FileModule) copy(src string, dst string) error {
 	in, err := os.Open(src)
 	if err != nil {
@@ -252,23 +229,19 @@ func (f *FileModule) CopyFile(src string, dst string) (bool, error) {
 		return true, err
 	}
 
-	// OK file does exist.  Compare contents
-	a, errA := f.HashFile(src)
-	if errA != nil {
-		return false, errA
-	}
-	b, errB := f.HashFile(dst)
-	if errB != nil {
-		return false, errB
+	// Are the files identical?
+	identical, err := file.Identical(src, dst)
+	if err != nil {
+		return false, err
 	}
 
-	// hashes are identical?  No change
-	if a == b {
-		return false, nil
+	// If identical no change
+	if identical {
+		return false, err
 	}
 
-	// otherwise change
-	err := f.copy(src, dst)
+	// Since they differ we refresh and that's a change
+	err = f.copy(src, dst)
 	return true, err
 }
 
@@ -303,17 +276,13 @@ func (f *FileModule) FetchURL(url string, dst string) (bool, error) {
 	}
 
 	// OK file does exist.  Compare contents
-	a, errA := f.HashFile(tmpfile.Name())
-	if errA != nil {
-		return false, errA
-	}
-	b, errB := f.HashFile(dst)
-	if errB != nil {
-		return false, errB
+	identical, err := file.Identical(tmpfile.Name(), dst)
+	if err != nil {
+		return false, err
 	}
 
 	// hashes are identical?  No change
-	if a == b {
+	if identical {
 		return false, nil
 	}
 
@@ -342,18 +311,14 @@ func (f *FileModule) CreateFile(dst string, content string) (bool, error) {
 		return true, err
 	}
 
-	// OK file does exist.  Compare contents
-	a, errA := f.HashFile(tmpfile.Name())
-	if errA != nil {
-		return false, errA
-	}
-	b, errB := f.HashFile(dst)
-	if errB != nil {
-		return false, errB
+	// Are the two files identical?
+	identical, err := file.Identical(tmpfile.Name(), dst)
+	if err != nil {
+		return false, err
 	}
 
 	// hashes are identical?  No change
-	if a == b {
+	if identical {
 		return false, nil
 	}
 
