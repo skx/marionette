@@ -1,0 +1,50 @@
+#
+# This is an input file.
+# comments are prefixed with a "#"
+#
+
+
+
+#
+#  Create a directory.
+#
+#  Each action has a "name", and a per-module set of key/values
+#
+#  The names must be (globally?) unique.
+#
+directory { name   => "ok",
+            target => "/tmp/blah",
+            mode   => "0755", }
+
+
+directory { name => "/tmp",
+    target => "/tmp", }
+
+#
+# Create a file, from the given template.
+#
+file {  name => "title goes here",
+        target => "/tmp/steve.txt",
+        content => "https://steve.fi/",
+        requires => "/tmp" ,
+}
+
+
+#
+# Here we have a resource which requires two dependencies,
+# identified by names.
+#
+package { name => "Install this because I want it",
+          package => "less",
+          state => "installed",
+          requires => [ "title goes here", "ok" ] }
+
+
+
+
+#
+# Shell resources run only when triggered, or if a dependency
+# is updated.
+#
+shell { name => "I get ignored, mostly",
+        command => "touch /tmp/blah" }
