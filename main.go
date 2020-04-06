@@ -6,15 +6,9 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/skx/marionette/executor"
 	"github.com/skx/marionette/parser"
-	"github.com/skx/marionette/rules"
 )
-
-// TODO: Here we need to lookup rules by name.
-func processRule(rule rules.Rule) {
-
-	fmt.Printf("Processing rule type %s - %s\n", rule.Type, rule.Name)
-}
 
 func main() {
 
@@ -34,71 +28,20 @@ func main() {
 		return
 	}
 
-	// OK at this point we have a list of rules.
-	//
-	// We want to loop over each one and create a map so that
-	// we can lookup rules by name.
-	//
-	// i.e. If a rule 1 depends upon rule 10 we want to find
-	// that out in advance.
-	//
-	// We'll also make sure we don't try to notify/depend upon
-	// a rule that we can't find.
-	index := make(map[string]int)
+	// Now we'll create an executor with the rules
+	ex := executor.New(rules)
 
-	for i, r := range rules {
-		index[r.Name] = i
+	// Check for broken dependencies
+	err = ex.Check()
+	if err != nil {
+		fmt.Printf("%s\n", err.Error())
+		return
 	}
 
-	//
-	// Look at dependencies
-	//
-	for _, r := range rules {
-
-		requires, ok := r.Params["requires"]
-
-		// no requirements?  Awesome
-		if !ok {
-			continue
-		}
-
-		// OK the requirements might be a single rule, or
-		// an array of rules
-		str, ok := requires.(string)
-		if ok {
-
-			// Does the single requirement exist?
-			_, found := index[str]
-			if !found {
-				fmt.Printf("rule '%s' has dependency '%s' which doesn't exist", r.Params["name"], str)
-				return
-			}
-		}
-
-		// Might have an array of strings
-		strs, ok := requires.([]string)
-		if ok {
-
-			for _, str := range strs {
-
-				// Does the requirement exist?
-				_, found := index[str]
-				if !found {
-					fmt.Printf("rule '%s' has dependency '%s' which doesn't exist", r.Params["name"], str)
-					return
-				}
-			}
-		}
-	}
-
-	//
-	// OK at this point we have a list of rules.
-	//
-	// We can process them in order.
-	//
-	// Except we have to handle any dependencies first.
-	//
-	for _, r := range rules {
-		processRule(r)
+	// Now execute!
+	err = ex.Execute()
+	if err != nil {
+		fmt.Printf("%s\n", err.Error())
+		return
 	}
 }
