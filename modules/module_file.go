@@ -46,12 +46,18 @@ func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 	s, ok := args["source"]
 	if ok {
 		ret, err = f.CopyFile(s.(string), target)
+		if err != nil {
+			return ret, err
+		}
 	}
 
 	// If we have a source URL, fetch.
 	srcURL, ok := args["source_url"]
 	if ok {
 		ret, err = f.FetchURL(srcURL.(string), target)
+		if err != nil {
+			return ret, err
+		}
 	}
 
 	//
@@ -253,6 +259,9 @@ func (f *FileModule) FetchURL(url string, dst string) (bool, error) {
 
 	// Write the body to file
 	_, err = io.Copy(tmpfile, resp.Body)
+	if err != nil {
+		return false, err
+	}
 
 	// File doesn't exist - copy it
 	if !f.FileExists(dst) {
