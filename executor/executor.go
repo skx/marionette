@@ -73,6 +73,12 @@ func (e *Executor) Check() error {
 	e.index = make(map[string]int)
 
 	for i, r := range e.Rules {
+
+		_, ok := e.index[r.Name]
+		if ok {
+			return fmt.Errorf("rule names must be unique; we've already seen '%s'", r.Name)
+		}
+
 		e.index[r.Name] = i
 	}
 

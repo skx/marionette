@@ -59,7 +59,7 @@ let foo = "bar"
 #  Notice here we used `${foo}` to refer to the variable we defined
 # at the top of the file?
 #
-directory { name   => "ok",
+directory { name   => "ok-template",
             target => "/tmp/${foo}",
             mode   => "0755",
             notify => [ "I touch your file"] }
