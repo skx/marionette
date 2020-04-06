@@ -25,7 +25,7 @@ with some module-specific parameters:
    }
 ```
 
-In addition to the general arguments you can also specify dependencies via two magical keys:
+In addition to the general arguments passed to the available modules you can also specify dependencies via two magical keys:
 
 * `dependencies`
   * A list of any number of rules which must be executed before this.

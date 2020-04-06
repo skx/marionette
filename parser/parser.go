@@ -3,6 +3,7 @@ package parser
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/skx/marionette/lexer"
 	"github.com/skx/marionette/rules"
@@ -13,6 +14,9 @@ import (
 type Parser struct {
 	// l is the handle to our lexer
 	l *lexer.Lexer
+
+	// variables we've found
+	vars map[string]string
 }
 
 // New creates a new parser from the given input.
@@ -20,6 +24,7 @@ func New(input string) *Parser {
 	p := &Parser{}
 
 	p.l = lexer.New(input)
+	p.vars = make(map[string]string)
 	return p
 }
 
@@ -41,9 +46,21 @@ func (p *Parser) Parse() ([]rules.Rule, error) {
 			break
 		}
 
-		// OK we expect an identifier, then a block
-		if tok.Type == token.IDENT {
+		// OK we expect an identifier.
+		if tok.Type != token.IDENT {
+			return nil, fmt.Errorf("unexpected input, expected identifier")
+		}
 
+		// Is this an assignment?
+		if tok.Literal == "let" {
+			//
+			err := p.ParseVariable()
+			if err != nil {
+				return rules, err
+			}
+		} else {
+
+			// OK then it must be a block statement
 			tmp, err := p.ParseBlock(tok.Literal)
 			if err != nil {
 				return rules, err
@@ -54,6 +71,30 @@ func (p *Parser) Parse() ([]rules.Rule, error) {
 	}
 
 	return rules, err
+}
+
+// Variables returns any defined variables.
+func (p *Parser) Variables() map[string]string {
+	return p.vars
+}
+
+// ParseVariable parses a variable assignment, storing it in our map.
+func (p *Parser) ParseVariable() error {
+
+	// name
+	name := p.l.NextToken()
+
+	// =
+	t := p.l.NextToken()
+	if t.Type != token.ASSIGN {
+		return fmt.Errorf("expected '=', got %v", t)
+	}
+
+	// value
+	val := p.l.NextToken()
+
+	p.vars[name.Literal] = val.Literal
+	return nil
 }
 
 // ParseBlock parses the contents of modules' block.
@@ -105,7 +146,7 @@ func (p *Parser) ParseBlock(ty string) (rules.Rule, error) {
 		// Record the name
 		name := t.Literal
 
-		// Now look for "="
+		// Now look for "=>"
 		next := p.l.NextToken()
 		if next.Literal != token.LASSIGN {
 			return r, fmt.Errorf("expected => after name %s, got %v", name, next)
@@ -135,6 +176,12 @@ func (p *Parser) ParseBlock(ty string) (rules.Rule, error) {
 //
 // The value is either a string, or an array of strings.
 func (p *Parser) ReadValue(name string) (interface{}, error) {
+
+	// Helper to expand variables.
+	mapper := func(val string) string {
+		return p.vars[val]
+	}
+
 	var a []string
 
 	t := p.l.NextToken()
@@ -149,7 +196,7 @@ func (p *Parser) ReadValue(name string) (interface{}, error) {
 
 	// string?
 	if t.Type == token.STRING {
-		return t.Literal, nil
+		return os.Expand(t.Literal, mapper), nil
 	}
 
 	// array?
@@ -172,7 +219,7 @@ func (p *Parser) ReadValue(name string) (interface{}, error) {
 			continue
 		}
 		if t.Type == token.STRING {
-			a = append(a, t.Literal)
+			a = append(a, os.Expand(t.Literal, mapper))
 		}
 		if t.Type == token.RSQUARE {
 			return a, nil

@@ -8,6 +8,11 @@
 #
 
 
+#
+# Variables can be defined as simple strings, via the `let` keyword
+#
+let foo = "bar"
+
 
 #
 # The general form of this input-file is a set of rules:
@@ -51,8 +56,11 @@
 #
 #  The names must be unique.
 #
+#  Notice here we used `${foo}` to refer to the variable we defined
+# at the top of the file?
+#
 directory { name   => "ok",
-            target => "/tmp/blah",
+            target => "/tmp/${foo}",
             mode   => "0755",
             notify => [ "I touch your file"] }
 
@@ -70,7 +78,7 @@ directory { name => "/tmp",
 # Create a file, from the given remote URL
 #
 file {  name       => "fetch file",
-        target     => "/tmp/steve.txt",
+        target     => "/tmp/${foo}.txt",
         source_url => "https://steve.fi/",
 
 # Implied since I run as non-root
