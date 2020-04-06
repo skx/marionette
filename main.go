@@ -1,31 +1,30 @@
-// This is the simple test-driver which attempts to parse a fixed file,
-// and output the rules.
+// This is the simple driver to execute the named file(s).
 package main
 
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 
 	"github.com/skx/marionette/executor"
 	"github.com/skx/marionette/parser"
 )
 
-func main() {
+func runFile(filename string) error {
 
-	// Read a file and create a parser from its contents
-	data, err := ioutil.ReadFile("input.txt")
+	// Read the file contents.
+	data, err := ioutil.ReadFile(filename)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
+	// Create a new parser.
 	p := parser.New(string(data))
 
-	// Parse the reuls
+	// Parse the rules
 	rules, err := p.Parse()
-
 	if err != nil {
-		fmt.Printf("Error parsing file:%v\n", err.Error())
-		return
+		return err
 	}
 
 	// Now we'll create an executor with the rules
@@ -34,14 +33,34 @@ func main() {
 	// Check for broken dependencies
 	err = ex.Check()
 	if err != nil {
-		fmt.Printf("%s\n", err.Error())
-		return
+		return err
 	}
 
 	// Now execute!
 	err = ex.Execute()
 	if err != nil {
-		fmt.Printf("%s\n", err.Error())
+		return err
+	}
+
+	return nil
+}
+
+// main is our entry-point
+func main() {
+
+	// Ensure we got an argument, or two.
+	if len(os.Args) < 1 {
+		fmt.Printf("Usage %s file1 file2 .. fileN\n", os.Args[0])
 		return
 	}
+
+	// Process each given file.
+	for _, file := range os.Args[1:] {
+		err := runFile(file)
+		if err != nil {
+			fmt.Printf("Error:%s\n", err.Error())
+			return
+		}
+	}
+
 }
