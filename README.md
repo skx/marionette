@@ -10,9 +10,67 @@ At the moment there is support for:
   * Rules can notify other rules when they're executed.
 * Executing rules.
 
+
+# Rule Definition
+
+The general form of this a rule requires a module to be specified, along
+with some module-specific parameters:
+
+```
+   $MODULE {
+              name => "NAME OF RULE",
+              arg_1 => "Value 1 ... ",
+              arg_2 => [ "array values", "are fine" ],
+              arg_3 => "Value 3 .. ",
+   }
+```
+
+In addition to the general arguments you can also specify dependencies via two magical keys:
+
+* `dependencies`
+  * A list of any number of rules which must be executed before this.
+* `notify`
+  * A list of any number of rules which should be notified, because this rule was triggered.
+    * Triggered in this sense means that the rule was executed and the state changed.
+
+As a concrete example you need to run a command which depends upon a directory being present.  You could do this like so:
+
+
+```
+shell{ name         => "Test",
+       command      => "uptime > /tmp/blah/uptime",
+       dependencies => [ "Create /tmp/blah" ] }
+
+directory{ name   => "Create /tmp/blah",
+           target => "/tmp/blah" }
+```
+
+The alternative would have been to have the directory creation trigger other rules via notification:
+
+```
+directory{ name   => "Create /tmp/blah",
+           target => "/tmp/blah",
+           notify => [ "Test" ]
+}
+
+shell triggered { name         => "Test",
+                  command      => "uptime > /tmp/blah/uptime",
+}
+```
+
+The difference in these two commands is how often things run:
+
+* In the first case we always run `uptime > /tmp/blah/uptime`
+  * We just make sure that _before_ the directory has been created.
+* In the second case we run the command only once.
+  * We run it only after the directory is created.
+
+
+
 # Primitive Types
 
-We only have a small number of primitives at the moment, however the dependency resolution and notification system is reliable
+We only have a small number of primitives at the moment, however the dependency resolution and notification system is reliable.
+
 
 ## `file`
 
