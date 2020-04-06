@@ -1,9 +1,50 @@
 #
-# This is an input file.
-# comments are prefixed with a "#"
+#
+# This is our input file.
+#
+# As you can guess comments are prefixed with a "#", and they are ignored
+# entirely.
+#
+###########
+
+
+
+#
+# The general form of this input-file is a set of rules:
+#
+#   $MODULE {
+#              name => "NAME OF RULE",
+#              arg_1 => "Value 1 ... ",
+#              arg_2 => [ "array values", "are fine" ],
+#              arg_3 => "Value 3 .. ",
+#   }
+#
+#  There are a couple of modules supported at the moment:
+#
+#   file -  Working with files
+#
+#   directory - Working with directories
+#
+#   package - Working with packages (NOP)
+#
+#   shell   - Executing shell commands (NOP)
+#
+#
+# Dependencies must be specified within the rules, manually, for
+# example if you need to run a command only when a directory is
+# present you'd do this:
+#
+#    directory{ name => "Create /tmp", target => "/tmp" }
+#
+#    shell{ name => "Test", command = "uptime > /tmp/uptime",
+#           dependencies => [ "Create /tmp" ]
+#
 #
 
 
+#
+# Now follows some test rules
+#
 
 #
 #  Create a directory.
@@ -53,4 +94,7 @@ package { name => "Install this because I want it",
 # is updated.
 #
 shell { name => "I get ignored, mostly",
-        command => "touch /tmp/blah" }
+        command => "touch /tmp/test.me" }
+
+shell { name => "I get ignored,",
+        command => "uptime > /tmp/up"}

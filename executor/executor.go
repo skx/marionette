@@ -143,13 +143,15 @@ func (e *Executor) ExecuteRule(rule rules.Rule) error {
 	// Check the arguments
 	err := helper.Check(rule.Params)
 	if err != nil {
-		return err
+		return fmt.Errorf("error validating %s-module rule '%s' %s",
+			rule.Type, rule.Name, err.Error())
 	}
 
 	// Run the change
 	changed, err := helper.Execute(rule.Params)
 	if err != nil {
-		return err
+		return fmt.Errorf("error running %s-module rule '%s' %s",
+			rule.Type, rule.Name, err.Error())
 	}
 
 	if changed {
