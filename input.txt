@@ -17,8 +17,14 @@ directory { name   => "ok",
             mode   => "0755", }
 
 
+directory { name   => "ok",
+            target => "/tmp/blah/meow/cat/dog",
+            mode   => "0777", }
+
+
 directory { name => "/tmp",
-    target => "/tmp", }
+    target => "/tmp",
+}
 
 #
 # Create a file, from the given template.
