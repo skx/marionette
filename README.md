@@ -136,14 +136,20 @@ file {  name       => "fetch file",
         target     => "/tmp/steve.txt",
         source_url => "https://steve.fi/",
 }
+
+file {  name     => "write file",
+        target   => "/tmp/name.txt",
+        content  => "My name is Steve",
+}
 ```
 
 `target` is a mandatory parameter, and specifies the file to be operated upon.
 
-There are two ways a file can be created:
+There are three ways a file can be created:
 
-* `source_url` - Fetched from the remote URL.
-* `source` - Copied from the existing path.
+* `content` - Specify the content inline.
+* `source_url` - The file contents are fetched from a remote URL.
+* `source` - Content is copied from the existing path.
 
 Other valid parameters are:
 

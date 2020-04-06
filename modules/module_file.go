@@ -75,6 +75,15 @@ func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 		}
 	}
 
+	// If we have a content to set, then use it
+	content, ok := args["content"]
+	if ok {
+		ret, err = f.CreateFile(target, content.(string))
+		if err != nil {
+			return ret, err
+		}
+	}
+
 	// If we have a source URL, fetch.
 	srcURL, ok := args["source_url"]
 	if ok {
@@ -286,6 +295,46 @@ func (f *FileModule) FetchURL(url string, dst string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
+	// File doesn't exist - copy it
+	if !f.FileExists(dst) {
+		err := f.copy(tmpfile.Name(), dst)
+		return true, err
+	}
+
+	// OK file does exist.  Compare contents
+	a, errA := f.HashFile(tmpfile.Name())
+	if errA != nil {
+		return false, errA
+	}
+	b, errB := f.HashFile(dst)
+	if errB != nil {
+		return false, errB
+	}
+
+	// hashes are identical?  No change
+	if a == b {
+		return false, nil
+	}
+
+	// otherwise change
+	err = f.copy(tmpfile.Name(), dst)
+	return true, err
+}
+
+// CreateFile writes the given content to the named file.
+// If the contents are identical no change is reported.
+func (f *FileModule) CreateFile(dst string, content string) (bool, error) {
+
+	// Create a temporary file
+	tmpfile, err := ioutil.TempFile("", "example")
+	if err != nil {
+		return false, nil
+	}
+	defer os.Remove(tmpfile.Name())
+
+	// Write to it.
+	ioutil.WriteFile(tmpfile.Name(), []byte(content), 0644)
 
 	// File doesn't exist - copy it
 	if !f.FileExists(dst) {
