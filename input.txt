@@ -107,3 +107,11 @@ shell { name => "I touch your file.",
 #
 link { name => "Symlink test",
        source => "/etc/passwd",  target => "/tmp/password.txt" }
+
+
+#
+# Clone a remote repository to the local system.
+#
+git { path => "/tmp/foot/bar/baz",
+      repository => "https://github.com/src-d/go-git",
+    }
