@@ -64,20 +64,22 @@ func HashFile(filePath string) (string, error) {
 	return returnSHA1String, nil
 }
 
-// Changed compares the contents of two files, and the return
-// code will indicate if they are identical.
+// Identical compares the contents of the two specified files, returning
+// true if they're identical.
 func Identical(a string, b string) (bool, error) {
 
 	hashA, errA := HashFile(a)
 	if errA != nil {
 		return false, errA
 	}
+
 	hashB, errB := HashFile(b)
 	if errB != nil {
 		return false, errB
 	}
 
-	// hashes are identical?  No change
+	// Are the hashes are identical?
+	// If so then the files are identical.
 	if hashA == hashB {
 		return true, nil
 	}

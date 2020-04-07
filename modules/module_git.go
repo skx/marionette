@@ -51,8 +51,10 @@ func (g *GitModule) Execute(args map[string]interface{}) (bool, error) {
 
 	// optional branch to checkout
 	branch := ""
-	c = args["branch"]
-	branch, check = c.(string)
+	c, ok := args["branch"]
+	if ok {
+		branch = c.(string)
+	}
 
 	// Have we changed?
 	changed := false

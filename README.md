@@ -282,7 +282,7 @@ shell { name => "I touch your file.",
 Adding marionette modules can be done in two ways:
 
 * Writing your module in 100% pure go.
-  * This is how the bundled modules are written, there is a simple API which only requires implementing the methods in the ModuleAPI interface.
+  * This is how the bundled modules are written, there is a simple API which only requires implementing the methods in the [ModuleAPI interface](modules/api.go).
 * Writing an external/binary  plugin.
   * You can write a plugin in __any__ language you like.
 

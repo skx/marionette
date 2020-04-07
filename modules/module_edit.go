@@ -131,7 +131,8 @@ func (e *EditModule) Append(path string, text string) (bool, error) {
 	return true, nil
 }
 
-// Remove any lines from the file which match the given pattern.
+// RemoveLines remove any lines from the file which match the given
+// regular expression.
 func (e *EditModule) RemoveLines(path string, pattern string) (bool, error) {
 
 	// If the target file doesn't exist then we cannot
