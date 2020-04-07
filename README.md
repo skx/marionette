@@ -1,29 +1,48 @@
+
+* [marionette](#marionette)
+* [Installation &amp; Usage](#installation--usage)
+* [Rule Definition](#rule-definition)
+* [Module Types](#module-types)
+   * [directory](#directory)
+   * [dpkg](#dpkg)
+   * [file](#file)
+   * [git](#git)
+   * [link](#link)
+   * [shell](#shell)
+* [Adding Modules](#adding-modules)
+* [Example](#example)
+
+
 # marionette
 
 This is a proof of concept application which is designed to be puppet-like,
 allowing you to define rules to get a system into a particular state.
 
-At the moment there is support for:
+We have built-in support for the minimum set of primitives you need to turn a blank virtual machine into a host running a few services:
 
-* Defining rules.
-  * Rules can have dependencies.
-  * Rules can notify other rules when they're executed.
-* Executing rules.
+* Cloning git repositories.
+* Creating/modifying files/directories.
+* Removing packages.
+* Triggering shell actions.
 
-There are several builtin modules for performing tasks, and adding new primitives is simple thanks to the plugin-support documented later in this file.
+The available modules for performing tasks can be extended via the use of [external plugins](#adding-modules) so you don't necessarily need to be a Golang coder to add new things.
 
 
 
 
 # Installation & Usage
 
-Install by executing:
+Once we have a stable release it will be available from the [download page]() in the meantime you can install the CLI tool by running:
 
-    go get github.com/skx/marionette
+```
+go get github.com/skx/marionette
+```
 
-Then launch the application with the path to a local set of rules, for example:
+Once installed you can then execute it with the path of one or more rule-files like so:
 
-    marionette ./rules.txt
+```
+marionette ./rules.txt ./rules2.txt ... ./rulesN.txt
+```
 
 
 
@@ -32,12 +51,12 @@ Then launch the application with the path to a local set of rules, for example:
 The general form of our rules looks like this:
 
 ```
-   $MODULE [triggered] {
-              name => "NAME OF RULE",
-              arg_1 => "Value 1 ... ",
-              arg_2 => [ "array values", "are fine" ],
-              arg_3 => "Value 3 .. ",
-   }
+$MODULE [triggered] {
+            name => "NAME OF RULE",
+            arg_1 => "Value 1 ... ",
+            arg_2 => [ "array values", "are fine" ],
+            arg_3 => "Value 3 .. ",
+}
 ```
 
 Each rule starts by declaring the type of module which is being invoked, then
@@ -45,13 +64,16 @@ there is a block containing "`key => value`" sections.  Different modules will
 accept and expect different keys to configure themselves.  (Unknown arguments
 will be ignored.)
 
-In addition to the general arguments passed to the available modules you can also specify dependencies via two magical keys within each rule-block:
+Do note that every rule needs a name, and that must be unique.  Names are used
+to trigger/define dependencies.  In the (near) future this will be optional.
+
+In addition to the general arguments passed to the available modules you can also specify dependencies via two magical keys within each rule block:
 
 * `dependencies`
   * A list of any number of rules which must be executed before this.
 * `notify`
   * A list of any number of rules which should be notified, because this rule was triggered.
-    * Triggered in this sense means that the rule was executed and the state changed.
+    * _Triggered_ in this sense means that the rule was executed and the state changed.
 
 As a concrete example you need to run a command which depends upon a directory being present.  You could do this like so:
 
@@ -86,12 +108,12 @@ The difference in these two approaches is how often things run:
   * We run it only after the directory is created.
   * Because the directory-creation triggers the notification only when the rule changes (i.e. the directory goes from being "absent" to "present").
 
+You'll note that any module which is followed by the token `triggered` will __only__ be executed when it is triggered by name.  If there is no `notify` key referring to that rule it will __never__ be executed.
+
 
 # Module Types
 
-We have a small number of primitives at the moment implemented in 100% pure golang.
-
-Adding new primitives as plugins is described later in this document.
+We have a small number of primitives at the moment implemented in 100% pure golang.  Adding [new modules as plugins](#adding-modules) is possible, and contributions for various purposes are most welcome.
 
 
 
@@ -233,9 +255,9 @@ shell { name => "I touch your file.",
 
 Adding marionette modules can be done in two ways:
 
-* Implementing your plugin in 100% go.
-  * As you'll see done for the existing [modules/](modules/) we include.
-* Writing a plugin.
+* Writing your module in 100% pure go.
+  * This is how the bundled modules are written, there is a simple API which only requires implementing the methods in the ModuleAPI interface.
+* Writing an external/binary  plugin.
   * You can write a plugin in __any__ language you like.
 
 Given a rule such as the following we'll look for a handler for `foo`:
@@ -253,6 +275,25 @@ A non-zero return code will be assumed to mean something failed, and execution w
 
 
 
-# Example
+# Example Rules
 
-See [input.txt](input.txt) for a sample rule-file, including syntax breakdown.
+There is an example ruleset included in the distribution:
+
+* [input.txt](input.txt)
+
+That should be safe to run for all users, as it only modifies files beneath `/tmp`.
+
+
+# Future Plans
+
+* I think it would be nice to include some binary plugins embedded within our application, via [implant](https://github.com/skx/implant).  That would allow fast development and avoid the need for local filesystem access to execute them.
+* We need to support installing packages upon a Debian GNU/Linux host, not just purging unwanted ones.
+* Gathering "facts" about the local system, and storing them as variables would be useful.
+  * Of course then we might want to do conditional actions.
+  * I guess we could write something like this:
+    * `only_if => "${distribution} == Debian"`
+    * But of course that gets messy.  Compare with Ansible, again.
+
+
+Steve
+--
