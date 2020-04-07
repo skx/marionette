@@ -27,7 +27,8 @@ type Executor struct {
 	index map[string]int
 }
 
-// New creates a new executor
+// New creates a new executor, using a series of rules which should have
+// been discovered by the parser.
 func New(r []rules.Rule) *Executor {
 	return &Executor{Rules: r}
 }
@@ -62,7 +63,11 @@ func (e *Executor) deps(rule rules.Rule, key string) []string {
 	return res
 }
 
-// Check ensures the rules make sense
+// Check ensures the rules make sense.
+//
+// In short this means that we check the dependencies/notifiers listed
+// for every rule, and raise an error if they contain references to
+// rules which don't exist.
 func (e *Executor) Check() error {
 
 	// OK at this point we have a list of rules.
@@ -75,6 +80,7 @@ func (e *Executor) Check() error {
 	//
 	// We'll also make sure we don't try to notify/depend upon
 	// a rule that we can't find.
+	//
 	e.index = make(map[string]int)
 
 	for i, r := range e.Rules {
@@ -88,24 +94,34 @@ func (e *Executor) Check() error {
 	}
 
 	//
-	// Look at dependencies
+	// For every rule.
 	//
 	for _, r := range e.Rules {
 
-		// Get the dependencies
+		//
+		// Get the dependencies of that rule, and the things
+		// it will notify in the event it is triggered.
+		//
 		deps := e.deps(r, "requires")
+		notify := e.deps(r, "notify")
 
-		// no requirements?  Awesome
-		if len(deps) < 1 {
+		// Join the pair of rules
+		var all []string
+		all = append(all, deps...)
+		all = append(all, notify...)
+
+		// nothing to check?  Awesome
+		if len(all) < 1 {
 			continue
 		}
 
-		for _, dep := range deps {
+		// for each rule-reference
+		for _, dep := range all {
 
 			// Does the requirement exist?
 			_, found := e.index[dep]
 			if !found {
-				return fmt.Errorf("rule '%s' has dependency '%s' which doesn't exist", r.Params["name"], dep)
+				return fmt.Errorf("rule '%s' has reference to '%s' which doesn't exist", r.Params["name"], dep)
 			}
 		}
 	}
@@ -116,8 +132,11 @@ func (e *Executor) Check() error {
 // Execute runs the rules in turn, handling any dependency ordering.
 func (e *Executor) Execute() error {
 
+	// Keep track of which rules we've executed
+	seen := make(map[int]bool)
+
 	// For each rule ..
-	for _, r := range e.Rules {
+	for i, r := range e.Rules {
 
 		// Don't run rules that are only present to
 		// be notified by a trigger.
@@ -125,11 +144,21 @@ func (e *Executor) Execute() error {
 			continue
 		}
 
-		// Get the rule dependencies
+		// Seen this rule already?
+		if seen[i] {
+			continue
+		}
+
+		// Get the rule dependencies.
 		deps := e.deps(r, "requires")
 
 		// Process each one
-		for _, dep := range deps {
+		for i, dep := range deps {
+
+			// Seen this rule already?
+			if seen[i] {
+				continue
+			}
 
 			// get the actual rule, by index
 			dr := e.Rules[e.index[dep]]
@@ -137,6 +166,7 @@ func (e *Executor) Execute() error {
 			if err != nil {
 				return err
 			}
+			seen[i] = true
 		}
 
 		// Now the rule itself
@@ -144,6 +174,8 @@ func (e *Executor) Execute() error {
 		if err != nil {
 			return err
 		}
+
+		seen[i] = true
 	}
 	return nil
 }
