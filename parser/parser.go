@@ -33,14 +33,14 @@ func New(input string) *Parser {
 func (p *Parser) Parse() ([]rules.Rule, error) {
 
 	// The rules we return
-	var rules []rules.Rule
+	var found []rules.Rule
 	var err error
 
 	// Parse forever
 	for {
 		tok := p.l.NextToken()
 		if tok.Type == token.ILLEGAL {
-			return rules, fmt.Errorf("illegal token: %v", tok)
+			return nil, fmt.Errorf("illegal token: %v", tok)
 		}
 		if tok.Type == token.EOF {
 			break
@@ -53,24 +53,26 @@ func (p *Parser) Parse() ([]rules.Rule, error) {
 
 		// Is this an assignment?
 		if tok.Literal == "let" {
-			//
-			err := p.ParseVariable()
+
+			err = p.ParseVariable()
 			if err != nil {
-				return rules, err
+				return found, err
 			}
 		} else {
 
 			// OK then it must be a block statement
-			tmp, err := p.ParseBlock(tok.Literal)
+			var r rules.Rule
+
+			r, err = p.ParseBlock(tok.Literal)
 			if err != nil {
-				return rules, err
+				return nil, err
 			}
 
-			rules = append(rules, tmp)
+			found = append(found, r)
 		}
 	}
 
-	return rules, err
+	return found, err
 }
 
 // Variables returns any defined variables.

@@ -30,7 +30,6 @@ func (e *EditModule) Check(args map[string]interface{}) error {
 func (e *EditModule) Execute(args map[string]interface{}) (bool, error) {
 
 	var ret bool
-	var err error
 
 	// Get the target
 	target := StringParam(args, "target")
@@ -67,7 +66,7 @@ func (e *EditModule) Execute(args map[string]interface{}) (bool, error) {
 		}
 	}
 
-	return ret, err
+	return ret, nil
 }
 
 // Append the given line to the file, if it is missing.
@@ -107,7 +106,7 @@ func (e *EditModule) Append(path string, text string) (bool, error) {
 		}
 	}
 
-	if err := scanner.Err(); err != nil {
+	if err = scanner.Err(); err != nil {
 		return false, err
 	}
 

@@ -16,6 +16,7 @@
 * [Adding Modules](#adding-modules)
 * [Example Rules](#example-rules)
 * [Future Plans](#future-plans)
+* [Github Setup](#github-setup)
 
 
 # marionette
@@ -319,6 +320,17 @@ That should be safe to run for all users, as it only modifies files beneath `/tm
   * I guess we could write something like this:
     * `only_if => "${distribution} == Debian"`
     * But of course that gets messy.  Compare with Ansible, again.
+
+
+## Github Setup
+
+This repository is configured to run tests upon every commit, and when
+pull-requests are created/updated.  The testing is carried out via
+[.github/run-tests.sh](.github/run-tests.sh) which is used by the
+[github-action-tester](https://github.com/skx/github-action-tester) action.
+
+Releases are automated in a similar fashion via [.github/build](.github/build),
+and the [github-action-publish-binaries](https://github.com/skx/github-action-publish-binaries) action.
 
 
 Steve
