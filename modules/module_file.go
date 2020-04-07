@@ -36,20 +36,15 @@ func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 	var err error
 
 	// Get the target
-	t := args["target"]
-	target, ok := t.(string)
-	if !ok {
+	target := StringParam(args, "target")
+	if target == "" {
 		return false, fmt.Errorf("failed to convert target to string")
 	}
 
-	// We assume we're creating the directory, but we might be removing it.
-	state := "present"
-	val, ok := args["state"]
-	if ok {
-		x, ok := val.(string)
-		if ok {
-			state = x
-		}
+	// We assume we're creating the file, but we might be removing it.
+	state := StringParam(args, "state")
+	if state == "" {
+		state = "present"
 	}
 
 	// Remove the directory, if we should.
@@ -57,7 +52,6 @@ func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 
 		// Does it exist?
 		if file.Exists(target) {
-
 			err := os.Remove(target)
 			return true, err
 		}
@@ -67,27 +61,27 @@ func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 	}
 
 	// If we have a source file, copy
-	s, ok := args["source"]
-	if ok {
-		ret, err = f.CopyFile(s.(string), target)
+	source := StringParam(args, "source")
+	if source != "" {
+		ret, err = f.CopyFile(source, target)
 		if err != nil {
 			return ret, err
 		}
 	}
 
 	// If we have a content to set, then use it
-	content, ok := args["content"]
-	if ok {
-		ret, err = f.CreateFile(target, content.(string))
+	content := StringParam(args, "content")
+	if content != "" {
+		ret, err = f.CreateFile(target, content)
 		if err != nil {
 			return ret, err
 		}
 	}
 
 	// If we have a source URL, fetch.
-	srcURL, ok := args["source_url"]
-	if ok {
-		ret, err = f.FetchURL(srcURL.(string), target)
+	srcURL := StringParam(args, "source_url")
+	if srcURL != "" {
+		ret, err = f.FetchURL(srcURL, target)
 		if err != nil {
 			return ret, err
 		}
@@ -98,33 +92,14 @@ func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 	//
 
 	// Get the mode, if any.  We'll have a default here.
-	mode := "0755"
-	mode_param, mode_param_present := args["mode"]
-	if mode_param_present {
-		m, ok := mode_param.(string)
-		if ok {
-			mode = m
-		}
+	mode := StringParam(args, "mode")
+	if mode == "" {
+		mode = "0755"
 	}
 
 	// User and group changes
-	username := ""
-	user_val, user_present := args["owner"]
-	if user_present {
-		_, ok = user_val.(string)
-		if ok {
-			username = user_val.(string)
-		}
-	}
-
-	groupname := ""
-	group_val, group_present := args["group"]
-	if group_present {
-		_, ok = group_val.(string)
-		if ok {
-			groupname = group_val.(string)
-		}
-	}
+	owner := StringParam(args, "owner")
+	group := StringParam(args, "group")
 
 	// Get the details of the file, so we can see if we need
 	// to change owner, group, and mode.
@@ -134,8 +109,8 @@ func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 	}
 
 	// Are we changing owner?
-	if username != "" {
-		data, err := user.Lookup(username)
+	if owner != "" {
+		data, err := user.Lookup(owner)
 		if err != nil {
 			return false, err
 		}
@@ -154,8 +129,8 @@ func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 	}
 
 	// Are we changing group?
-	if groupname != "" {
-		data, err := user.Lookup(groupname)
+	if group != "" {
+		data, err := user.Lookup(group)
 		if err != nil {
 			return false, err
 		}
@@ -176,7 +151,7 @@ func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 	// The current mode.
 	modeI, _ := strconv.ParseInt(mode, 8, 64)
 
-	if mode_param_present && (info.Mode().Perm() != os.FileMode(modeI)) {
+	if mode != "" && (info.Mode().Perm() != os.FileMode(modeI)) {
 		err := os.Chmod(target, os.FileMode(modeI))
 		if err != nil {
 			return false, err

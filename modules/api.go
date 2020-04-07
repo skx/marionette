@@ -22,3 +22,47 @@ type ModuleAPI interface {
 	//
 	Execute(map[string]interface{}) (bool, error)
 }
+
+// StringParam returns the named parameter, as a string, from the map.
+//
+// If the parameter was not present an empty array is returned.
+func StringParam(vars map[string]interface{}, param string) string {
+
+	// Get the value
+	val, ok := vars[param]
+	if !ok {
+		return ""
+	}
+
+	// Can it be cast into a string?
+	str, valid := val.(string)
+	if valid {
+		return str
+	}
+
+	// OK not a string parameter
+	return ""
+}
+
+// ArrayParam returns the named parameter, as an array, from the map.
+//
+// If the parameter was not present an empty array is returned.
+func ArrayParam(vars map[string]interface{}, param string) []string {
+
+	var empty []string
+
+	// Get the value
+	val, ok := vars[param]
+	if !ok {
+		return empty
+	}
+
+	// Can it be cast into a string array?
+	strs, valid := val.([]string)
+	if valid {
+		return strs
+	}
+
+	// OK not a string parameter
+	return empty
+}

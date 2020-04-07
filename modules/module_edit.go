@@ -33,9 +33,8 @@ func (e *EditModule) Execute(args map[string]interface{}) (bool, error) {
 	var err error
 
 	// Get the target
-	t := args["target"]
-	target, ok := t.(string)
-	if !ok {
+	target := StringParam(args, "target")
+	if target == "" {
 		return false, fmt.Errorf("failed to convert target to string")
 	}
 
@@ -44,9 +43,9 @@ func (e *EditModule) Execute(args map[string]interface{}) (bool, error) {
 	//
 
 	// Append a line if missing
-	_, ok = args["append_if_missing"]
-	if ok {
-		changed, err := e.Append(target, args["append_if_missing"].(string))
+	append := StringParam(args, "append_if_missing")
+	if append != "" {
+		changed, err := e.Append(target, append)
 		if err != nil {
 			return false, err
 		}
@@ -55,10 +54,10 @@ func (e *EditModule) Execute(args map[string]interface{}) (bool, error) {
 		}
 	}
 
-	// Remove lines matching a regexp
-	_, ok = args["remove_lines"]
-	if ok {
-		changed, err := e.RemoveLines(target, args["remove_lines"].(string))
+	// Remove lines matching a regexp.
+	remove := StringParam(args, "remove_lines")
+	if remove != "" {
+		changed, err := e.RemoveLines(target, remove)
 		if err != nil {
 			return false, err
 		}

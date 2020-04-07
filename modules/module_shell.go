@@ -27,20 +27,13 @@ func (f *ShellModule) Check(args map[string]interface{}) error {
 func (f *ShellModule) Execute(args map[string]interface{}) (bool, error) {
 
 	// Get the command
-	c, ok := args["command"]
-	if !ok {
+	str := StringParam(args, "command")
+	if str == "" {
 		return false, fmt.Errorf("missing 'command' parameter")
 	}
 
-	// cast to string
-	str, ok := c.(string)
-	if !ok {
-		return false, fmt.Errorf("failed to convert 'command' to string")
-	}
-
 	// If we see redirection we're good
-	if strings.Contains(str, ">") ||
-		strings.Contains(str, "<") {
+	if strings.Contains(str, ">") || strings.Contains(str, "<") || strings.Contains(str, "|") {
 		str = "bash -c \"" + str + "\""
 	}
 

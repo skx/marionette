@@ -25,24 +25,20 @@ func (f *DPKGModule) Check(args map[string]interface{}) error {
 // Execute is part of the module-api, and is invoked to run a rule.
 func (f *DPKGModule) Execute(args map[string]interface{}) (bool, error) {
 
-	// Get the packages we're going to add/remove
-	c, ok := args["package"]
-	if !ok {
-		return false, fmt.Errorf("missing 'package' parameter")
-	}
-
 	// We might have multiple packages
 	var packages []string
 	packages = append(packages, "--purge")
 
-	// cast to string
-	str, ok := c.(string)
-	if ok {
-		packages = append(packages, str)
+	// Single package?
+	p := StringParam(args, "package")
+	if p != "" {
+		packages = append(packages, p)
 	}
-	strs, ok := c.([]string)
-	if ok {
-		packages = append(packages, strs...)
+
+	// Array of packages?
+	a := ArrayParam(args, "package")
+	if len(a) > 0 {
+		packages = append(packages, a...)
 	}
 
 	// Now run
@@ -52,7 +48,7 @@ func (f *DPKGModule) Execute(args map[string]interface{}) (bool, error) {
 	cmd.Stdout = os.Stdout
 	err := cmd.Run()
 	if err != nil {
-		return false, fmt.Errorf("error running command '%s' %s", str, err.Error())
+		return false, fmt.Errorf("error running command %s", err.Error())
 	}
 
 	return false, nil

@@ -21,7 +21,6 @@ func (g *GitModule) Check(args map[string]interface{}) error {
 	required := []string{"repository", "path"}
 
 	for _, key := range required {
-
 		_, ok := args[key]
 		if !ok {
 			return fmt.Errorf("missing '%s' parameter", key)
@@ -35,26 +34,19 @@ func (g *GitModule) Check(args map[string]interface{}) error {
 func (g *GitModule) Execute(args map[string]interface{}) (bool, error) {
 
 	// Repository location
-	c := args["repository"]
-	repo, check := c.(string)
-	if !check {
+	repo := StringParam(args, "repository")
+	if repo == "" {
 		return false, fmt.Errorf("failed to convert 'repository' to string")
 	}
 
 	// Repository location
-	path := ""
-	c = args["path"]
-	path, check = c.(string)
-	if !check {
+	path := StringParam(args, "path")
+	if path == "" {
 		return false, fmt.Errorf("failed to convert 'path' to string")
 	}
 
 	// optional branch to checkout
-	branch := ""
-	c, ok := args["branch"]
-	if ok {
-		branch = c.(string)
-	}
+	branch := StringParam(args, "branch")
 
 	// Have we changed?
 	changed := false

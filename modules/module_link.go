@@ -14,16 +14,13 @@ type LinkModule struct {
 // Check is part of the module-api, and checks arguments.
 func (f *LinkModule) Check(args map[string]interface{}) error {
 
-	// Ensure we have a target (i.e. name to operate upon).
-	_, ok := args["target"]
-	if !ok {
-		return fmt.Errorf("missing 'target' parameter")
-	}
+	required := []string{"source", "target"}
 
-	// Ensure we have a source (i.e. name to operate upon).
-	_, ok = args["source"]
-	if !ok {
-		return fmt.Errorf("missing 'source' parameter")
+	for _, key := range required {
+		_, ok := args[key]
+		if !ok {
+			return fmt.Errorf("missing '%s' parameter", key)
+		}
 	}
 
 	return nil
@@ -33,16 +30,14 @@ func (f *LinkModule) Check(args map[string]interface{}) error {
 func (f *LinkModule) Execute(args map[string]interface{}) (bool, error) {
 
 	// Get the target
-	t := args["target"]
-	target, ok := t.(string)
-	if !ok {
+	target := StringParam(args, "target")
+	if target == "" {
 		return false, fmt.Errorf("failed to convert target to string")
 	}
 
 	// Get the source
-	s := args["source"]
-	source, ok := s.(string)
-	if !ok {
+	source := StringParam(args, "source")
+	if source == "" {
 		return false, fmt.Errorf("failed to convert source to string")
 	}
 
