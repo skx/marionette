@@ -80,13 +80,6 @@ func (f *DirectoryModule) Execute(args map[string]interface{}) (bool, error) {
 		}
 	}
 
-	// Get the details of the directory, so we can see if we need
-	// to change owner, group, and mode.
-	info, err := os.Stat(target)
-	if err != nil {
-		return false, err
-	}
-
 	// User and group changes
 	owner := StringParam(args, "owner")
 	group := StringParam(args, "group")
@@ -111,12 +104,14 @@ func (f *DirectoryModule) Execute(args map[string]interface{}) (bool, error) {
 		}
 	}
 
-	// The current mode.
-	if mode != "" && (info.Mode().Perm() != os.FileMode(modeI)) {
-		err := os.Chmod(target, os.FileMode(modeI))
-		if err != nil {
-			return false, err
-		}
+	// If we created the directory it will have the correct
+	// mode, but if it was already present with the wrong value
+	// we must fix it.
+	change, err := file.ChangeMode(target, mode)
+	if err != nil {
+		return false, err
+	}
+	if change {
 		changed = true
 	}
 

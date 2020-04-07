@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"strconv"
 
 	"github.com/skx/marionette/file"
 )
@@ -86,13 +85,23 @@ func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 	}
 
 	//
-	// Now we can change the owner/group
-	//
-
 	// Get the mode, if any.  We'll have a default here.
+	//
 	mode := StringParam(args, "mode")
 	if mode == "" {
 		mode = "0755"
+	}
+
+	//
+	// Change the mode, if required.
+	//
+	changed := false
+	changed, err = file.ChangeMode(target, mode)
+	if err != nil {
+		return false, err
+	}
+	if changed {
+		ret = true
 	}
 
 	// User and group changes
@@ -117,24 +126,6 @@ func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 		if changed {
 			ret = true
 		}
-	}
-
-	// The current mode.
-	modeI, _ := strconv.ParseInt(mode, 8, 64)
-
-	// Get the details of the file, so we can see if we need
-	// to change owner, group, and mode.
-	info, err := os.Stat(target)
-	if err != nil {
-		return false, err
-	}
-
-	if mode != "" && (info.Mode().Perm() != os.FileMode(modeI)) {
-		err = os.Chmod(target, os.FileMode(modeI))
-		if err != nil {
-			return false, err
-		}
-		ret = true
 	}
 
 	return ret, err

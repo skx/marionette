@@ -9,6 +9,37 @@ import (
 	"syscall"
 )
 
+// ChangeMode changes the mode of the given file/directory to the
+// specified value.
+//
+// If the mode was changed, this function will return true.
+func ChangeMode(path string, mode string) (bool, error) {
+
+	// Get the mode as an integer.
+	//
+	// NOTE: We expect octal input.
+	m, _ := strconv.ParseInt(mode, 8, 64)
+
+	// Get the details of the file, so we can see if we need
+	// to change owner, group, and mode.
+	info, err := os.Stat(path)
+	if err != nil {
+		return false, err
+	}
+
+	// If the mode doesn't match what we expect then change it
+	if info.Mode().Perm() != os.FileMode(m) {
+		err = os.Chmod(path, os.FileMode(m))
+		if err != nil {
+			return false, err
+		}
+
+		return true, nil
+	}
+
+	return false, nil
+}
+
 // ChangeOwner changes the owner of the given file/directory to
 // the specified value.
 //
