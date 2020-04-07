@@ -3,9 +3,9 @@ package modules
 import (
 	"fmt"
 	"os"
-	"os/user"
 	"strconv"
-	"syscall"
+
+	"github.com/skx/marionette/file"
 )
 
 // DirectoryModule stores our state
@@ -65,14 +65,10 @@ func (f *DirectoryModule) Execute(args map[string]interface{}) (bool, error) {
 		mode = "0755"
 	}
 
-	// User and group changes
-	owner := StringParam(args, "owner")
-	group := StringParam(args, "group")
-
 	// Convert mode to int
 	modeI, _ := strconv.ParseInt(mode, 8, 64)
 
-	// Create the directory, if it is missing.
+	// Create the directory, if it is missing, with the correct mode.
 	if _, err := os.Stat(target); err != nil {
 		if os.IsNotExist(err) {
 			// make it
@@ -91,42 +87,26 @@ func (f *DirectoryModule) Execute(args map[string]interface{}) (bool, error) {
 		return false, err
 	}
 
-	// Are we changing owner?
+	// User and group changes
+	owner := StringParam(args, "owner")
+	group := StringParam(args, "group")
+
+	// User and group changes
 	if owner != "" {
-		data, err := user.Lookup(owner)
+		change, err := file.ChangeOwner(target, owner)
 		if err != nil {
 			return false, err
 		}
-
-		// Existing values
-		UID := int(info.Sys().(*syscall.Stat_t).Uid)
-		GID := int(info.Sys().(*syscall.Stat_t).Gid)
-
-		// proposed owner
-		uid, _ := strconv.Atoi(data.Uid)
-
-		if uid != UID {
-			os.Chown(target, uid, GID)
+		if change {
 			changed = true
 		}
 	}
-
-	// Are we changing group?
 	if group != "" {
-		data, err := user.Lookup(group)
+		change, err := file.ChangeGroup(target, group)
 		if err != nil {
 			return false, err
 		}
-
-		// Existing values
-		UID := int(info.Sys().(*syscall.Stat_t).Uid)
-		GID := int(info.Sys().(*syscall.Stat_t).Gid)
-
-		// proposed owner
-		gid, _ := strconv.Atoi(data.Gid)
-
-		if gid != GID {
-			os.Chown(target, UID, gid)
+		if change {
 			changed = true
 		}
 	}
