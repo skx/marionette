@@ -38,7 +38,7 @@ The available modules for performing tasks can be extended via the use of [exter
 
 # Installation & Usage
 
-Once we have a stable release it will be available from the [download page]() in the meantime you can install the CLI tool by running:
+Binaries for several systems are available upon our [download page](https://github.com/skx/marionette/releases).  If you prefer to use something more recent you can install directly from the repository via:
 
 ```
 go get github.com/skx/marionette
@@ -49,6 +49,8 @@ Once installed you can then execute it with the path of one or more rule-files l
 ```
 marionette ./rules.txt ./rules2.txt ... ./rulesN.txt
 ```
+
+* **NOTE**: I expect this code to run upon any Unix-like system, however there are things that are known to not work upon Windows.
 
 
 
