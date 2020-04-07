@@ -8,6 +8,7 @@
 * [Module Types](#module-types)
    * [directory](#directory)
    * [dpkg](#dpkg)
+   * [edit](#edit)
    * [file](#file)
    * [git](#git)
    * [link](#link)
@@ -157,6 +158,27 @@ dpkg { name => "Remove stuff",
 Only the `package` key is required.
 
 In the future we _might_ have an `apt` module for installing new packages.  We'll see.
+
+
+## `edit`
+
+This module allows minor edits to be applied to a file:
+
+* Removing lines matching a given regular expression.
+* Appending a line to the file if missing.
+
+```
+edit { name => "Remove my VPN hosts",
+       target => "/etc/hosts",
+       remove_lines => "\.vpn" }
+```
+
+The following keys are supported:
+
+* `target` - Mandatory filename to edit.
+* `remove_lines` - Remove any lines of the file matching the specified regular expression.
+* `append_if_missing` - Append the given text if not already present in the file.
+
 
 
 ## `file`
