@@ -8,6 +8,39 @@ import (
 	"os"
 )
 
+// Copy copies the source file into the destination file.
+func Copy(src string, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, in)
+	if err != nil {
+		return err
+	}
+
+	// We changed
+	return out.Close()
+}
+
+// Exists reports whether the named file or directory exists.
+func Exists(name string) bool {
+	if _, err := os.Stat(name); err != nil {
+		if os.IsNotExist(err) {
+			return false
+		}
+	}
+	return true
+}
+
 // HashFile returns the SHA1-hash of the contents of the specified file.
 func HashFile(filePath string) (string, error) {
 	var returnSHA1String string

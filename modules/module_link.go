@@ -3,6 +3,8 @@ package modules
 import (
 	"fmt"
 	"os"
+
+	"github.com/skx/marionette/file"
 )
 
 // LinkModule stores our state
@@ -45,7 +47,7 @@ func (f *LinkModule) Execute(args map[string]interface{}) (bool, error) {
 	}
 
 	// If the target doesn't exist we create the link.
-	if !f.FileExists(target) {
+	if !file.Exists(target) {
 		err := os.Symlink(source, target)
 		return true, err
 	}
@@ -92,16 +94,6 @@ func (f *LinkModule) Execute(args map[string]interface{}) (bool, error) {
 	// Fix the symlink.
 	err = os.Symlink(source, target)
 	return true, err
-}
-
-// FileExists reports whether the named file or directory exists.
-func (f *LinkModule) FileExists(name string) bool {
-	if _, err := os.Stat(name); err != nil {
-		if os.IsNotExist(err) {
-			return false
-		}
-	}
-	return true
 }
 
 // init is used to dynamically register our module.

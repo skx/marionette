@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/skx/marionette/file"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
@@ -58,7 +59,7 @@ func (g *GitModule) Execute(args map[string]interface{}) (bool, error) {
 
 	// If we don't have "path/.git" then we need to fetch it
 	tmp := filepath.Join(path, ".git")
-	if !g.FileExists(tmp) {
+	if !file.Exists(tmp) {
 
 		// Clone since it is missing.
 		_, err := git.PlainClone(path, false, &git.CloneOptions{
@@ -141,16 +142,6 @@ func (g *GitModule) Execute(args map[string]interface{}) (bool, error) {
 	}
 
 	return changed, err
-}
-
-// FileExists reports whether the named file or directory exists.
-func (g *GitModule) FileExists(name string) bool {
-	if _, err := os.Stat(name); err != nil {
-		if os.IsNotExist(err) {
-			return false
-		}
-	}
-	return true
 }
 
 // init is used to dynamically register our module.

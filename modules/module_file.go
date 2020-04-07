@@ -56,7 +56,7 @@ func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 	if state == "absent" {
 
 		// Does it exist?
-		if f.FileExists(target) {
+		if file.Exists(target) {
 
 			err := os.Remove(target)
 			return true, err
@@ -187,45 +187,13 @@ func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 	return ret, err
 }
 
-// FileExists reports whether the named file or directory exists.
-func (f *FileModule) FileExists(name string) bool {
-	if _, err := os.Stat(name); err != nil {
-		if os.IsNotExist(err) {
-			return false
-		}
-	}
-	return true
-}
-
-func (f *FileModule) copy(src string, dst string) error {
-	in, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
-
-	out, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	_, err = io.Copy(out, in)
-	if err != nil {
-		return err
-	}
-
-	// We changed
-	return out.Close()
-}
-
 // CopyFile copies the source file to the destination, returning if we changed
 // the contents.
 func (f *FileModule) CopyFile(src string, dst string) (bool, error) {
 
 	// File doesn't exist - copy it
-	if !f.FileExists(dst) {
-		err := f.copy(src, dst)
+	if !file.Exists(dst) {
+		err := file.Copy(src, dst)
 		return true, err
 	}
 
@@ -241,7 +209,7 @@ func (f *FileModule) CopyFile(src string, dst string) (bool, error) {
 	}
 
 	// Since they differ we refresh and that's a change
-	err = f.copy(src, dst)
+	err = file.Copy(src, dst)
 	return true, err
 }
 
@@ -270,8 +238,8 @@ func (f *FileModule) FetchURL(url string, dst string) (bool, error) {
 	}
 
 	// File doesn't exist - copy it
-	if !f.FileExists(dst) {
-		err := f.copy(tmpfile.Name(), dst)
+	if !file.Exists(dst) {
+		err := file.Copy(tmpfile.Name(), dst)
 		return true, err
 	}
 
@@ -287,7 +255,7 @@ func (f *FileModule) FetchURL(url string, dst string) (bool, error) {
 	}
 
 	// otherwise change
-	err = f.copy(tmpfile.Name(), dst)
+	err = file.Copy(tmpfile.Name(), dst)
 	return true, err
 }
 
@@ -306,8 +274,8 @@ func (f *FileModule) CreateFile(dst string, content string) (bool, error) {
 	ioutil.WriteFile(tmpfile.Name(), []byte(content), 0644)
 
 	// File doesn't exist - copy it
-	if !f.FileExists(dst) {
-		err := f.copy(tmpfile.Name(), dst)
+	if !file.Exists(dst) {
+		err := file.Copy(tmpfile.Name(), dst)
 		return true, err
 	}
 
@@ -323,7 +291,7 @@ func (f *FileModule) CreateFile(dst string, content string) (bool, error) {
 	}
 
 	// otherwise change
-	err = f.copy(tmpfile.Name(), dst)
+	err = file.Copy(tmpfile.Name(), dst)
 	return true, err
 }
 

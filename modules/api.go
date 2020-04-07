@@ -1,6 +1,6 @@
 // Package modules contain modules for executing things.
 //
-// Each module must comform to our API
+// Each module must comform to our API.
 package modules
 
 import "sync"
