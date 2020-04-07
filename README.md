@@ -14,7 +14,8 @@
    * [link](#link)
    * [shell](#shell)
 * [Adding Modules](#adding-modules)
-* [Example](#example)
+* [Example Rules](#example-rules)
+* [Future Plans](#future-plans)
 
 
 # marionette
