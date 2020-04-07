@@ -58,7 +58,8 @@ func (f *LinkModule) Execute(args map[string]interface{}) (bool, error) {
 	if fileInfo.Mode()&os.ModeSymlink != 0 {
 
 		// If so get the target file to which it points.
-		originFile, err := os.Readlink(target)
+		var originFile string
+		originFile, err = os.Readlink(target)
 		if err != nil {
 			return false, err
 		}

@@ -52,7 +52,7 @@ func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 
 		// Does it exist?
 		if file.Exists(target) {
-			err := os.Remove(target)
+			err = os.Remove(target)
 			return true, err
 		}
 
@@ -110,7 +110,8 @@ func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 
 	// Are we changing owner?
 	if owner != "" {
-		data, err := user.Lookup(owner)
+		var data *user.User
+		data, err = user.Lookup(owner)
 		if err != nil {
 			return false, err
 		}
@@ -130,7 +131,8 @@ func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 
 	// Are we changing group?
 	if group != "" {
-		data, err := user.Lookup(group)
+		var data *user.User
+		data, err = user.Lookup(group)
 		if err != nil {
 			return false, err
 		}
@@ -152,7 +154,7 @@ func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 	modeI, _ := strconv.ParseInt(mode, 8, 64)
 
 	if mode != "" && (info.Mode().Perm() != os.FileMode(modeI)) {
-		err := os.Chmod(target, os.FileMode(modeI))
+		err = os.Chmod(target, os.FileMode(modeI))
 		if err != nil {
 			return false, err
 		}
@@ -214,7 +216,7 @@ func (f *FileModule) FetchURL(url string, dst string) (bool, error) {
 
 	// File doesn't exist - copy it
 	if !file.Exists(dst) {
-		err := file.Copy(tmpfile.Name(), dst)
+		err = file.Copy(tmpfile.Name(), dst)
 		return true, err
 	}
 
@@ -250,7 +252,7 @@ func (f *FileModule) CreateFile(dst string, content string) (bool, error) {
 
 	// File doesn't exist - copy it
 	if !file.Exists(dst) {
-		err := file.Copy(tmpfile.Name(), dst)
+		err = file.Copy(tmpfile.Name(), dst)
 		return true, err
 	}
 
