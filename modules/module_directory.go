@@ -3,9 +3,9 @@ package modules
 import (
 	"fmt"
 	"os"
-	"os/user"
 	"strconv"
-	"syscall"
+
+	"github.com/skx/marionette/file"
 )
 
 // DirectoryModule stores our state
@@ -65,14 +65,10 @@ func (f *DirectoryModule) Execute(args map[string]interface{}) (bool, error) {
 		mode = "0755"
 	}
 
-	// User and group changes
-	owner := StringParam(args, "owner")
-	group := StringParam(args, "group")
-
 	// Convert mode to int
 	modeI, _ := strconv.ParseInt(mode, 8, 64)
 
-	// Create the directory, if it is missing.
+	// Create the directory, if it is missing, with the correct mode.
 	if _, err := os.Stat(target); err != nil {
 		if os.IsNotExist(err) {
 			// make it
@@ -84,59 +80,38 @@ func (f *DirectoryModule) Execute(args map[string]interface{}) (bool, error) {
 		}
 	}
 
-	// Get the details of the directory, so we can see if we need
-	// to change owner, group, and mode.
-	info, err := os.Stat(target)
+	// User and group changes
+	owner := StringParam(args, "owner")
+	group := StringParam(args, "group")
+
+	// User and group changes
+	if owner != "" {
+		change, err := file.ChangeOwner(target, owner)
+		if err != nil {
+			return false, err
+		}
+		if change {
+			changed = true
+		}
+	}
+	if group != "" {
+		change, err := file.ChangeGroup(target, group)
+		if err != nil {
+			return false, err
+		}
+		if change {
+			changed = true
+		}
+	}
+
+	// If we created the directory it will have the correct
+	// mode, but if it was already present with the wrong value
+	// we must fix it.
+	change, err := file.ChangeMode(target, mode)
 	if err != nil {
 		return false, err
 	}
-
-	// Are we changing owner?
-	if owner != "" {
-		data, err := user.Lookup(owner)
-		if err != nil {
-			return false, err
-		}
-
-		// Existing values
-		UID := int(info.Sys().(*syscall.Stat_t).Uid)
-		GID := int(info.Sys().(*syscall.Stat_t).Gid)
-
-		// proposed owner
-		uid, _ := strconv.Atoi(data.Uid)
-
-		if uid != UID {
-			os.Chown(target, uid, GID)
-			changed = true
-		}
-	}
-
-	// Are we changing group?
-	if group != "" {
-		data, err := user.Lookup(group)
-		if err != nil {
-			return false, err
-		}
-
-		// Existing values
-		UID := int(info.Sys().(*syscall.Stat_t).Uid)
-		GID := int(info.Sys().(*syscall.Stat_t).Gid)
-
-		// proposed owner
-		gid, _ := strconv.Atoi(data.Gid)
-
-		if gid != GID {
-			os.Chown(target, UID, gid)
-			changed = true
-		}
-	}
-
-	// The current mode.
-	if mode != "" && (info.Mode().Perm() != os.FileMode(modeI)) {
-		err := os.Chmod(target, os.FileMode(modeI))
-		if err != nil {
-			return false, err
-		}
+	if change {
 		changed = true
 	}
 

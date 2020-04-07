@@ -6,9 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"os/user"
-	"strconv"
-	"syscall"
 
 	"github.com/skx/marionette/file"
 )
@@ -88,77 +85,47 @@ func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 	}
 
 	//
-	// Now we can change the owner/group
-	//
-
 	// Get the mode, if any.  We'll have a default here.
+	//
 	mode := StringParam(args, "mode")
 	if mode == "" {
 		mode = "0755"
 	}
 
-	// User and group changes
-	owner := StringParam(args, "owner")
-	group := StringParam(args, "group")
-
-	// Get the details of the file, so we can see if we need
-	// to change owner, group, and mode.
-	info, err := os.Stat(target)
+	//
+	// Change the mode, if required.
+	//
+	changed := false
+	changed, err = file.ChangeMode(target, mode)
 	if err != nil {
 		return false, err
 	}
-
-	// Are we changing owner?
-	if owner != "" {
-		var data *user.User
-		data, err = user.Lookup(owner)
-		if err != nil {
-			return false, err
-		}
-
-		// Existing values
-		UID := int(info.Sys().(*syscall.Stat_t).Uid)
-		GID := int(info.Sys().(*syscall.Stat_t).Gid)
-
-		// proposed owner
-		uid, _ := strconv.Atoi(data.Uid)
-
-		if uid != UID {
-			os.Chown(target, uid, GID)
-			ret = true
-		}
-	}
-
-	// Are we changing group?
-	if group != "" {
-		var data *user.User
-		data, err = user.Lookup(group)
-		if err != nil {
-			return false, err
-		}
-
-		// Existing values
-		UID := int(info.Sys().(*syscall.Stat_t).Uid)
-		GID := int(info.Sys().(*syscall.Stat_t).Gid)
-
-		// proposed owner
-		gid, _ := strconv.Atoi(data.Gid)
-
-		if gid != GID {
-			os.Chown(target, UID, gid)
-			ret = true
-		}
-	}
-
-	// The current mode.
-	modeI, _ := strconv.ParseInt(mode, 8, 64)
-
-	if mode != "" && (info.Mode().Perm() != os.FileMode(modeI)) {
-		err = os.Chmod(target, os.FileMode(modeI))
-		if err != nil {
-			return false, err
-		}
+	if changed {
 		ret = true
+	}
+
+	// User and group changes
+	owner := StringParam(args, "owner")
+	if owner != "" {
+		changed := false
+		changed, err = file.ChangeOwner(target, owner)
+		if err != nil {
+			return false, err
+		}
+		if changed {
+			ret = true
+		}
+	}
+	group := StringParam(args, "group")
+	if group != "" {
+		changed := false
+		changed, err = file.ChangeGroup(target, group)
+		if err != nil {
+			return false, err
+		}
+		if changed {
+			ret = true
+		}
 	}
 
 	return ret, err
