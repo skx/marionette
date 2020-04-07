@@ -50,7 +50,6 @@ Once installed you can then execute it with the path of one or more rule-files l
 marionette ./rules.txt ./rules2.txt ... ./rulesN.txt
 ```
 
-* **NOTE**: I expect this code to run upon any Unix-like system, however there are things that are known to not work upon Windows.
 
 
 
@@ -119,6 +118,8 @@ The difference in these two approaches is how often things run:
 You'll note that any module which is followed by the token `triggered` will __only__ be executed when it is triggered by name.  If there is no `notify` key referring to that rule it will __never__ be executed.
 
 
+
+
 # Module Types
 
 We have a small number of primitives at the moment implemented in 100% pure golang.  Adding [new modules as plugins](#adding-modules) is possible, and contributions for various purposes are most welcome.
@@ -162,6 +163,7 @@ dpkg { name => "Remove stuff",
 Only the `package` key is required.
 
 In the future we _might_ have an `apt` module for installing new packages.  We'll see.
+
 
 
 ## `edit`
@@ -248,6 +250,7 @@ notification if either:
 * The repository was updated.  (i.e. Remote changes were pulled in.)
 
 
+
 ## `link`
 
 The `link` module allows you to create a symbolic link.
@@ -265,6 +268,7 @@ Valid parameters are:
 * `source` is a mandatory parameter, and specifies the item the symlink should point to.
 
 
+
 ## `shell`
 
 The shell module allows you to run shell-commands.
@@ -277,6 +281,7 @@ shell { name => "I touch your file.",
 ```
 
 `command` is the only mandatory parameter.
+
 
 
 
@@ -304,6 +309,7 @@ A non-zero return code will be assumed to mean something failed, and execution w
 
 
 
+
 # Example Rules
 
 There is an example ruleset included in the distribution:
@@ -311,6 +317,8 @@ There is an example ruleset included in the distribution:
 * [input.txt](input.txt)
 
 That should be safe to run for all users, as it only modifies files beneath `/tmp`.
+
+
 
 
 # Future Plans
@@ -322,6 +330,8 @@ That should be safe to run for all users, as it only modifies files beneath `/tm
   * I guess we could write something like this:
     * `only_if => "${distribution} == Debian"`
     * But of course that gets messy.  Compare with Ansible, again.
+
+
 
 
 ## Github Setup
