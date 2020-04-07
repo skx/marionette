@@ -1,3 +1,6 @@
+[![Go Report Card](https://goreportcard.com/badge/github.com/skx/marionette)](https://goreportcard.com/report/github.com/skx/marionette)
+[![license](https://img.shields.io/github/license/skx/marionette.svg)](https://github.com/skx/marionette/blob/master/LICENSE)
+[![Release](https://img.shields.io/github/release/skx/marionette.svg)](https://github.com/skx/marionette/releases/latest)
 
 * [marionette](#marionette)
 * [Installation &amp; Usage](#installation--usage)
