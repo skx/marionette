@@ -1,10 +1,11 @@
 #
+# This is an example rule-file for marionette.
 #
-# This is our input file.
+# The primarily purpose of this file is to demonstrate the syntax,
+# and give examples of what our rules can do.
 #
 # As you can guess comments are prefixed with a "#", and they are ignored
 # entirely.
-#
 #
 
 
@@ -15,7 +16,7 @@ let foo = "bar"
 
 
 #
-# The general form of this input-file is a set of rules:
+# The general form of our rules is something like this:
 #
 #   $MODULE {
 #              name => "NAME OF RULE",
@@ -24,58 +25,131 @@ let foo = "bar"
 #              arg_3 => "Value 3 .. ",
 #   }
 #
-#  There are a couple of modules supported at the moment:
 #
-#   file -  Working with files
+# The `$MODULE` name is the name of the module which is being used,
+# and then there is a hash of "key => values".
 #
-#   directory - Working with directories
+# It is important to note that rules must have names, as these names are
+# used to trigger subsequant rules, or define dependencies.
 #
-#   shell   - Executing shell commands (NOP)
+# Each rule contains the appropriate parameters, and values, to drive
+# the module.  However there are also two magical keys which are global
+# and used for defining relationships/dependencies:
 #
+#    dependencies:
+#      Specify a single, or multiple, rules this depends upon.
 #
-# Dependencies must be specified within the rules, manually, for
-# example if you need to run a command only when a directory is
-# present you'd do this:
+#    notify:
+#      Specify either a single rule to trigger, or multiple rules to
+#      trigger, when this rule matches
 #
-#    directory{ name => "Create /tmp", target => "/tmp" }
-#
-#    shell{ name => "Test", command = "uptime > /tmp/uptime",
-#           dependencies => [ "Create /tmp" ]
-#
+# Triggering in this sense means that the rule resulted in a change to
+# your system.  If you write a rule that says "/tmp/blah" must exist
+# and that directory is missing then it will be created, and the rule
+# will "notify" any rules which are specified.  Once the directory is
+# present that will no longer occur.
 #
 
 
 #
-# Now follows some test rules
+# Now we'll start with some simple examples.
 #
 
 #
-#  Create a directory.
+#  We'll create the directory /tmp/test, if it is missing.
 #
-#  Each action has a "name", and a per-module set of key/values
+#  There is nothing complex here, as this is a simple example.
 #
-#  The names must be unique.
-#
-#  Notice here we used `${foo}` to refer to the variable we defined
-# at the top of the file?
-#
-directory { name   => "ok-template",
-            target => "/tmp/${foo}",
-            mode   => "0755",
-            notify => [ "I touch your file"] }
+directory { name   => "hello-world",
+            target => "/tmp/test",
+            mode   => "0755", }
 
 
-directory { name   => "ok",
-            target => "/tmp/foo/meow/cat/dog",
-            mode   => "0777", }
-
-
-directory { name => "/tmp",
-    target => "/tmp",
-}
+#
+# Now we'll create a child directory.
+#
+# (We don't need to do this in two steps, we can create a directory such
+# as "/tmp/foo/bar/test/meow/kitten" in one step.  Each subdirectory will
+# be created as you'd expect.)
+#
+# Here we're choosing to say that this rule will only occur after the
+# previous one.
+#
+directory { name    => "example-two",
+            target  => "/tmp/test/me",
+            require => "hello-world" }
 
 #
-# Create a file, from the given remote URL
+# NOTE:
+#
+# If we required two dependencies, or two things to happen before our
+# rule was executed we'd use an array:
+#
+#    require => [ "rule-one", "rule-two" ]
+#
+
+#
+# Right let us now look at the other kind of relationship we can define,
+# which is triggering/notifying other rules when we change.
+#
+# First of all we'll define a rule with the special "triggered" marker,
+# this means the rule will NEVER execute UNLESS it is triggered.
+#
+
+shell triggered { name    => "test-shell-command",
+                  command => "wc -l /tmp/input > /tmp/output.txt" }
+
+
+#
+# With that rule defined we can now create a file "/tmp/input" with
+# some fixed content, and explicitly notify the result.
+#
+file { name => "test-static-content",
+       target => "/tmp/input",
+       content => "This is my file content
+The string has inline newlines.
+I think three lines is enough
+",
+       notify => "test-shell-command" }
+
+#
+# As a result of running this two things should have happened:
+#
+#  1. The file /tmp/input.txt should have our fixed content saved to it.
+#
+#  2. The file /tmp/output.txt should have been created, because we run
+#     the shell-command upon it.
+#
+# Future runs will change nothing, unless you remove the input file, or
+# edit it such that it contains the wrong content.
+#
+
+
+#
+#  That concludes our general introduction.
+#
+#  We've seen:
+#
+#   1.  How to use a module "file", "directory", and "shell".
+#
+#   2.  How to declare dependencies.
+#
+#   3.  How to trigger other rules, and keep them from firing unless required.
+#
+#
+
+
+##
+## Other examples
+##
+
+# Create a file with content from the given remote URL
+#
+# Here we see "${foo}" is used, that will expand to the variable defined
+# at the top of this file.
+#
+# Variable expansion applies to all strings used as values in our parameter
+# blocks.  Keys are not expanded.
 #
 file {  name       => "fetch file",
         target     => "/tmp/${foo}.txt",
@@ -86,8 +160,7 @@ file {  name       => "fetch file",
 #       owner      => "skx",
 #       group      => "skx",
 
-        requires   => "/tmp",
-        notify     => [ "I count your lines uptime." ],
+        notify     => [ "I count your lines" ],
 }
 
 
@@ -95,11 +168,16 @@ file {  name       => "fetch file",
 #
 # These are some shell-commands.
 #
-shell triggered { name => "I count your lines uptime.",
-                  command => "wc -l /tmp/steve.txt > /tmp/line.count"  }
+# First one is a repeat of the previous example; it is triggered by the
+# download.
+#
+# The second runs every time.
+#
+shell triggered { name => "I count your lines",
+                  command => "wc -l /tmp/${foo}.txt > /tmp/line.count"  }
 
 shell { name => "I touch your file.",
-        command => "touch /tmp/blah/test.me" }
+        command => "touch /tmp/test.me" }
 
 
 #
@@ -113,5 +191,18 @@ link { name => "Symlink test",
 # Clone a remote repository to the local system.
 #
 git { path => "/tmp/foot/bar/baz",
-      repository => "https://github.com/src-d/go-git",
-    }
+      repository => "https://github.com/src-d/go-git", }
+
+#
+# Copy this file to a new name.
+#
+file { name => "copy input.txt to tmp.txt",
+       source => "input.txt",
+       target => "copy.txt" }
+
+#
+# Edit that file-copy to remove any comments, i.e lines prefixed with "#"
+#
+edit { name => "drop comments",
+       target => "copy.txt",
+       remove_lines => "^#" }
