@@ -195,6 +195,28 @@ func (e *Executor) Execute() error {
 	return nil
 }
 
+// runConditional returns true if the given conditional is true
+func (e *Executor) runConditional(cond interface{}) (bool, error) {
+
+	// Get the value as a string
+	test, ok := cond.(string)
+	if !ok {
+		return false, fmt.Errorf(" a string can be specified for a conditional, got %v", cond)
+	}
+
+	// The rule should be "exists XXX"
+	parts := strings.Split(test, " ")
+	if len(parts) != 2 || parts[0] != "exists" {
+		return false, fmt.Errorf("unknown condition for 'if' : %s", test)
+	}
+
+	if file.Exists(parts[1]) {
+		return true, nil
+	}
+
+	return false, nil
+}
+
 // executeSingleRule creates the appropriate module, and runs the single rule.
 func (e *Executor) executeSingleRule(rule rules.Rule) error {
 
@@ -205,43 +227,23 @@ func (e *Executor) executeSingleRule(rule rules.Rule) error {
 	// Are there conditionals present?
 	//
 	if rule.Params["if"] != nil {
-
-		// Get the value
-		test, ok := rule.Params["if"].(string)
-		if !ok {
-			return fmt.Errorf("only a string can be specified for an 'if' parameter, got %v", test)
+		res, err := e.runConditional(rule.Params["if"])
+		if err != nil {
+			return err
 		}
-
-		// The rule should be "exists XXX"
-		parts := strings.Split(test, " ")
-		if len(parts) != 2 || parts[0] != "exists" {
-			return fmt.Errorf("unknown condition for 'if' : %s", test)
-		}
-
-		// Skip the rule if the file doesn't exist.
-		if !file.Exists(parts[1]) {
-			fmt.Printf("\tSkipping rule, file not found: %s\n", parts[1])
+		if !res {
+			fmt.Printf("\tSkipping rule condition was not true: %s\n", rule.Params["if"])
 			return nil
 		}
 	}
 
 	if rule.Params["unless"] != nil {
-
-		// Get the value
-		test, ok := rule.Params["unless"].(string)
-		if !ok {
-			return fmt.Errorf("only a string can be specified for an 'unless' parameter")
+		res, err := e.runConditional(rule.Params["unless"])
+		if err != nil {
+			return err
 		}
-
-		// The rule should be "exists XXX"
-		parts := strings.Split(test, " ")
-		if len(parts) != 2 || parts[0] != "exists" {
-			return fmt.Errorf("unknown condition for 'unless' : %s", test)
-		}
-
-		// Skip the rule if the file doesn't exist.
-		if file.Exists(parts[1]) {
-			fmt.Printf("\tSkipping rule, file-exists: %s\n", parts[1])
+		if res {
+			fmt.Printf("\tSkipping rule condition was true: %s\n", rule.Params["unless"])
 			return nil
 		}
 	}
