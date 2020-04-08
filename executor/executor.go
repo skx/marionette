@@ -162,7 +162,7 @@ func (e *Executor) Execute() error {
 
 			// get the actual rule, by index
 			dr := e.Rules[e.index[dep]]
-			err := e.ExecuteRule(dr)
+			err := e.executeSingleRule(dr)
 			if err != nil {
 				return err
 			}
@@ -170,7 +170,7 @@ func (e *Executor) Execute() error {
 		}
 
 		// Now the rule itself
-		err := e.ExecuteRule(r)
+		err := e.executeSingleRule(r)
 		if err != nil {
 			return err
 		}
@@ -180,8 +180,8 @@ func (e *Executor) Execute() error {
 	return nil
 }
 
-// ExecuteRule creates the appropriate module, and runs the single rule.
-func (e *Executor) ExecuteRule(rule rules.Rule) error {
+// executeSingleRule creates the appropriate module, and runs the single rule.
+func (e *Executor) executeSingleRule(rule rules.Rule) error {
 
 	// Show what we're doing
 	fmt.Printf("Running %s-module rule: %s\n", rule.Type, rule.Name)

@@ -38,7 +38,11 @@ func (p *Parser) Parse() ([]rules.Rule, error) {
 
 	// Parse forever
 	for {
+
+		// Get the next token.
 		tok := p.l.NextToken()
+
+		// Error-checking
 		if tok.Type == token.ILLEGAL {
 			return nil, fmt.Errorf("illegal token: %v", tok)
 		}
@@ -54,16 +58,17 @@ func (p *Parser) Parse() ([]rules.Rule, error) {
 		// Is this an assignment?
 		if tok.Literal == "let" {
 
-			err = p.ParseVariable()
+			// If so parse it.
+			err = p.parseVariable()
 			if err != nil {
 				return found, err
 			}
 		} else {
 
-			// OK then it must be a block statement
+			// Otherwise it must be a block statement.
 			var r rules.Rule
 
-			r, err = p.ParseBlock(tok.Literal)
+			r, err = p.parseBlock(tok.Literal)
 			if err != nil {
 				return nil, err
 			}
@@ -80,8 +85,8 @@ func (p *Parser) Variables() map[string]string {
 	return p.vars
 }
 
-// ParseVariable parses a variable assignment, storing it in our map.
-func (p *Parser) ParseVariable() error {
+// parseVariable parses a variable assignment, storing it in our map.
+func (p *Parser) parseVariable() error {
 
 	// name
 	name := p.l.NextToken()
@@ -103,8 +108,8 @@ func (p *Parser) ParseVariable() error {
 	return nil
 }
 
-// ParseBlock parses the contents of modules' block.
-func (p *Parser) ParseBlock(ty string) (rules.Rule, error) {
+// parseBlock parses the contents of modules' block.
+func (p *Parser) parseBlock(ty string) (rules.Rule, error) {
 
 	var r rules.Rule
 	r.Name = ""
@@ -159,7 +164,7 @@ func (p *Parser) ParseBlock(ty string) (rules.Rule, error) {
 		}
 
 		// Read the value
-		value, err := p.ReadValue(name)
+		value, err := p.readValue(name)
 		if err != nil {
 			return r, err
 		}
@@ -178,10 +183,10 @@ func (p *Parser) ParseBlock(ty string) (rules.Rule, error) {
 	return r, nil
 }
 
-// ReadValue returns the value associated with a name.
+// readValue returns the value associated with a name.
 //
 // The value is either a string, or an array of strings.
-func (p *Parser) ReadValue(name string) (interface{}, error) {
+func (p *Parser) readValue(name string) (interface{}, error) {
 
 	// Helper to expand variables.
 	mapper := func(val string) string {

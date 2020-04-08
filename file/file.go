@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-// Copy copies the source file into the destination file.
+// Copy copies the contents of the source file into the destination file.
 func Copy(src string, dst string) error {
 	in, err := os.Open(src)
 	if err != nil {
