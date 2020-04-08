@@ -5,6 +5,7 @@
 * [marionette](#marionette)
 * [Installation &amp; Usage](#installation--usage)
 * [Rule Definition](#rule-definition)
+  * [Conditionals](#conditionals)
 * [Module Types](#module-types)
    * [directory](#directory)
    * [dpkg](#dpkg)
@@ -116,6 +117,29 @@ The difference in these two approaches is how often things run:
   * Because the directory-creation triggers the notification only when the rule changes (i.e. the directory goes from being "absent" to "present").
 
 You'll note that any module which is followed by the token `triggered` will __only__ be executed when it is triggered by name.  If there is no `notify` key referring to that rule it will __never__ be executed.
+
+
+
+
+## Conditionals
+
+We have some simple support for conditional-execution of rules, via the
+magic keys `if` and `unless`.  These currently allow rules to be conditional
+on the existence of files.
+
+```
+shell { name    => "Upgrade",
+        command => "apt-get dist-upgrade --yes --force-yes",
+        if      => "exists /usr/bin/apt-get" }
+```
+
+For the reverse `unless` works:
+
+```
+file { name   => "Create file",
+       target => "/tmp/foo",
+       unless => "exists /etc/no.foo" }
+```
 
 
 

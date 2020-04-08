@@ -164,6 +164,14 @@ file {  name       => "fetch file",
 }
 
 
+#
+# We support simple conditionals for rules, via the magic keys
+# "if" and "unless".  These allow you to skip rules if a file
+# exists, or not.
+#
+shell { name => "Echo Test",
+        command => "echo I'm alive",
+        unless => "exists /bin/ls" }
 
 #
 # These are some shell-commands.

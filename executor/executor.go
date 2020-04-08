@@ -201,6 +201,51 @@ func (e *Executor) executeSingleRule(rule rules.Rule) error {
 	// Show what we're doing
 	fmt.Printf("Running %s-module rule: %s\n", rule.Type, rule.Name)
 
+	//
+	// Are there conditionals present?
+	//
+	if rule.Params["if"] != nil {
+
+		// Get the value
+		test, ok := rule.Params["if"].(string)
+		if !ok {
+			return fmt.Errorf("only a string can be specified for an 'if' parameter, got %v", test)
+		}
+
+		// The rule should be "exists XXX"
+		parts := strings.Split(test, " ")
+		if len(parts) != 2 || parts[0] != "exists" {
+			return fmt.Errorf("unknown condition for 'if' : %s", test)
+		}
+
+		// Skip the rule if the file doesn't exist.
+		if !file.Exists(parts[1]) {
+			fmt.Printf("\tSkipping rule, file not found: %s\n", parts[1])
+			return nil
+		}
+	}
+
+	if rule.Params["unless"] != nil {
+
+		// Get the value
+		test, ok := rule.Params["unless"].(string)
+		if !ok {
+			return fmt.Errorf("only a string can be specified for an 'unless' parameter")
+		}
+
+		// The rule should be "exists XXX"
+		parts := strings.Split(test, " ")
+		if len(parts) != 2 || parts[0] != "exists" {
+			return fmt.Errorf("unknown condition for 'unless' : %s", test)
+		}
+
+		// Skip the rule if the file doesn't exist.
+		if file.Exists(parts[1]) {
+			fmt.Printf("\tSkipping rule, file-exists: %s\n", parts[1])
+			return nil
+		}
+	}
+
 	// Did this rule-execution result in a change?
 	//
 	// If so then we'd notify any rules which should be executed
