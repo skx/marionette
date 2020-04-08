@@ -195,11 +195,58 @@ func (e *Executor) Execute() error {
 	return nil
 }
 
+// runConditional returns true if the given conditional is true
+func (e *Executor) runConditional(cond interface{}) (bool, error) {
+
+	// Get the value as a string
+	test, ok := cond.(string)
+	if !ok {
+		return false, fmt.Errorf(" a string can be specified for a conditional, got %v", cond)
+	}
+
+	// The rule should be "exists XXX"
+	parts := strings.Split(test, " ")
+	if len(parts) != 2 || parts[0] != "exists" {
+		return false, fmt.Errorf("unknown condition for 'if' : %s", test)
+	}
+
+	if file.Exists(parts[1]) {
+		return true, nil
+	}
+
+	return false, nil
+}
+
 // executeSingleRule creates the appropriate module, and runs the single rule.
 func (e *Executor) executeSingleRule(rule rules.Rule) error {
 
 	// Show what we're doing
 	fmt.Printf("Running %s-module rule: %s\n", rule.Type, rule.Name)
+
+	//
+	// Are there conditionals present?
+	//
+	if rule.Params["if"] != nil {
+		res, err := e.runConditional(rule.Params["if"])
+		if err != nil {
+			return err
+		}
+		if !res {
+			fmt.Printf("\tSkipping rule condition was not true: %s\n", rule.Params["if"])
+			return nil
+		}
+	}
+
+	if rule.Params["unless"] != nil {
+		res, err := e.runConditional(rule.Params["unless"])
+		if err != nil {
+			return err
+		}
+		if res {
+			fmt.Printf("\tSkipping rule condition was true: %s\n", rule.Params["unless"])
+			return nil
+		}
+	}
 
 	// Did this rule-execution result in a change?
 	//
@@ -307,7 +354,7 @@ func (e *Executor) runBinaryPlugin(rule rules.Rule) (bool, error) {
 
 	err := login.Run()
 	if err != nil {
-		return false, fmt.Errorf("Error running plugin %s (%s) - %s\n", rule.Type, path, err)
+		return false, fmt.Errorf("error running plugin %s (%s) - %s", rule.Type, path, err)
 	}
 
 	// What did we get ?
