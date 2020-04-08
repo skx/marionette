@@ -352,7 +352,7 @@ func (e *Executor) runBinaryPlugin(rule rules.Rule) (bool, error) {
 
 	err := login.Run()
 	if err != nil {
-		return false, fmt.Errorf("Error running plugin %s (%s) - %s\n", rule.Type, path, err)
+		return false, fmt.Errorf("error running plugin %s (%s) - %s", rule.Type, path, err)
 	}
 
 	// What did we get ?
