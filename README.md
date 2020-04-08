@@ -301,12 +301,18 @@ foo { name => "My rule",
       param1 => "One", }
 ```
 
-If there is no built-in plugin with that name then the command located at `~/.marionette/foo` will be executed.  The parameters will be passed to that binary by being as JSON piped to STDIN.
+If there is no built-in plugin with that name then instead we'll execute an external binary, if it exists.  The parameters supplied in the rule-block will be passed as JSON piped to STDIN when the process is launched.
 
 If that plugin makes a change, such that triggers should be executed, it should print `changed` to STDOUT and exit with a return code of 0.  If no change was made then it should print `unchanged` to STDOUT and also exit with a return code of 0.
 
 A non-zero return code will be assumed to mean something failed, and execution will terminate.
 
+There are two directories searched for plugins:
+
+* `/opt/marionette/plugins`
+* `~/.marionette/plugins`
+
+So in the example above we'd execute `/opt/marionette/plugins/foo` or `~/.marionette/plugins/foo` if they exist.  If there was no built-in module with the name, and no binary plugin found then we'd have to report an error and terminate.
 
 
 
