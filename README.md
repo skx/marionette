@@ -5,6 +5,7 @@
 * [marionette](#marionette)
 * [Installation &amp; Usage](#installation--usage)
 * [Rule Definition](#rule-definition)
+  * [Command Execution](#command-execution)
   * [Conditionals](#conditionals)
 * [Module Types](#module-types)
    * [directory](#directory)
@@ -152,6 +153,7 @@ file { name    => "set-todays-date",
        target  => "/tmp/today",
        content => `/bin/date ${fmt}` }
 ```
+
 
 
 ## Conditionals
