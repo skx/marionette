@@ -38,7 +38,7 @@ func TestAssign(t *testing.T) {
 
 	// valid tests
 	valid := []string{`let a = "foo"`,
-		`let a = foo`,
+		"let a = `/bin/ls`",
 	}
 
 	for _, test := range valid {

@@ -108,7 +108,7 @@ func (p *Parser) parseVariable() error {
 
 	// assignment only handles strings/command-ouptut
 	if val.Type != token.STRING && val.Type != token.BACKTICK {
-		return fmt.Errorf("unexpected value for variable assignment; expected string or backtick")
+		return fmt.Errorf("unexpected value for variable assignment; expected string or backtick, got %v", val)
 	}
 
 	// replace backtick with the appropriate output
