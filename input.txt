@@ -14,6 +14,11 @@
 #
 let foo = "bar"
 
+#
+# Variables can also be defined to contain the output of commands.
+#
+let today = `date`
+
 
 #
 # The general form of our rules is something like this:
@@ -48,6 +53,15 @@ let foo = "bar"
 # and that directory is missing then it will be created, and the rule
 # will "notify" any rules which are specified.  Once the directory is
 # present that will no longer occur.
+#
+# Finally there are two more magical keys which are used to make a block
+# conditional:
+#
+#     if:
+#      Only run the block if the statement is true.
+#
+#     unless:
+#      Only run the block if the statement is false.
 #
 
 
@@ -89,11 +103,12 @@ directory { name    => "example-two",
 #
 
 #
-# Right let us now look at the other kind of relationship we can define,
-# which is triggering/notifying other rules when we change.
+# Now look at the other kind of relationship we can define, which is
+# triggering/notifying other rules when we change.
 #
 # First of all we'll define a rule with the special "triggered" marker,
-# this means the rule will NEVER execute UNLESS it is triggered.
+# this means the rule will NEVER execute UNLESS it is triggered explicitly
+# by name.
 #
 
 shell triggered { name    => "test-shell-command",
@@ -122,6 +137,33 @@ I think three lines is enough
 #
 # Future runs will change nothing, unless you remove the input file, or
 # edit it such that it contains the wrong content.
+#
+
+
+#
+#  We'll now demonstrate backtick usage, in two different ways.
+#
+#  Recall at the top of our file we added:
+#
+#      let today = `date`
+#
+#  We can use that variable as you'd expect to write the date to
+# a file
+#
+
+file { name    => "test-variable",
+       target  => "/tmp/today",
+       content => "${today}"
+}
+
+#
+# We could have achieved the same result by using the backtick directly,
+# as the following example demonstrates:
+#
+file { name    => "test-backtick",
+       target  => "/tmp/date.txt",
+       content => `date`
+}
 #
 
 
