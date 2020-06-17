@@ -65,6 +65,16 @@ func (l *Lexer) NextToken() token.Token {
 	case rune('['):
 		tok.Literal = "["
 		tok.Type = token.LSQUARE
+	case rune('`'):
+		str, err := l.readBacktick()
+
+		if err == nil {
+			tok.Type = token.BACKTICK
+			tok.Literal = str
+		} else {
+			tok.Type = token.ILLEGAL
+			tok.Literal = err.Error()
+		}
 	case rune(']'):
 		tok.Literal = "]"
 		tok.Type = token.RSQUARE
@@ -168,6 +178,24 @@ func (l *Lexer) readString() (string, error) {
 		}
 		out = out + string(l.ch)
 
+	}
+
+	return out, nil
+}
+
+// read a backtick-enquoted string
+func (l *Lexer) readBacktick() (string, error) {
+	out := ""
+
+	for {
+		l.readChar()
+		if l.ch == '`' {
+			break
+		}
+		if l.ch == rune(0) {
+			return "", errors.New("unterminated backtick")
+		}
+		out = out + string(l.ch)
 	}
 
 	return out, nil

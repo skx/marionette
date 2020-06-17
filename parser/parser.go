@@ -4,6 +4,8 @@ package parser
 import (
 	"fmt"
 	"os"
+	"os/exec"
+	"strings"
 
 	"github.com/skx/marionette/lexer"
 	"github.com/skx/marionette/rules"
@@ -104,8 +106,43 @@ func (p *Parser) parseVariable() error {
 		return fmt.Errorf("unterminated assignment")
 	}
 
+	// assignment only handles strings/command-ouptut
+	if val.Type != token.STRING && val.Type != token.BACKTICK {
+		return fmt.Errorf("unexpected value for variable assignment; expected string or backtick, got %v", val)
+	}
+
+	// replace backtick with the appropriate output
+	if val.Type == token.BACKTICK {
+		out, err := p.runCommand(val.Literal)
+		if err != nil {
+			return fmt.Errorf("error running %s: %s", val.Literal, err.Error())
+		}
+		val.Literal = out
+	}
+
 	p.vars[name.Literal] = val.Literal
 	return nil
+}
+
+// runCommand returns the output of the specified command
+func (p *Parser) runCommand(command string) (string, error) {
+
+	// Build up the thing to run, using a shell so that
+	// we can handle pipes/redirection.
+	toRun := []string{"/bin/bash", "-c", command}
+
+	// Run the command
+	cmd := exec.Command(toRun[0], toRun[1:]...)
+
+	// Get the output
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("error running command '%s' %s", command, err.Error())
+	}
+
+	// Strip trailing newline.
+	ret := strings.TrimSuffix(string(output), "\n")
+	return ret, nil
 }
 
 // parseBlock parses the contents of modules' block.
@@ -168,6 +205,7 @@ func (p *Parser) parseBlock(ty string) (rules.Rule, error) {
 		if err != nil {
 			return r, err
 		}
+
 		r.Params[name] = value
 	}
 
@@ -210,6 +248,17 @@ func (p *Parser) readValue(name string) (interface{}, error) {
 		return os.Expand(t.Literal, mapper), nil
 	}
 
+	// backtick?
+	if t.Type == token.BACKTICK {
+		cmd := os.Expand(t.Literal, mapper)
+
+		out, err := p.runCommand(cmd)
+		if err != nil {
+			return "", fmt.Errorf("error running %s: %s", cmd, err.Error())
+		}
+		return out, nil
+
+	}
 	// array?
 	if t.Type != token.LSQUARE {
 		return nil, fmt.Errorf("not a string or an array for value in block %s", name)

@@ -13,15 +13,16 @@ type Token struct {
 
 // pre-defined TokenTypes
 const (
-	EOF     = "EOF"
-	IDENT   = "IDENT"
-	ILLEGAL = "ILLEGAL"
-	STRING  = "STRING"
-	COMMA   = ","
-	LSQUARE = "["
-	RSQUARE = "]"
-	LBRACE  = "{"
-	RBRACE  = "}"
-	LASSIGN = "=>"
-	ASSIGN  = "="
+	ASSIGN   = "="
+	BACKTICK = "`"
+	COMMA    = ","
+	EOF      = "EOF"
+	IDENT    = "IDENT"
+	ILLEGAL  = "ILLEGAL"
+	LASSIGN  = "=>"
+	LBRACE   = "{"
+	LSQUARE  = "["
+	RBRACE   = "}"
+	RSQUARE  = "]"
+	STRING   = "STRING"
 )

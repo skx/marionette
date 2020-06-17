@@ -5,6 +5,7 @@
 * [marionette](#marionette)
 * [Installation &amp; Usage](#installation--usage)
 * [Rule Definition](#rule-definition)
+  * [Command Execution](#command-execution)
   * [Conditionals](#conditionals)
 * [Module Types](#module-types)
    * [directory](#directory)
@@ -118,6 +119,40 @@ The difference in these two approaches is how often things run:
 
 You'll note that any module which is followed by the token `triggered` will __only__ be executed when it is triggered by name.  If there is no `notify` key referring to that rule it will __never__ be executed.
 
+
+
+
+## Command Execution
+
+Backticks can be used to execute commands, inline.  For example we might
+determine the system architecture like this:
+
+```
+let arch = `/usr/bin/arch`
+
+shell { name => "Show arch",
+        command = "echo We are running on an ${arch} system" }
+```
+
+Here `${arch}` expands to the output of the command, as you would expect.
+
+It is also possible to use backticks for any parameter value.  Here we'll
+write the current date to a file:
+
+```
+file { name    => "set-todays-date",
+       target  => "/tmp/today",
+       content => `/usr/bin/date` }
+```
+
+The commands executed with the backticks have any embedded variables expanded _before_ they run, so this works as you'd expect:
+
+```
+let fmt = "+%Y"
+file { name    => "set-todays-date",
+       target  => "/tmp/today",
+       content => `/bin/date ${fmt}` }
+```
 
 
 
