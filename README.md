@@ -121,6 +121,39 @@ You'll note that any module which is followed by the token `triggered` will __on
 
 
 
+## Command Execution
+
+Backticks can be used to execute commands, inline.  For example we might
+determine the system architecture like this:
+
+```
+let arch = `/usr/bin/arch`
+
+shell { name => "Show arch",
+        command = "echo We are running on an ${arch} system" }
+```
+
+Here `${arch}` expands to the output of the command, as you would expect.
+
+It is also possible to use backticks for any parameter value.  Here we'll
+write the current date to a file:
+
+```
+file { name    => "set-todays-date",
+       target  => "/tmp/today",
+       content => `/usr/bin/date` }
+```
+
+The commands executed with the backticks have any embedded variables expanded _before_ they run, so this works as you'd expect:
+
+```
+let fmt = "+%Y"
+file { name    => "set-todays-date",
+       target  => "/tmp/today",
+       content => `/bin/date ${fmt}` }
+```
+
+
 ## Conditionals
 
 We have some simple support for conditional-execution of rules, via the

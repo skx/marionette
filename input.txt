@@ -164,7 +164,18 @@ file { name    => "test-backtick",
        target  => "/tmp/date.txt",
        content => `date`
 }
+
 #
+# Finally note that before commands are executed any variables are expanded,
+# to allow this to work as you'd expect:
+#
+let fmt = "+%Y"
+file { name    => "set-todays-date",
+       target  => "/tmp/year",
+       content => `/bin/date ${fmt}`
+}
+
+
 
 
 #
