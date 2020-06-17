@@ -211,7 +211,7 @@ func (l *Lexer) peekChar() rune {
 
 // determinate ch is identifier or not
 func isIdentifier(ch rune) bool {
-	return !isWhitespace(ch) && !isEmpty(ch)
+	return !isWhitespace(ch) && ch != rune('=') && !isEmpty(ch)
 }
 
 // is white space

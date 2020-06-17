@@ -185,3 +185,30 @@ func TestSpecial(t *testing.T) {
 		}
 	}
 }
+
+// Test15Assignment ensures that bug #15 is resolved
+//    https://github.com/skx/marionette/issues/15
+func Test15Assignment(t *testing.T) {
+	input := `let foo="bar"`
+
+	tests := []struct {
+		expectedType    token.Type
+		expectedLiteral string
+	}{
+		{token.IDENT, "let"},
+		{token.IDENT, "foo"},
+		{token.ASSIGN, "="},
+		{token.STRING, "bar"},
+		{token.EOF, ""},
+	}
+	l := New(input)
+	for i, tt := range tests {
+		tok := l.NextToken()
+		if tok.Type != tt.expectedType {
+			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
+		}
+		if tok.Literal != tt.expectedLiteral {
+			t.Fatalf("tests[%d] - Literal wrong, expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
+		}
+	}
+}
