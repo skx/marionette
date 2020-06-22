@@ -224,7 +224,7 @@ file {  name       => "fetch file",
 #
 shell { name => "Echo Test",
         command => "echo I'm alive",
-        unless => "exists /bin/ls" }
+        unless => exists( /bin/ls ) }
 
 #
 # These are some shell-commands.
