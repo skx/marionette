@@ -8,6 +8,8 @@
 package parser
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -19,7 +21,9 @@ func TestAssign(t *testing.T) {
 		"let",
 		"let f",
 		"let f =",
-		"let f => ff "}
+		"let f => ff ",
+		"let m = )",
+	}
 
 	for _, test := range broken {
 
@@ -107,5 +111,83 @@ func TestBlock(t *testing.T) {
 		if len(rules) != 1 {
 			t.Errorf("expected a single rule")
 		}
+	}
+}
+
+// TestConditionalErrors performs some sanity-checks that broken conditionals
+// result in expected errors.
+func TestConditinalErrors(t *testing.T) {
+
+	type TestCase struct {
+		Input string
+		Error string
+	}
+
+	// Broken tests
+	broken := []TestCase{
+		{Input: `shell { name => "OK",
+                                 command => "echo Comparision Worked!",
+                                 if =>        }`,
+			Error: "expected identifier"},
+
+		{Input: `shell { name => "OK",
+                                 command => "echo Comparision Worked!",
+                                 if => equal(
+        }`,
+			Error: "unexpected EOF in conditional"},
+		{Input: `shell { name => "OK",
+                                 command => "echo Comparision Worked!",
+                                 unless`,
+			Error: "expected => after conditional"},
+		{Input: `shell { name => "OK",
+                                 command => "echo Comparision Worked!",
+                                 unless => foo foo`,
+			Error: "expected ( after conditional"},
+	}
+
+	for _, test := range broken {
+
+		p := New(test.Input)
+		_, err := p.Parse()
+
+		if err == nil {
+			t.Errorf("expected error parsing broken input '%s' - got none", test.Input)
+		} else {
+			if !strings.Contains(err.Error(), test.Error) {
+				t.Errorf("error '%s' did not match '%s'", err.Error(), test.Error)
+			}
+		}
+	}
+}
+
+// TestConditional performs a basic sanity-check that a conditional
+// looks sane.
+func TestConditional(t *testing.T) {
+
+	input := `shell { name => "OK",
+                          command => "echo Comparision Worked!",
+                          if => equal( "foo", "foo" ),
+                  }`
+
+	p := New(input)
+	out, err := p.Parse()
+
+	if err != nil {
+		t.Errorf("unexpected error parsing valid input '%s': %s", input, err.Error())
+	}
+
+	// We should have one result
+	if len(out) != 1 {
+		t.Errorf("unexpected number of results")
+	}
+
+	res, ok := out[0].Params["if"].(*Condition)
+	if !ok {
+		t.Errorf("we didn't parse a conditional")
+	}
+
+	formatted := fmt.Sprintf("%s", res)
+	if formatted != "equal(foo,foo)" {
+		t.Errorf("failed to stringify valid comparison")
 	}
 }
