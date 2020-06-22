@@ -8,7 +8,7 @@ import (
 
 // TestAssign tests we can assign something.
 func TestAssign(t *testing.T) {
-	input := `let foo = ;`
+	input := `let foo = "steve"`
 
 	tests := []struct {
 		expectedType    token.Type
@@ -17,7 +17,7 @@ func TestAssign(t *testing.T) {
 		{token.IDENT, "let"},
 		{token.IDENT, "foo"},
 		{token.ASSIGN, "="},
-		{token.IDENT, ";"},
+		{token.STRING, "steve"},
 		{token.EOF, ""},
 	}
 	l := New(input)
@@ -107,9 +107,9 @@ func TestShebang(t *testing.T) {
 	}
 }
 
-// TestUnterminated string ensures that an unclosed-string is an error
+// TestUnterminatedString ensures that an unclosed-string is an error
 func TestUnterminatedString(t *testing.T) {
-	input := `#!/usr/bin/env deployr
+	input := `#!/usr/bin/env marionette
 "Steve`
 
 	tests := []struct {
@@ -117,6 +117,52 @@ func TestUnterminatedString(t *testing.T) {
 		expectedLiteral string
 	}{
 		{token.ILLEGAL, "unterminated string"},
+		{token.EOF, ""},
+	}
+	l := New(input)
+	for i, tt := range tests {
+		tok := l.NextToken()
+		if tok.Type != tt.expectedType {
+			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
+		}
+		if tok.Literal != tt.expectedLiteral {
+			t.Fatalf("tests[%d] - Literal wrong, expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
+		}
+	}
+}
+
+// TestBacktick string ensures that an backtick-string is OK.
+func TestBacktick(t *testing.T) {
+	input := "`ls`"
+
+	tests := []struct {
+		expectedType    token.Type
+		expectedLiteral string
+	}{
+		{token.BACKTICK, "ls"},
+		{token.EOF, ""},
+	}
+	l := New(input)
+	for i, tt := range tests {
+		tok := l.NextToken()
+		if tok.Type != tt.expectedType {
+			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
+		}
+		if tok.Literal != tt.expectedLiteral {
+			t.Fatalf("tests[%d] - Literal wrong, expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
+		}
+	}
+}
+
+// TestUnterminatedBacktick string ensures that an unclosed-backtick is an error
+func TestUnterminatedBacktick(t *testing.T) {
+	input := "`Steve"
+
+	tests := []struct {
+		expectedType    token.Type
+		expectedLiteral string
+	}{
+		{token.ILLEGAL, "unterminated backtick"},
 		{token.EOF, ""},
 	}
 	l := New(input)
@@ -159,7 +205,7 @@ which continues"
 
 // TestSpecial ensures we can recognize special characters.
 func TestSpecial(t *testing.T) {
-	input := `[]{},=>=`
+	input := `[]{},=>=()`
 
 	tests := []struct {
 		expectedType    token.Type
@@ -172,6 +218,8 @@ func TestSpecial(t *testing.T) {
 		{token.COMMA, ","},
 		{token.LASSIGN, "=>"},
 		{token.ASSIGN, "="},
+		{token.LPAREN, "("},
+		{token.RPAREN, ")"},
 		{token.EOF, ""},
 	}
 	l := New(input)
