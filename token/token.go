@@ -24,5 +24,7 @@ const (
 	LSQUARE  = "["
 	RBRACE   = "}"
 	RSQUARE  = "]"
+	LPAREN   = "("
+	RPAREN   = ")"
 	STRING   = "STRING"
 )
