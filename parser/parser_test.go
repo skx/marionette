@@ -8,7 +8,6 @@
 package parser
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 )
@@ -186,7 +185,7 @@ func TestConditional(t *testing.T) {
 		t.Errorf("we didn't parse a conditional")
 	}
 
-	formatted := fmt.Sprintf("%s", res)
+	formatted := res.String()
 	if formatted != "equal(foo,foo)" {
 		t.Errorf("failed to stringify valid comparison")
 	}
