@@ -62,6 +62,12 @@ func (l *Lexer) NextToken() token.Token {
 			tok.Type = token.LASSIGN
 			tok.Literal = "=>"
 		}
+	case rune('('):
+		tok.Literal = "("
+		tok.Type = token.LPAREN
+	case rune(')'):
+		tok.Literal = ")"
+		tok.Type = token.RPAREN
 	case rune('['):
 		tok.Literal = "["
 		tok.Type = token.LSQUARE
@@ -211,7 +217,8 @@ func (l *Lexer) peekChar() rune {
 
 // determinate ch is identifier or not
 func isIdentifier(ch rune) bool {
-	return !isWhitespace(ch) && ch != rune('=') && !isEmpty(ch)
+	return !isWhitespace(ch) && ch != rune(',') && ch != rune('(') && ch != rune(')') && ch != rune('=') && !isEmpty(ch)
+
 }
 
 // is white space
