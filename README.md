@@ -73,13 +73,15 @@ there is a block containing "`key => value`" sections.  Different modules will
 accept and expect different keys to configure themselves.  (Unknown arguments
 will be ignored.)
 
+> **TODO**: This should be changed:
+
 Do note that every rule needs a name, and that must be unique.  Names are used
 to trigger/define dependencies.  In the (near) future this will be optional.
 
 In addition to the general arguments passed to the available modules you can also specify dependencies via two magical keys within each rule block:
 
 * `dependencies`
-  * A list of any number of rules which must be executed before this.
+  * A list of any rules which must be executed before this one.
 * `notify`
   * A list of any number of rules which should be notified, because this rule was triggered.
     * _Triggered_ in this sense means that the rule was executed and the state changed.
@@ -158,24 +160,35 @@ file { name    => "set-todays-date",
 
 ## Conditionals
 
-We have some simple support for conditional-execution of rules, via the
-magic keys `if` and `unless`.  These currently allow rules to be conditional
-on the existence of files.
+We can write simple rules, as we've seen, which also handle dependency resolution:
+
+* Either saying that a rule needs some other rule(s) executed before it can run.
+* Or by saying that once a particular rule has resulted in a change that some other rule(s) must be triggered.
+
+In addition to the core rules we also allow conditional-execution of rules, via the magical keys `if` and `unless`.
+
+The following example runs a command, using `apt-get`, only if a specific file exists upon the filesystem:
 
 ```
 shell { name    => "Upgrade",
         command => "apt-get dist-upgrade --yes --force-yes",
-        if      => "exists /usr/bin/apt-get" }
+        if      => exists(/usr/bin/apt-get) }
 ```
 
-For the reverse `unless` works:
+For the reverse, running a rule unless something is true, we can use the `unless` key:
 
 ```
 file { name   => "Create file",
        target => "/tmp/foo",
-       unless => "exists /etc/no.foo" }
+       unless => equal( "x86_64", `/usr/bin/arch` ) }
 ```
 
+Here we see that we've used two functions:
+
+* `exist( /some/file )`
+* `equal( foo, bar )`
+
+These are our two basic conditional functions, although more can be added if they appear to be necessary.
 
 
 
