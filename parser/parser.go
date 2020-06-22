@@ -12,6 +12,24 @@ import (
 	"github.com/skx/marionette/token"
 )
 
+// Condition holds a conditional expression.
+//
+// Currently we support two types "exists" and "equal", which can
+// be used as the values for magical blocks "if" and "unless".
+//
+type Condition struct {
+	// Name has the name of the conditional operation.
+	Name string
+
+	// Args contains the arguments
+	Args []string
+}
+
+// String converts a Condition to a string.
+func (c Condition) String() string {
+	return fmt.Sprintf("%s(%s)", c.Name, strings.Join(c.Args, ","))
+}
+
 // Parser holds our state.
 type Parser struct {
 	// l is the handle to our lexer
@@ -148,6 +166,11 @@ func (p *Parser) runCommand(command string) (string, error) {
 // parseBlock parses the contents of modules' block.
 func (p *Parser) parseBlock(ty string) (rules.Rule, error) {
 
+	// Helper to expand variables.
+	mapper := func(val string) string {
+		return p.vars[val]
+	}
+
 	var r rules.Rule
 	r.Name = ""
 	r.Params = make(map[string]interface{})
@@ -194,19 +217,105 @@ func (p *Parser) parseBlock(ty string) (rules.Rule, error) {
 		// Record the name
 		name := t.Literal
 
-		// Now look for "=>"
-		next := p.l.NextToken()
-		if next.Literal != token.LASSIGN {
-			return r, fmt.Errorf("expected => after name %s, got %v", name, next)
-		}
+		//
+		// Is this a conditional key?
+		//
+		if name == "if" || name == "unless" {
 
-		// Read the value
-		value, err := p.readValue(name)
-		if err != nil {
-			return r, err
-		}
+			//
+			// Skip the assign
+			//
+			//  We expect:
+			//
+			//   "if" =>  FOO ( arg1, arg2 .. )
+			//
+			next := p.l.NextToken()
+			if next.Literal != token.LASSIGN {
+				return r, fmt.Errorf("expected => after conditional %s, got %v", name, next)
+			}
 
-		r.Params[name] = value
+			//
+			// The type of operation "exists", "equal"
+			//
+			tType := p.l.NextToken()
+			if tType.Type != token.IDENT {
+				return r, fmt.Errorf("expected identifier name after conditional %s, got %v", tType, tType)
+			}
+
+			//
+			// Skip the opening bracket
+			//
+			open := p.l.NextToken()
+			if open.Type != token.LPAREN {
+				return r, fmt.Errorf("expected ( after conditional name %s, got %v", open, open)
+			}
+
+			//
+			// Collect the arguments, until we get a close-bracket
+			//
+			var args []string
+
+			t := p.l.NextToken()
+			for t.Literal != ")" && t.Type != token.EOF {
+
+				//
+				// Append the argument, unless it is a comma
+				//
+				if t.Type != token.COMMA {
+
+					//
+					// Expand any variable.
+					//
+					val := os.Expand(t.Literal, mapper)
+
+					//
+					// Backticks need to be expanded
+					// of course.
+					//
+					if t.Type == token.BACKTICK {
+						out, err := p.runCommand(val)
+						if err != nil {
+							return r, fmt.Errorf("error running %s: %s", val, err.Error())
+						}
+
+						val = out
+					}
+
+					args = append(args, val)
+				}
+				t = p.l.NextToken()
+			}
+
+			if t.Type == token.EOF {
+				return r, fmt.Errorf("unexpected EOF in conditional")
+			}
+
+			//
+			// OK at this point we should have:
+			//
+			//  1. A rule-type (tType) such as "exists"
+			//
+			//  2. A collection of arguments.
+			//
+			// Save those values away in our interface map.
+			//
+			r.Params[name] = &Condition{Name: tType.Literal, Args: args}
+		} else {
+
+			// Now look for "=>"
+			next := p.l.NextToken()
+			if next.Literal != token.LASSIGN {
+				return r, fmt.Errorf("expected => after name %s, got %v", name, next)
+			}
+
+			// Read the value
+			value, err := p.readValue(name)
+			if err != nil {
+				return r, err
+			}
+
+			r.Params[name] = value
+		}
 	}
 
 	// If we got a name then place it in our struct

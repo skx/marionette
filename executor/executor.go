@@ -16,20 +16,26 @@ import (
 
 	"github.com/skx/marionette/file"
 	"github.com/skx/marionette/modules"
+	"github.com/skx/marionette/parser"
 	"github.com/skx/marionette/rules"
 )
 
 // Executor holds our internal state.
 type Executor struct {
 
-	// Rules are the things we'll execute
+	// Rules are the things we'll execute.
 	Rules []rules.Rule
 
 	// PluginDirectories contains an array of directories in which
-	// to look for binary/external plugins
+	// to look for binary/external plugins.
 	PluginDirectories []string
 
-	// Index is a mapping between rule-name and index
+	// Index is a mapping between rule-name and index.
+	//
+	// This is required because we expect users to refer to
+	// dependencies by name, but when we search for them in
+	// our Rules array above we need to efficiently lookup
+	// their index.
 	index map[string]int
 }
 
@@ -62,8 +68,13 @@ func (e *Executor) deps(rule rules.Rule, key string) []string {
 		return res
 	}
 
+	//
 	// OK the requirements might be a single rule, or
-	// an array of rules
+	// an array of rules.
+	//
+	// Handle both cases.
+	//
+
 	str, ok := requires.(string)
 	if ok {
 		res = append(res, str)
@@ -159,7 +170,7 @@ func (e *Executor) Execute() error {
 			continue
 		}
 
-		// Seen this rule already?
+		// Have we executed this rule already?
 		if seen[i] {
 			continue
 		}
@@ -170,7 +181,7 @@ func (e *Executor) Execute() error {
 		// Process each one
 		for i, dep := range deps {
 
-			// Seen this rule already?
+			// Have we executed this rule already?
 			if seen[i] {
 				continue
 			}
@@ -181,6 +192,8 @@ func (e *Executor) Execute() error {
 			if err != nil {
 				return err
 			}
+
+			// Now we've executed the rule.
 			seen[i] = true
 		}
 
@@ -190,31 +203,47 @@ func (e *Executor) Execute() error {
 			return err
 		}
 
+		// And mark this as executed too.
 		seen[i] = true
 	}
 	return nil
 }
 
-// runConditional returns true if the given conditional is true
+// runConditional returns true if the given conditional is true.
 func (e *Executor) runConditional(cond interface{}) (bool, error) {
 
 	// Get the value as a string
-	test, ok := cond.(string)
+	test, ok := cond.(*parser.Condition)
 	if !ok {
-		return false, fmt.Errorf(" a string can be specified for a conditional, got %v", cond)
+		return false, fmt.Errorf("we expected a conditional structure, but got %v", cond)
 	}
 
-	// The rule should be "exists XXX"
-	parts := strings.Split(test, " ")
-	if len(parts) != 2 || parts[0] != "exists" {
-		return false, fmt.Errorf("unknown condition for 'if' : %s", test)
+	if test.Name == "exists" {
+
+		if len(test.Args) != 1 {
+			return false, fmt.Errorf("wrong number of args for 'exists': %d != 1", len(test.Args))
+		}
+
+		if file.Exists(test.Args[0]) {
+			return true, nil
+		}
+
+		return false, nil
 	}
 
-	if file.Exists(parts[1]) {
-		return true, nil
+	if test.Name == "equal" || test.Name == "equals" {
+
+		if len(test.Args) != 2 {
+			return false, fmt.Errorf("wrong number of args for 'equale': %d != 2", len(test.Args))
+		}
+
+		if test.Args[0] == test.Args[1] {
+			return true, nil
+		}
+		return false, nil
 	}
 
-	return false, nil
+	return false, fmt.Errorf("unknown conditional-type: %s", test)
 }
 
 // executeSingleRule creates the appropriate module, and runs the single rule.
