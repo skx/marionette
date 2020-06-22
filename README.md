@@ -23,17 +23,20 @@
 
 # marionette
 
-This is a proof of concept application which is designed to be puppet-like,
-allowing you to define rules to get a system into a particular state.
+`marionette` is a proof of concept application which is designed to carry out system automation tasks, much like the well-know configuration-management application puppet.
 
-We have built-in support for the minimum set of primitives you need to turn a blank virtual machine into a host running a few services:
+The intention behind this application is to investigate the minimum functionality required to be useful; writing something like puppet is a huge undertaking, but it might be that only a small number of core primitives are actually required in-practice.
+
+As things stand we have a very small number of built-in modules, to provide the primitives require for turning a blank virtual machine into a host running a few services:
 
 * Cloning git repositories.
 * Creating/modifying files/directories.
 * Removing packages.
 * Triggering shell actions.
 
-The available modules for performing tasks can be extended via the use of [external plugins](#adding-modules) so you don't necessarily need to be a Golang coder to add new things.
+In the future it is possible that more modules will be added, but this will require users to file bug-reports requesting them, contribute code, or the author realizing something is necessary.
+
+Although it is expected that additional modules will be integrated into the core application it is possible to extent the application via the use of [external plugins](#adding-modules), so they don't necessarily need to be implemented in Golang, or shipped in the repository.
 
 
 
@@ -73,12 +76,11 @@ there is a block containing "`key => value`" sections.  Different modules will
 accept and expect different keys to configure themselves.  (Unknown arguments
 will be ignored.)
 
-> **TODO**: This should be changed:
+**Note** Every rule requires a unique name.  Names are used to trigger/define
+dependencies.  In the future it is possible that names will be optional, when
+dependencies are not needed.
 
-Do note that every rule needs a name, and that must be unique.  Names are used
-to trigger/define dependencies.  In the (near) future this will be optional.
-
-In addition to the general arguments passed to the available modules you can also specify dependencies via two magical keys within each rule block:
+You specify dependencies via two magical keys within each rule block:
 
 * `dependencies`
   * A list of any rules which must be executed before this one.
@@ -92,7 +94,7 @@ As a concrete example you need to run a command which depends upon a directory b
 ```
 shell { name         => "Test",
         command      => "uptime > /tmp/blah/uptime",
-        dependencies => [ "Create /tmp/blah" ] }
+        dependencies => "Create /tmp/blah" }
 
 directory{ name   => "Create /tmp/blah",
            target => "/tmp/blah" }
@@ -103,7 +105,7 @@ The alternative would have been to have the directory-creation trigger the shell
 ```
 directory{ name   => "Create /tmp/blah",
            target => "/tmp/blah",
-           notify => [ "Test" ]
+           notify => "Test"
 }
 
 shell triggered { name         => "Test",
@@ -136,7 +138,7 @@ shell { name => "Show arch",
         command = "echo We are running on an ${arch} system" }
 ```
 
-Here `${arch}` expands to the output of the command, as you would expect.
+Here `${arch}` expands to the output of the command, as you would expect, with any trailing newline removed.
 
 It is also possible to use backticks for any parameter value.  Here we'll
 write the current date to a file:
@@ -186,16 +188,21 @@ file { name   => "Create file",
 Here we see that we've used two functions:
 
 * `exist( /some/file )`
+  * Return true if the specified file/directory exists.
 * `equal( foo, bar )`
+  * Return true if the two values are identical.
 
-These are our two basic conditional functions, although more can be added if they appear to be necessary.
+More conditional primitives may be added if they appear to be necessary, or if users request them.
+
+**NOTE**: The conditionals are only supported when present in keys named `if` or `unless`.  This syntax is special for those two key-types.
 
 
 
 # Module Types
 
-We have a small number of primitives at the moment implemented in 100% pure golang.  Adding [new modules as plugins](#adding-modules) is possible, and contributions for various purposes are most welcome.
+Our primitives are implemented in 100% pure golang, however adding [new modules as plugins](#adding-modules) is possible, and contributions for various purposes are most welcome.
 
+There now follows a brief list of available/included modules:
 
 
 ## `directory`
@@ -343,7 +350,7 @@ Valid parameters are:
 
 ## `shell`
 
-The shell module allows you to run shell-commands.
+The shell module allows you to run shell-commands, complete with redirection and pipes.
 
 Example:
 
