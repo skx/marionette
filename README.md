@@ -134,8 +134,8 @@ determine the system architecture like this:
 ```
 let arch = `/usr/bin/arch`
 
-shell { name => "Show arch",
-        command = "echo We are running on an ${arch} system" }
+shell { name    => "Show arch",
+        command => "echo We are running on an ${arch} system" }
 ```
 
 Here `${arch}` expands to the output of the command, as you would expect, with any trailing newline removed.
