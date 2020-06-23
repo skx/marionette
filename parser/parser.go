@@ -3,6 +3,7 @@ package parser
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -49,6 +50,11 @@ func New(input string) *Parser {
 	return p
 }
 
+// mapper is a helper to expand variables.
+func (p *Parser) mapper(val string) string {
+	return p.vars[val]
+}
+
 // Parse parses our input, returning an array of rules found,
 // and any error which was encountered upon the way.
 func (p *Parser) Parse() ([]rules.Rule, error) {
@@ -84,6 +90,46 @@ func (p *Parser) Parse() ([]rules.Rule, error) {
 			if err != nil {
 				return found, err
 			}
+		} else if tok.Literal == "include" {
+
+			// OK inclusion
+			t := p.l.NextToken()
+
+			// We allow strings/backticks
+			if t.Type != token.STRING && t.Type != token.BACKTICK {
+				return found, fmt.Errorf("only strings/backticks supported for include statements; got %v", t)
+			}
+
+			path := t.Literal
+			path = os.Expand(path, p.mapper)
+
+			if t.Type == token.BACKTICK {
+				out, err := p.runCommand(path)
+				if err != nil {
+					return found, fmt.Errorf("error running %s: %s", path, err.Error())
+				}
+				path = out
+			}
+
+			data, err := ioutil.ReadFile(path)
+			if err != nil {
+				return found, err
+			}
+
+			//
+			// Parse
+			//
+			tmp := New(string(data))
+			rules, err := tmp.Parse()
+			if err != nil {
+				return found, err
+			}
+
+			//
+			// Append
+			//
+			found = append(found, rules...)
+
 		} else {
 
 			// Otherwise it must be a block statement.
@@ -166,11 +212,6 @@ func (p *Parser) runCommand(command string) (string, error) {
 
 // parseBlock parses the contents of modules' block.
 func (p *Parser) parseBlock(ty string) (rules.Rule, error) {
-
-	// Helper to expand variables.
-	mapper := func(val string) string {
-		return p.vars[val]
-	}
 
 	var r rules.Rule
 	r.Name = ""
@@ -267,7 +308,7 @@ func (p *Parser) parseBlock(ty string) (rules.Rule, error) {
 					//
 					// Expand any variable.
 					//
-					val := os.Expand(t.Literal, mapper)
+					val := os.Expand(t.Literal, p.mapper)
 
 					//
 					// Backticks need to be expanded
@@ -341,11 +382,6 @@ func (p *Parser) parseBlock(ty string) (rules.Rule, error) {
 // The value is either a string, or an array of strings.
 func (p *Parser) readValue(name string) (interface{}, error) {
 
-	// Helper to expand variables.
-	mapper := func(val string) string {
-		return p.vars[val]
-	}
-
 	var a []string
 
 	t := p.l.NextToken()
@@ -360,12 +396,12 @@ func (p *Parser) readValue(name string) (interface{}, error) {
 
 	// string?
 	if t.Type == token.STRING {
-		return os.Expand(t.Literal, mapper), nil
+		return os.Expand(t.Literal, p.mapper), nil
 	}
 
 	// backtick?
 	if t.Type == token.BACKTICK {
-		cmd := os.Expand(t.Literal, mapper)
+		cmd := os.Expand(t.Literal, p.mapper)
 
 		out, err := p.runCommand(cmd)
 		if err != nil {
@@ -394,7 +430,7 @@ func (p *Parser) readValue(name string) (interface{}, error) {
 			continue
 		}
 		if t.Type == token.STRING {
-			a = append(a, os.Expand(t.Literal, mapper))
+			a = append(a, os.Expand(t.Literal, p.mapper))
 		}
 		if t.Type == token.RSQUARE {
 			return a, nil
