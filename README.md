@@ -76,9 +76,7 @@ there is a block containing "`key => value`" sections.  Different modules will
 accept and expect different keys to configure themselves.  (Unknown arguments
 will be ignored.)
 
-**Note** Every rule requires a unique name.  Names are used to trigger/define
-dependencies.  In the future it is possible that names will be optional, when
-dependencies are not needed.
+**Note** If a rule does not have a name defined then a UUID will be generated for it, and this will change every run.  You only need to specify a rule-name to link rules for the purpose of managing dependencies.
 
 You specify dependencies via two magical keys within each rule block:
 
@@ -92,8 +90,7 @@ As a concrete example you need to run a command which depends upon a directory b
 
 
 ```
-shell { name         => "Test",
-        command      => "uptime > /tmp/blah/uptime",
+shell { command      => "uptime > /tmp/blah/uptime",
         dependencies => "Create /tmp/blah" }
 
 directory{ name   => "Create /tmp/blah",
@@ -103,8 +100,7 @@ directory{ name   => "Create /tmp/blah",
 The alternative would have been to have the directory-creation trigger the shell-execution rule via an explicit notification:
 
 ```
-directory{ name   => "Create /tmp/blah",
-           target => "/tmp/blah",
+directory{ target => "/tmp/blah",
            notify => "Test"
 }
 
@@ -121,7 +117,7 @@ The difference in these two approaches is how often things run:
   * We run it only after the directory is created.
   * Because the directory-creation triggers the notification only when the rule changes (i.e. the directory goes from being "absent" to "present").
 
-You'll note that any module which is followed by the token `triggered` will __only__ be executed when it is triggered by name.  If there is no `notify` key referring to that rule it will __never__ be executed.
+You'll note that any rule which is followed by the token `triggered` will __only__ be executed when it is triggered by name.  If there is no `notify` key referring to that rule it will __never__ be executed.
 
 
 
@@ -408,13 +404,8 @@ That should be safe to run for all users, as it only modifies files beneath `/tm
 
 # Future Plans
 
-* I think it would be nice to include some binary plugins embedded within our application, via [implant](https://github.com/skx/implant).  That would allow fast development and avoid the need for local filesystem access to execute them.
 * We need to support installing packages upon a Debian GNU/Linux host, not just purging unwanted ones.
 * Gathering "facts" about the local system, and storing them as variables would be useful.
-  * Of course then we might want to do conditional actions.
-  * I guess we could write something like this:
-    * `only_if => "${distribution} == Debian"`
-    * But of course that gets messy.  Compare with Ansible, again.
 
 
 

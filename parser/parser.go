@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/skx/marionette/lexer"
 	"github.com/skx/marionette/rules"
 	"github.com/skx/marionette/token"
@@ -325,6 +326,11 @@ func (p *Parser) parseBlock(ty string) (rules.Rule, error) {
 		if ok {
 			r.Name = str
 		}
+	} else {
+
+		// Generate a fakename if there is none present.
+		id := uuid.New()
+		r.Name = id.String()
 	}
 
 	return r, nil
