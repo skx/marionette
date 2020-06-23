@@ -92,32 +92,36 @@ func (p *Parser) Parse() ([]rules.Rule, error) {
 			}
 		} else if tok.Literal == "include" {
 
-			// OK inclusion
+			// Get the thing we should include.
 			t := p.l.NextToken()
 
-			// We allow strings/backticks
+			// We allow strings/backticks to be used
 			if t.Type != token.STRING && t.Type != token.BACKTICK {
 				return found, fmt.Errorf("only strings/backticks supported for include statements; got %v", t)
 			}
 
+			// Get the argument, and expand variables
 			path := t.Literal
 			path = os.Expand(path, p.mapper)
 
+			// If this is a backtick we replace the value
+			// with the result of running the command.
 			if t.Type == token.BACKTICK {
-				out, err := p.runCommand(path)
-				if err != nil {
-					return found, fmt.Errorf("error running %s: %s", path, err.Error())
+				out, er := p.runCommand(path)
+				if er != nil {
+					return found, fmt.Errorf("error running %s: %s", path, er.Error())
 				}
 				path = out
 			}
 
-			data, err := ioutil.ReadFile(path)
-			if err != nil {
-				return found, err
+			// Read the file.
+			data, er := ioutil.ReadFile(path)
+			if er != nil {
+				return found, er
 			}
 
 			//
-			// Parse
+			// Parse it via a new instance of the parser
 			//
 			tmp := New(string(data))
 			rules, err := tmp.Parse()
@@ -126,7 +130,8 @@ func (p *Parser) Parse() ([]rules.Rule, error) {
 			}
 
 			//
-			// Append
+			// Append the results of what we received
+			// to what we've already done in the main-file.
 			//
 			found = append(found, rules...)
 
