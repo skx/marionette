@@ -23,11 +23,11 @@
 
 # marionette
 
-`marionette` is a proof of concept application which is designed to carry out system automation tasks, much like the well-know configuration-management application puppet.
+`marionette` is a proof of concept application which is designed to carry out system automation tasks, much like the well-known configuration-management application puppet.
 
 The intention behind this application is to investigate the minimum functionality required to be useful; writing something like puppet is a huge undertaking, but it might be that only a small number of core primitives are actually required in-practice.
 
-As things stand we have a very small number of built-in modules, to provide the primitives require for turning a blank virtual machine into a host running a few services:
+As things stand we have a small number of built-in modules, to provide the primitives required to turn a blank virtual machine into a host running a few services:
 
 * Cloning git repositories.
 * Creating/modifying files/directories.
@@ -36,7 +36,7 @@ As things stand we have a very small number of built-in modules, to provide the 
 
 In the future it is possible that more modules will be added, but this will require users to file bug-reports requesting them, contribute code, or the author realizing something is necessary.
 
-Although it is expected that additional modules will be integrated into the core application it is possible to extent the application via the use of [external plugins](#adding-modules), so they don't necessarily need to be implemented in Golang, or shipped in the repository.
+Although it is expected that additional modules will be integrated into the core application it is possible to extend the application via the use of [external plugins](#adding-modules), so they don't necessarily need to be implemented in Golang, or shipped in the repository.
 
 
 
