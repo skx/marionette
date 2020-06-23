@@ -1,8 +1,8 @@
 #
 # This is an example rule-file for marionette.
 #
-# The primarily purpose of this file is to demonstrate the syntax,
-# and give examples of what our rules can do.
+# The primary purpose of this file is to demonstrate the syntax, and
+# give examples of what our rules can do.
 #
 # As you can guess comments are prefixed with a "#", and they are ignored
 # entirely.
@@ -35,7 +35,9 @@ let today = `date`
 # and then there is a hash of "key => values".
 #
 # It is important to note that rules must have names, as these names are
-# used to trigger subsequant rules, or define dependencies.
+# used to trigger subsequant rules, or define dependencies.  If you
+# do not specify a name then one will be auto-generated, but the names
+# will be different each time the rule-file is processed.
 #
 # Each rule contains the appropriate parameters, and values, to drive
 # the module.  However there are also two magical keys which are global
@@ -147,8 +149,7 @@ I think three lines is enough
 #
 #      let today = `date`
 #
-#  We can use that variable as you'd expect to write the date to
-# a file
+#  We can use that variable as you'd expect to write the date to a file.
 #
 
 file { name    => "test-variable",
@@ -208,6 +209,7 @@ file {  name       => "fetch file",
         target     => "/tmp/${foo}.txt",
         source_url => "https://steve.fi/",
 
+#
 # Implied since I run as non-root
 #
 #       owner      => "skx",
@@ -221,6 +223,12 @@ file {  name       => "fetch file",
 # We support simple conditionals for rules, via the magic keys
 # "if" and "unless".  These allow you to skip rules if a file
 # exists, or not.
+#
+# NOTE: Here the value of `if` and `unless` are simple expressions,
+# and they're explicitly not quoted because that would require the
+# use of complex escapes if you wanted to compare two values:
+#
+#   "if" => "equals( \"foo\", \"bar\" )",
 #
 shell { name => "Echo Test",
         command => "echo I'm alive",
