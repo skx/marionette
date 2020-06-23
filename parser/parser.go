@@ -124,9 +124,9 @@ func (p *Parser) Parse() ([]rules.Rule, error) {
 			// Parse it via a new instance of the parser
 			//
 			tmp := New(string(data))
-			rules, err := tmp.Parse()
-			if err != nil {
-				return found, err
+			rules, er := tmp.Parse()
+			if er != nil {
+				return found, er
 			}
 
 			//
@@ -223,7 +223,7 @@ func (p *Parser) parseBlock(ty string) (rules.Rule, error) {
 	r.Params = make(map[string]interface{})
 	r.Type = ty
 
-	// We should find either "triggered" or "{"
+	// We should find either "triggered" or "{".
 	t := p.l.NextToken()
 	if t.Literal == "triggered" {
 		r.Triggered = true
@@ -233,7 +233,7 @@ func (p *Parser) parseBlock(ty string) (rules.Rule, error) {
 		return r, fmt.Errorf("expected '{', got %v", t)
 	}
 
-	// Now loop until we find the end of the block find "}"
+	// Now loop until we find the end of the block, which is "}".
 	for {
 
 		t = p.l.NextToken()
@@ -415,6 +415,7 @@ func (p *Parser) readValue(name string) (interface{}, error) {
 		return out, nil
 
 	}
+
 	// array?
 	if t.Type != token.LSQUARE {
 		return nil, fmt.Errorf("not a string or an array for value in block %s", name)
@@ -434,9 +435,11 @@ func (p *Parser) readValue(name string) (interface{}, error) {
 		if t.Type == token.COMMA {
 			continue
 		}
+
 		if t.Type == token.STRING {
 			a = append(a, os.Expand(t.Literal, p.mapper))
 		}
+
 		if t.Type == token.RSQUARE {
 			return a, nil
 		}
