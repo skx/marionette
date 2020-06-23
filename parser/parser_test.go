@@ -22,6 +22,7 @@ func TestAssign(t *testing.T) {
 		"let f =",
 		"let f => ff ",
 		"let m = )",
+		"let m = `fkldjfdf/sdfsd/fsd/fds/fsdf/sf`",
 	}
 
 	for _, test := range broken {
@@ -127,6 +128,9 @@ func TestConditinalErrors(t *testing.T) {
 		{Input: `shell { name => "OK",
                                  command => "echo Comparision Worked!",
                                  if =>        }`,
+			Error: "expected identifier"},
+
+		{Input: ` => `,
 			Error: "expected identifier"},
 
 		{Input: `shell { name => "OK",

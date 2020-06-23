@@ -55,6 +55,38 @@ func (p *Parser) mapper(val string) string {
 	return p.vars[val]
 }
 
+// expand processes a token returned from the parser, returning
+// the appropriate value.
+//
+// The expansion really means two things:
+//
+// 1. If the string contains variables ${foo} replace them.
+//
+// 2. If the token is a backtick operation then run the command
+//    and return the value.
+//
+func (p *Parser) expand(tok token.Token) (string, error) {
+
+	// Get the argument, and expand variables
+	value := tok.Literal
+	value = os.Expand(value, p.mapper)
+
+	// If this is a backtick we replace the value
+	// with the result of running the command.
+	if tok.Type == token.BACKTICK {
+
+		tmp, err := p.runCommand(value)
+		if err != nil {
+			return "", fmt.Errorf("error running %s: %s", value, err.Error())
+		}
+
+		value = tmp
+	}
+
+	// Return the value we've found.
+	return value, nil
+}
+
 // Parse parses our input, returning an array of rules found,
 // and any error which was encountered upon the way.
 func (p *Parser) Parse() ([]rules.Rule, error) {
@@ -100,21 +132,19 @@ func (p *Parser) Parse() ([]rules.Rule, error) {
 				return found, fmt.Errorf("only strings/backticks supported for include statements; got %v", t)
 			}
 
-			// Get the argument, and expand variables
-			path := t.Literal
-			path = os.Expand(path, p.mapper)
-
-			// If this is a backtick we replace the value
-			// with the result of running the command.
-			if t.Type == token.BACKTICK {
-				out, er := p.runCommand(path)
-				if er != nil {
-					return found, fmt.Errorf("error running %s: %s", path, er.Error())
-				}
-				path = out
+			//
+			// Expand variables in the argument, and
+			// run the appropriate command if the token
+			// is a backtick.
+			//
+			path, er := p.expand(t)
+			if er != nil {
+				return found, er
 			}
 
-			// Read the file.
+			//
+			// Read the file we're supposed to process.
+			//
 			data, er := ioutil.ReadFile(path)
 			if er != nil {
 				return found, er
@@ -172,6 +202,7 @@ func (p *Parser) parseVariable() error {
 	// value
 	val := p.l.NextToken()
 
+	// Error-checking.
 	if val.Type == token.ILLEGAL || val.Type == token.EOF {
 		return fmt.Errorf("unterminated assignment")
 	}
@@ -181,16 +212,14 @@ func (p *Parser) parseVariable() error {
 		return fmt.Errorf("unexpected value for variable assignment; expected string or backtick, got %v", val)
 	}
 
-	// replace backtick with the appropriate output
-	if val.Type == token.BACKTICK {
-		out, err := p.runCommand(val.Literal)
-		if err != nil {
-			return fmt.Errorf("error running %s: %s", val.Literal, err.Error())
-		}
-		val.Literal = out
+	// Expand variables in the string, if present, and process
+	// the command if it uses a backtick.
+	value, err := p.expand(val)
+	if err != nil {
+		return err
 	}
 
-	p.vars[name.Literal] = val.Literal
+	p.vars[name.Literal] = value
 	return nil
 }
 
@@ -311,24 +340,15 @@ func (p *Parser) parseBlock(ty string) (rules.Rule, error) {
 				if t.Type != token.COMMA {
 
 					//
-					// Expand any variable.
+					// Expand any variable in the
+					// string, and if it is a backtick
+					// run the command.
 					//
-					val := os.Expand(t.Literal, p.mapper)
-
-					//
-					// Backticks need to be expanded
-					// of course.
-					//
-					if t.Type == token.BACKTICK {
-						out, err := p.runCommand(val)
-						if err != nil {
-							return r, fmt.Errorf("error running %s: %s", val, err.Error())
-						}
-
-						val = out
+					value, err := p.expand(t)
+					if err != nil {
+						return r, err
 					}
-
-					args = append(args, val)
+					args = append(args, value)
 				}
 				t = p.l.NextToken()
 			}
@@ -399,21 +419,10 @@ func (p *Parser) readValue(name string) (interface{}, error) {
 		return nil, fmt.Errorf("found end of file processing block %s", name)
 	}
 
-	// string?
-	if t.Type == token.STRING {
-		return os.Expand(t.Literal, p.mapper), nil
-	}
-
-	// backtick?
-	if t.Type == token.BACKTICK {
-		cmd := os.Expand(t.Literal, p.mapper)
-
-		out, err := p.runCommand(cmd)
-		if err != nil {
-			return "", fmt.Errorf("error running %s: %s", cmd, err.Error())
-		}
-		return out, nil
-
+	// string or backticks get expanded
+	if t.Type == token.STRING || t.Type == token.BACKTICK {
+		value, err := p.expand(t)
+		return value, err
 	}
 
 	// array?
