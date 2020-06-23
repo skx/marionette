@@ -37,6 +37,10 @@ type Executor struct {
 	// our Rules array above we need to efficiently lookup
 	// their index.
 	index map[string]int
+
+	// verbose is used to specify if we should be verbose
+	// or quiet.
+	verbose bool
 }
 
 // New creates a new executor, using a series of rules which should have
@@ -52,6 +56,11 @@ func New(r []rules.Rule) *Executor {
 	e.PluginDirectories = append(e.PluginDirectories, os.Getenv("HOME")+"/.marionette/plugins/")
 
 	return e
+}
+
+// SetVerbose enables the verbosity settings to be changed
+func (e *Executor) SetVerbose(value bool) {
+	e.verbose = value
 }
 
 // Get the rules a rule depends upon, via the given key.
@@ -250,7 +259,9 @@ func (e *Executor) runConditional(cond interface{}) (bool, error) {
 func (e *Executor) executeSingleRule(rule rules.Rule) error {
 
 	// Show what we're doing
-	fmt.Printf("Running %s-module rule: %s\n", rule.Type, rule.Name)
+	if e.verbose {
+		fmt.Printf("Running %s-module rule: %s\n", rule.Type, rule.Name)
+	}
 
 	//
 	// Are there conditionals present?
@@ -261,7 +272,9 @@ func (e *Executor) executeSingleRule(rule rules.Rule) error {
 			return err
 		}
 		if !res {
-			fmt.Printf("\tSkipping rule condition was not true: %s\n", rule.Params["if"])
+			if e.verbose {
+				fmt.Printf("\tSkipping rule condition was not true: %s\n", rule.Params["if"])
+			}
 			return nil
 		}
 	}
@@ -272,7 +285,9 @@ func (e *Executor) executeSingleRule(rule rules.Rule) error {
 			return err
 		}
 		if res {
-			fmt.Printf("\tSkipping rule condition was true: %s\n", rule.Params["unless"])
+			if e.verbose {
+				fmt.Printf("\tSkipping rule condition was true: %s\n", rule.Params["unless"])
+			}
 			return nil
 		}
 	}

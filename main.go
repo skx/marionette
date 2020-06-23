@@ -2,6 +2,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -10,7 +11,7 @@ import (
 	"github.com/skx/marionette/parser"
 )
 
-func runFile(filename string) error {
+func runFile(filename string, verbose bool) error {
 
 	// Read the file contents.
 	data, err := ioutil.ReadFile(filename)
@@ -30,6 +31,9 @@ func runFile(filename string) error {
 	// Now we'll create an executor with the rules
 	ex := executor.New(rules)
 
+	// Set the verbosity
+	ex.SetVerbose(verbose)
+
 	// Check for broken dependencies
 	err = ex.Check()
 	if err != nil {
@@ -48,15 +52,19 @@ func runFile(filename string) error {
 // main is our entry-point
 func main() {
 
-	// Ensure we got an argument, or two.
-	if len(os.Args) < 1 {
+	// Parse our command-line flags.
+	verbose := flag.Bool("verbose", false, "Be verbose in execution")
+	flag.Parse()
+
+	// Ensure we got at least one recipe to execute.
+	if len(flag.Args()) < 1 {
 		fmt.Printf("Usage %s file1 file2 .. fileN\n", os.Args[0])
 		return
 	}
 
 	// Process each given file.
-	for _, file := range os.Args[1:] {
-		err := runFile(file)
+	for _, file := range flag.Args() {
+		err := runFile(file, *verbose)
 		if err != nil {
 			fmt.Printf("Error:%s\n", err.Error())
 			return
