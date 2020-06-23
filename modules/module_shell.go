@@ -56,7 +56,7 @@ func (f *ShellModule) Execute(args map[string]interface{}) (bool, error) {
 		return false, fmt.Errorf("error running command '%s' %s", str, err.Error())
 	}
 
-	return false, nil
+	return true, nil
 }
 
 // init is used to dynamically register our module.
