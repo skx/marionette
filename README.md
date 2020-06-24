@@ -8,6 +8,7 @@
   * [Command Execution](#command-execution)
   * [Conditionals](#conditionals)
 * [Module Types](#module-types)
+   * [apt](#apt)
    * [directory](#directory)
    * [dpkg](#dpkg)
    * [edit](#edit)
@@ -199,6 +200,25 @@ More conditional primitives may be added if they appear to be necessary, or if u
 Our primitives are implemented in 100% pure golang, however adding [new modules as plugins](#adding-modules) is possible, and contributions for various purposes are most welcome.
 
 There now follows a brief list of available/included modules:
+
+
+## `apt`
+
+The apt-module allows you to install a package, or set of packages, via the Debian `apt-get` command.
+
+Example usage:
+
+```
+apt { name    => "Install bash",
+      package => "bash",
+    }
+```
+
+Valid parameters are:
+
+* `package` is a mandatory parameter, containing the package, or packages to install.
+* `update` - If this is set to `yes` then `apt-get update` will be executed before the package installation is attempted.
+
 
 
 ## `directory`
@@ -404,7 +424,6 @@ That should be safe to run for all users, as it only modifies files beneath `/tm
 
 # Future Plans
 
-* We need to support installing packages upon a Debian GNU/Linux host, not just purging unwanted ones.
 * Gathering "facts" about the local system, and storing them as variables would be useful.
 
 
