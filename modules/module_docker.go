@@ -13,6 +13,9 @@ import (
 
 // DockerModule stores our state
 type DockerModule struct {
+
+	// Cached list of image-tags we've got available on the local host.
+	Tags []string
 }
 
 // Check is part of the module-api, and checks arguments.
@@ -30,6 +33,26 @@ func (dm *DockerModule) Check(args map[string]interface{}) error {
 // isInstalled tests if the given image is installed
 func (dm *DockerModule) isInstalled(img string) (bool, error) {
 
+	//
+	// Cached tag-list already?
+	//
+	if len(dm.Tags) > 0 {
+
+		//
+		// Does the image appear in any of our cached tags?
+		//
+		for _, x := range dm.Tags {
+			if x == img {
+				return true, nil
+			}
+		}
+
+		//
+		// Not found.
+		//
+		return false, nil
+	}
+
 	// Create a new client.
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
@@ -43,18 +66,26 @@ func (dm *DockerModule) isInstalled(img string) (bool, error) {
 
 	}
 
-	// For each one, see if the name matches, via the tags.
+	//
+	// If we reached here we have no cached tags.
+	//
+	// Save the tags in the cache before we look
+	// for a match.
+	//
+	found := false
 	for _, image := range images {
-
 		for _, x := range image.RepoTags {
+
+			// Update the cache
+			dm.Tags = append(dm.Tags, x)
 			if x == img {
-				return true, nil
+				found = true
 			}
 		}
 	}
 
-	// No match.
-	return false, nil
+	// Return the result
+	return found, nil
 }
 
 // installImage pulls the given image from the remote repository.
