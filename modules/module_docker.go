@@ -1,4 +1,5 @@
 // Allow fetching Docker images.
+
 package modules
 
 import (
@@ -24,7 +25,7 @@ func (dm *DockerModule) Check(args map[string]interface{}) error {
 	// Ensure we have an image to pull.
 	_, ok := args["image"]
 	if !ok {
-		return fmt.Errorf("missing 'image' parameter.")
+		return fmt.Errorf("missing 'image' parameter")
 	}
 
 	return nil
