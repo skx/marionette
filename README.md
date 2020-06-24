@@ -11,6 +11,7 @@
    * [apt](#apt)
    * [directory](#directory)
    * [dpkg](#dpkg)
+   * [docker](#docker)
    * [edit](#edit)
    * [file](#file)
    * [git](#git)
@@ -24,20 +25,22 @@
 
 # marionette
 
-`marionette` is a proof of concept application which is designed to carry out system automation tasks, much like the well-known configuration-management application puppet.
+`marionette` is a proof of concept application which is designed to carry out system automation tasks, much like the well-known configuration-management application [puppet](https://puppet.com/).
 
-The intention behind this application is to investigate the minimum functionality required to be useful; writing something like puppet is a huge undertaking, but it might be that only a small number of core primitives are actually required in-practice.
+The motivation behind this application is to investigate the minimum functionality required to be useful.  Writing something like puppet is a huge undertaking, but it might be that only a small number of core primitives are actually required in-practice to do useful things.
 
-As things stand we have a small number of built-in modules, to provide the primitives required to turn a blank virtual machine into a host running a few services:
+As things stand we have a small number of built-in modules, providing the primitives required to turn a blank virtual machine into a host running a few services:
 
 * Cloning git repositories.
 * Creating/modifying files/directories.
-* Removing packages.
+* Fetching Docker images.
+* Installing and removing packages.
+  * Currently only for Debian GNU/Linux systems, and others that use `apt-get` and `dpkg`.
 * Triggering shell actions.
 
 In the future it is possible that more modules will be added, but this will require users to file bug-reports requesting them, contribute code, or the author realizing something is necessary.
 
-Although it is expected that additional modules will be integrated into the core application it is possible to extend the application via the use of [external plugins](#adding-modules), so they don't necessarily need to be implemented in Golang, or shipped in the repository.
+Although it is expected that additional modules will be integrated into the core application it is possible to extend the application via the use of [external plugins](#adding-modules), so they don't necessarily need to be implemented in Golang, or included in this repository.
 
 
 
@@ -65,27 +68,23 @@ The general form of our rules looks like this:
 
 ```
 $MODULE [triggered] {
-            name => "NAME OF RULE",
+            name  => "NAME OF RULE",
             arg_1 => "Value 1 ... ",
             arg_2 => [ "array values", "are fine" ],
             arg_3 => "Value 3 .. ",
 }
 ```
 
-Each rule starts by declaring the type of module which is being invoked, then
-there is a block containing "`key => value`" sections.  Different modules will
-accept and expect different keys to configure themselves.  (Unknown arguments
-will be ignored.)
-
-**Note** If a rule does not have a name defined then a UUID will be generated for it, and this will change every run.  You only need to specify a rule-name to link rules for the purpose of managing dependencies.
+Each rule starts by declaring the type of module which is being invoked, then there is a block containing "`key => value`" sections.  Different modules will accept/expect different keys to configure themselves.  (Unknown arguments will generally be ignored.)
 
 You specify dependencies via two magical keys within each rule block:
 
 * `dependencies`
-  * A list of any rules which must be executed before this one.
+  * A list of any rule-names which must be executed before this one.
 * `notify`
-  * A list of any number of rules which should be notified, because this rule was triggered.
-    * _Triggered_ in this sense means that the rule was executed and the state changed.
+  * A list of any number of rules which should be notified, because this rule resulted in a state-change.
+
+**Note** If a rule does not have a name defined then a UUID will be generated for it, and this will change every run.  You only need to specify a rule-name to link rules for the purpose of managing dependencies.
 
 As a concrete example you need to run a command which depends upon a directory being present.  You could do this like so:
 
@@ -125,8 +124,7 @@ You'll note that any rule which is followed by the token `triggered` will __only
 
 ## Command Execution
 
-Backticks can be used to execute commands, inline.  For example we might
-determine the system architecture like this:
+Backticks can be used to execute commands, inline.  For example we might determine the system architecture like this:
 
 ```
 let arch = `/usr/bin/arch`
@@ -137,8 +135,7 @@ shell { name    => "Show arch",
 
 Here `${arch}` expands to the output of the command, as you would expect, with any trailing newline removed.
 
-It is also possible to use backticks for any parameter value.  Here we'll
-write the current date to a file:
+It is also possible to use backticks for any parameter value.  Here we'll write the current date to a file:
 
 ```
 file { name    => "set-todays-date",
@@ -158,11 +155,6 @@ file { name    => "set-todays-date",
 
 
 ## Conditionals
-
-We can write simple rules, as we've seen, which also handle dependency resolution:
-
-* Either saying that a rule needs some other rule(s) executed before it can run.
-* Or by saying that once a particular rule has resulted in a change that some other rule(s) must be triggered.
 
 In addition to the core rules we also allow conditional-execution of rules, via the magical keys `if` and `unless`.
 
@@ -212,6 +204,10 @@ Example usage:
 apt { name    => "Install bash",
       package => "bash",
     }
+
+apt { name    => "Install bash",
+      package => [ "bash", "screen", "sudo" ],
+    }
 ```
 
 Valid parameters are:
@@ -257,7 +253,22 @@ dpkg { name => "Remove stuff",
 
 Only the `package` key is required.
 
-In the future we _might_ have an `apt` module for installing new packages.  We'll see.
+
+
+## `docker`
+
+This module allows fetching a container from a remote registry.
+
+```
+docker { image => "alpine:latest" }
+```
+
+The following keys are supported:
+
+* `image` - The image/images to fetch.
+* `force` - If this is set to "yes" then we fetch the image even if it appears to be available locally already.
+
+**NOTE**: We don't support private registries, or the use of authentication.
 
 
 
