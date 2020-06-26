@@ -75,7 +75,7 @@ func (r Rule) String() string {
 			for _, x := range strs {
 				out += fmt.Sprintf("    \"%s\",\n", x)
 			}
-			out += fmt.Sprintf("  ], \n")
+			out += "  ],\n"
 		}
 	}
 
