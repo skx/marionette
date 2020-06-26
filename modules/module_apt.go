@@ -93,12 +93,19 @@ func (am *AptModule) Execute(args map[string]interface{}) (bool, error) {
 		// One package was missing; so we'll install.
 		if !present {
 			installed = false
-			fmt.Printf("Package missing: %s\n", pkg)
+			if am.cfg.Verbose {
+				fmt.Printf("\tPackages not installed: %s\n", pkg)
+			}
+
 		}
 	}
 
 	// Package(s) are installed already.
 	if installed {
+		if am.cfg.Verbose {
+			fmt.Printf("\tPackages installed already: %s\n", strings.Join(packages, ","))
+		}
+
 		return false, nil
 	}
 

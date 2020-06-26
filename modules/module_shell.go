@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -37,9 +38,9 @@ func (f *ShellModule) Execute(args map[string]interface{}) (bool, error) {
 		return false, fmt.Errorf("missing 'command' parameter")
 	}
 
-	// If we see redirection we're good
-	if strings.Contains(str, ">") || strings.Contains(str, "<") || strings.Contains(str, "|") {
-		str = "bash -c \"" + str + "\""
+	// Show what we're doing.
+	if f.cfg.Verbose {
+		fmt.Printf("\tExecuting: %s\n", str)
 	}
 
 	// Split on space to execute
@@ -54,8 +55,21 @@ func (f *ShellModule) Execute(args map[string]interface{}) (bool, error) {
 	// Now run
 	cmd := exec.Command(bits[0], bits[1:]...)
 
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
+	// If we're hiding the output we'll write it here.
+	var execOut bytes.Buffer
+	var execErr bytes.Buffer
+
+	// Show to the console if we should
+	if f.cfg.Verbose {
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+	} else {
+		// Otherwise pipe to the buffer, and ignore it.
+		cmd.Stdout = &execOut
+		cmd.Stderr = &execErr
+	}
+
+	// Run the command
 	err := cmd.Run()
 	if err != nil {
 		return false, fmt.Errorf("error running command '%s' %s", str, err.Error())
