@@ -59,6 +59,10 @@ func (g *GitModule) Execute(args map[string]interface{}) (bool, error) {
 	tmp := filepath.Join(path, ".git")
 	if !file.Exists(tmp) {
 
+		if g.cfg.Verbose {
+			fmt.Printf("\tRepository not present at destination; cloning\n")
+		}
+
 		// Clone since it is missing.
 		_, err := git.PlainClone(path, false, &git.CloneOptions{
 			URL:      repo,
@@ -136,7 +140,18 @@ func (g *GitModule) Execute(args map[string]interface{}) (bool, error) {
 
 	// If the hashes differ we've updated, and thus changed
 	if ref2.Hash() != ref.Hash() {
+
+		if g.cfg.Verbose {
+			fmt.Printf("\tRepository updated.\n")
+		}
+
 		changed = true
+	} else {
+
+		if g.cfg.Verbose {
+			fmt.Printf("\tNo changes to local repository.\n")
+		}
+
 	}
 
 	return changed, err
