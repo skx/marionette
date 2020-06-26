@@ -4,6 +4,8 @@
 // the values are strings, other times the are arrays
 package rules
 
+import "fmt"
+
 // Rule is the structure which contains a single rule
 type Rule struct {
 
@@ -23,7 +25,7 @@ type Rule struct {
 	Params map[string]interface{}
 }
 
-// NewRule creates a new rules.
+// NewRule creates a new rule.
 func NewRule(t string, n string, p map[string]interface{}) *Rule {
 
 	r := &Rule{}
@@ -32,4 +34,52 @@ func NewRule(t string, n string, p map[string]interface{}) *Rule {
 	r.Params = p
 
 	return r
+}
+
+// String converts the given rule to a string representation.
+func (r Rule) String() string {
+
+	// $MODULE [triggered] {
+	out := r.Type + " "
+	if r.Triggered {
+		out += "triggered "
+	}
+	out += "{\n"
+
+	// Now the parameters
+	for key, val := range r.Params {
+
+		//
+		// Pad the keys
+		//
+		k := key
+		for len(k) < 12 {
+			k = " " + k
+		}
+
+		if key == "if" || key == "unless" {
+			out += fmt.Sprintf("%s => %s\n", k, val)
+			continue
+		}
+
+		// string?
+		str, valid := val.(string)
+		if valid {
+			out += fmt.Sprintf("%s => \"%s\",\n", k, str)
+		}
+
+		// array
+		strs, ok := val.([]string)
+		if ok {
+			out += fmt.Sprintf("%s => [ \n ", k)
+			for _, x := range strs {
+				out += fmt.Sprintf("    \"%s\",\n", x)
+			}
+			out += fmt.Sprintf("  ], \n")
+		}
+	}
+
+	out += "}\n"
+
+	return out
 }
