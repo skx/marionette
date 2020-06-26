@@ -1,7 +1,11 @@
 package modules
 
+import "github.com/skx/marionette/config"
+
 // PackageModule stores our state
 type PackageModule struct {
+	// cfg contains our configuration object.
+	cfg *config.Config
 }
 
 // Check is part of the module-api, and checks arguments.
@@ -16,7 +20,7 @@ func (f *PackageModule) Execute(args map[string]interface{}) (bool, error) {
 
 // init is used to dynamically register our module.
 func init() {
-	Register("package", func() ModuleAPI {
-		return &PackageModule{}
+	Register("package", func(cfg *config.Config) ModuleAPI {
+		return &PackageModule{cfg: cfg}
 	})
 }

@@ -7,11 +7,15 @@ import (
 	"os"
 	"regexp"
 
+	"github.com/skx/marionette/config"
 	"github.com/skx/marionette/file"
 )
 
 // EditModule stores our state.
 type EditModule struct {
+
+	// cfg contains our configuration object.
+	cfg *config.Config
 }
 
 // Check is part of the module-api, and checks arguments.
@@ -186,7 +190,7 @@ func (e *EditModule) RemoveLines(path string, pattern string) (bool, error) {
 
 // init is used to dynamically register our module.
 func init() {
-	Register("edit", func() ModuleAPI {
-		return &EditModule{}
+	Register("edit", func(cfg *config.Config) ModuleAPI {
+		return &EditModule{cfg: cfg}
 	})
 }

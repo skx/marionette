@@ -1,6 +1,10 @@
 package modules
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/skx/marionette/config"
+)
 
 // This is a map of known modules.
 var handlers = struct {
@@ -9,7 +13,7 @@ var handlers = struct {
 }{m: make(map[string]TestCtor)}
 
 // TestCtor is the signature of a constructor-function.
-type TestCtor func() ModuleAPI
+type TestCtor func(cfg *config.Config) ModuleAPI
 
 // Register records a new module.
 func Register(id string, newfunc TestCtor) {
@@ -20,12 +24,12 @@ func Register(id string, newfunc TestCtor) {
 
 // Lookup is the factory-method which looks up and returns
 // an object of the given type - if possible.
-func Lookup(id string) (a ModuleAPI) {
+func Lookup(id string, cfg *config.Config) (a ModuleAPI) {
 	handlers.RLock()
 	ctor, ok := handlers.m[id]
 	handlers.RUnlock()
 	if ok {
-		a = ctor()
+		a = ctor(cfg)
 	}
 	return
 }

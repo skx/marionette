@@ -5,11 +5,14 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/skx/marionette/config"
 	"github.com/skx/marionette/file"
 )
 
 // DirectoryModule stores our state
 type DirectoryModule struct {
+	// cfg contains our configuration object.
+	cfg *config.Config
 }
 
 // Check is part of the module-api, and checks arguments.
@@ -120,7 +123,7 @@ func (f *DirectoryModule) Execute(args map[string]interface{}) (bool, error) {
 
 // init is used to dynamically register our module.
 func init() {
-	Register("directory", func() ModuleAPI {
-		return &DirectoryModule{}
+	Register("directory", func(cfg *config.Config) ModuleAPI {
+		return &DirectoryModule{cfg: cfg}
 	})
 }

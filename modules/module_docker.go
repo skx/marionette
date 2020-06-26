@@ -10,10 +10,14 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
+	"github.com/skx/marionette/config"
 )
 
 // DockerModule stores our state
 type DockerModule struct {
+
+	// cfg contains our configuration object.
+	cfg *config.Config
 
 	// Cached list of image-tags we've got available on the local host.
 	Tags []string
@@ -111,8 +115,10 @@ func (dm *DockerModule) installImage(img string) error {
 	//
 	// TODO: Clean this up
 	defer out.Close()
-	io.Copy(os.Stdout, out)
 
+	if dm.cfg.Verbose {
+		io.Copy(os.Stdout, out)
+	}
 	// No error.
 	return nil
 }
@@ -152,6 +158,11 @@ func (dm *DockerModule) Execute(args map[string]interface{}) (bool, error) {
 
 		// Not installed; fetch.
 		if !present || (force == "yes") {
+
+			if dm.cfg.Verbose {
+				fmt.Printf("\tPulling docker image %s\n", img)
+			}
+
 			err := dm.installImage(img)
 			if err != nil {
 				return false, err
@@ -166,7 +177,7 @@ func (dm *DockerModule) Execute(args map[string]interface{}) (bool, error) {
 
 // init is used to dynamically register our module.
 func init() {
-	Register("docker", func() ModuleAPI {
-		return &DockerModule{}
+	Register("docker", func(cfg *config.Config) ModuleAPI {
+		return &DockerModule{cfg: cfg}
 	})
 }

@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	mcfg "github.com/skx/marionette/config"
 	"github.com/skx/marionette/file"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
@@ -13,6 +14,9 @@ import (
 
 // GitModule stores our state
 type GitModule struct {
+
+	// cfg contains our configuration object.
+	cfg *mcfg.Config
 }
 
 // Check is part of the module-api, and checks arguments.
@@ -54,6 +58,10 @@ func (g *GitModule) Execute(args map[string]interface{}) (bool, error) {
 	// If we don't have "path/.git" then we need to fetch it
 	tmp := filepath.Join(path, ".git")
 	if !file.Exists(tmp) {
+
+		if g.cfg.Verbose {
+			fmt.Printf("\tRepository not present at destination; cloning\n")
+		}
 
 		// Clone since it is missing.
 		_, err := git.PlainClone(path, false, &git.CloneOptions{
@@ -132,7 +140,18 @@ func (g *GitModule) Execute(args map[string]interface{}) (bool, error) {
 
 	// If the hashes differ we've updated, and thus changed
 	if ref2.Hash() != ref.Hash() {
+
+		if g.cfg.Verbose {
+			fmt.Printf("\tRepository updated.\n")
+		}
+
 		changed = true
+	} else {
+
+		if g.cfg.Verbose {
+			fmt.Printf("\tNo changes to local repository.\n")
+		}
+
 	}
 
 	return changed, err
@@ -140,7 +159,7 @@ func (g *GitModule) Execute(args map[string]interface{}) (bool, error) {
 
 // init is used to dynamically register our module.
 func init() {
-	Register("git", func() ModuleAPI {
-		return &GitModule{}
+	Register("git", func(cfg *mcfg.Config) ModuleAPI {
+		return &GitModule{cfg: cfg}
 	})
 }

@@ -5,10 +5,15 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/skx/marionette/config"
 )
 
 // AptModule stores our state
 type AptModule struct {
+
+	// cfg contains our configuration object.
+	cfg *config.Config
 }
 
 // Check is part of the module-api, and checks arguments.
@@ -88,12 +93,19 @@ func (am *AptModule) Execute(args map[string]interface{}) (bool, error) {
 		// One package was missing; so we'll install.
 		if !present {
 			installed = false
-			fmt.Printf("Package missing: %s\n", pkg)
+			if am.cfg.Verbose {
+				fmt.Printf("\tPackages not installed: %s\n", pkg)
+			}
+
 		}
 	}
 
 	// Package(s) are installed already.
 	if installed {
+		if am.cfg.Verbose {
+			fmt.Printf("\tPackages installed already: %s\n", strings.Join(packages, ","))
+		}
+
 		return false, nil
 	}
 
@@ -112,7 +124,7 @@ func (am *AptModule) Execute(args map[string]interface{}) (bool, error) {
 
 // init is used to dynamically register our module.
 func init() {
-	Register("apt", func() ModuleAPI {
-		return &AptModule{}
+	Register("apt", func(cfg *config.Config) ModuleAPI {
+		return &AptModule{cfg: cfg}
 	})
 }
