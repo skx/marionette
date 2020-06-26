@@ -5,8 +5,11 @@
 * [marionette](#marionette)
 * [Installation &amp; Usage](#installation--usage)
 * [Rule Definition](#rule-definition)
-  * [Command Execution](#command-execution)
+  * [Dependency Management](#dependency-management)
   * [Conditionals](#conditionals)
+  * [Misc. Features](#misc-features)
+    * [Command Execution](#command-execution)
+    * [File Inclusion](#file-inclusion)
 * [Module Types](#module-types)
    * [apt](#apt)
    * [directory](#directory)
@@ -56,7 +59,7 @@ go get github.com/skx/marionette
 Once installed you can then execute it with the path of one or more rule-files like so:
 
 ```
-marionette ./rules.txt ./rules2.txt ... ./rulesN.txt
+marionette [flags] ./rules.txt ./rules2.txt ... ./rulesN.txt
 ```
 
 
@@ -77,17 +80,37 @@ $MODULE [triggered] {
 
 Each rule starts by declaring the type of module which is being invoked, then there is a block containing "`key => value`" sections.  Different modules will accept/expect different keys to configure themselves.  (Unknown arguments will generally be ignored.)
 
-You specify dependencies via two magical keys within each rule block:
+Here is an example rule which creates a file containing the output of a command:
+
+```
+# Run a command, unconditionally
+shell { command => "uptime > /tmp/uptime.txt" }
+
+```
+
+
+
+
+## Dependency Management
+
+We have two ways to link rules to each other, using a pair of keys with
+special meaning:
 
 * `dependencies`
-  * A list of any rule-names which must be executed before this one.
+  * This key contains a list of any rules which must be executed before this one.
 * `notify`
   * A list of any number of rules which should be notified, because this rule resulted in a state-change.
 
-**Note** If a rule does not have a name defined then a UUID will be generated for it, and this will change every run.  You only need to specify a rule-name to link rules for the purpose of managing dependencies.
+**Note** You only need to specify a rule-name to link rules for the purpose of managing dependencies.
 
-As a concrete example you need to run a command which depends upon a directory being present.  You could do this like so:
+Imagine we wanted to create a new directory, and write a file there.  We could do that with a pair of rules:
 
+* One to create a directory.
+* One to generate the output file.
+
+We could wing-it and write the rules in the logical order, but it would be far better to link the two rules explicitly.
+
+There are two ways we could implement this.  The simplest way would be this:
 
 ```
 shell { command      => "uptime > /tmp/blah/uptime",
@@ -97,13 +120,17 @@ directory{ name   => "Create /tmp/blah",
            target => "/tmp/blah" }
 ```
 
+
 The alternative would have been to have the directory-creation trigger the shell-execution rule via an explicit notification:
 
 ```
+# This command will notify the "Test" rule, if it creates the directory
+# because it was not already present.
 directory{ target => "/tmp/blah",
            notify => "Test"
 }
 
+# Run the command, when triggered/notified.
 shell triggered { name         => "Test",
                   command      => "uptime > /tmp/blah/uptime",
 }
@@ -119,38 +146,6 @@ The difference in these two approaches is how often things run:
 
 You'll note that any rule which is followed by the token `triggered` will __only__ be executed when it is triggered by name.  If there is no `notify` key referring to that rule it will __never__ be executed.
 
-
-
-
-## Command Execution
-
-Backticks can be used to execute commands, inline.  For example we might determine the system architecture like this:
-
-```
-let arch = `/usr/bin/arch`
-
-shell { name    => "Show arch",
-        command => "echo We are running on an ${arch} system" }
-```
-
-Here `${arch}` expands to the output of the command, as you would expect, with any trailing newline removed.
-
-It is also possible to use backticks for any parameter value.  Here we'll write the current date to a file:
-
-```
-file { name    => "set-todays-date",
-       target  => "/tmp/today",
-       content => `/usr/bin/date` }
-```
-
-The commands executed with the backticks have any embedded variables expanded _before_ they run, so this works as you'd expect:
-
-```
-let fmt = "+%Y"
-file { name    => "set-todays-date",
-       target  => "/tmp/today",
-       content => `/bin/date ${fmt}` }
-```
 
 
 
@@ -184,6 +179,60 @@ Here we see that we've used two functions:
 More conditional primitives may be added if they appear to be necessary, or if users request them.
 
 **NOTE**: The conditionals are only supported when present in keys named `if` or `unless`.  This syntax is special for those two key-types.
+
+
+
+
+## Misc. Features
+
+
+### Command Execution
+
+Backticks can be used to execute commands, inline.  For example we might determine the system architecture like this:
+
+```
+let arch = `/usr/bin/arch`
+
+shell { name    => "Show arch",
+        command => "echo We are running on an ${arch} system" }
+```
+
+Here `${arch}` expands to the output of the command, as you would expect, with any trailing newline removed.
+
+It is also possible to use backticks for any parameter value.  Here we'll write the current date to a file:
+
+```
+file { name    => "set-todays-date",
+       target  => "/tmp/today",
+       content => `/usr/bin/date` }
+```
+
+The commands executed with the backticks have any embedded variables expanded _before_ they run, so this works as you'd expect:
+
+```
+let fmt = "+%Y"
+file { name    => "set-todays-date",
+       target  => "/tmp/today",
+       content => `/bin/date ${fmt}` }
+```
+
+### Include Files
+
+You can break large rule-files into pieces, and include them in each other:
+
+```
+# main.in
+
+let prefix="/etc/marionette"
+
+include "foo.in"
+include "${prefix}/test.in"
+```
+
+Dependency resolution will work across modules, as the rule-names use a single global namespace - that might change in the future if it causes surprises.
+
+
+
 
 
 
