@@ -17,6 +17,8 @@ let foo = "bar"
 #
 # Variables can also be defined to contain the output of commands.
 #
+# NOTE: Any trailing newline will be removed.
+#
 let today = `date`
 
 
@@ -48,7 +50,7 @@ let today = `date`
 #
 #    notify:
 #      Specify either a single rule to trigger, or multiple rules to
-#      trigger, when this rule matches
+#      trigger, when this rule triggers.
 #
 # Triggering in this sense means that the rule resulted in a change to
 # your system.  If you write a rule that says "/tmp/blah" must exist
@@ -60,10 +62,10 @@ let today = `date`
 # conditional:
 #
 #     if:
-#      Only run the block if the statement is true.
+#      Only run the block if the specified expression is true.
 #
 #     unless:
-#      Only run the block if the statement is false.
+#      Only run the block if the specified expression is false.
 #
 
 
@@ -119,7 +121,7 @@ shell triggered { name    => "test-shell-command",
 
 #
 # With that rule defined we can now create a file "/tmp/input" with
-# some fixed content, and explicitly notify the result.
+# some fixed content, and explicitly notify the rule it should run.
 #
 file { name => "test-static-content",
        target => "/tmp/input",
@@ -134,8 +136,8 @@ I think three lines is enough
 #
 #  1. The file /tmp/input.txt should have our fixed content saved to it.
 #
-#  2. The file /tmp/output.txt should have been created, because we run
-#     the shell-command upon it.
+#  2. The file /tmp/output.txt should have been created, because we
+#     notified the "test-shell-command" rule it should run.
 #
 # Future runs will change nothing, unless you remove the input file, or
 # edit it such that it contains the wrong content.
@@ -166,6 +168,7 @@ file { name    => "test-backtick",
        content => `date`
 }
 
+
 #
 # Finally note that before commands are executed any variables are expanded,
 # to allow this to work as you'd expect:
@@ -188,7 +191,8 @@ file { name    => "set-todays-date",
 #
 #   2.  How to declare dependencies.
 #
-#   3.  How to trigger other rules, and keep them from firing unless required.
+#   3.  How to trigger other rules, and keep them from firing unless
+#      notified explicitly.  (Via the use of the `triggered` token.)
 #
 #
 
@@ -212,8 +216,8 @@ file {  name       => "fetch file",
 #
 # Implied since I run as non-root
 #
-#       owner      => "skx",
-#       group      => "skx",
+#       owner      => "${USER}",
+#       group      => "${USER}",
 
         notify     => [ "I count your lines" ],
 }
@@ -231,8 +235,8 @@ file {  name       => "fetch file",
 #   "if" => "equals( \"foo\", \"bar\" )",
 #
 shell { name => "Echo Test",
-        command => "echo I'm alive",
-        unless => exists( /bin/ls ) }
+        command => "echo I'm Unix, probably.",
+        if => exists( /bin/ls ) }
 
 #
 # These are some shell-commands.
@@ -252,25 +256,26 @@ shell { name => "I touch your file.",
 #
 # Create a symlink /tmp/password.txt, pointing to /etc/passwd.
 #
-link { name => "Symlink test",
-       source => "/etc/passwd",  target => "/tmp/password.txt" }
+link { name   => "Symlink test",
+       source => "/etc/passwd",
+       target => "/tmp/password.txt" }
 
 
 #
 # Clone a remote repository to the local system.
 #
-git { path => "/tmp/foot/bar/baz",
+git { path       => "/tmp/foot/bar/baz",
       repository => "https://github.com/src-d/go-git", }
 
 #
 # Copy this file to a new name.
 #
-file { name => "copy input.txt to tmp.txt",
+file { name   => "copy input.txt to tmp.txt",
        source => "input.txt",
        target => "copy.txt" }
 
 #
-# Edit that file-copy to remove any comments, i.e lines prefixed with "#"
+# Edit the copied to remove any comments, i.e lines prefixed with "#".
 #
 edit { name => "drop comments",
        target => "copy.txt",
