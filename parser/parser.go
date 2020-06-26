@@ -23,7 +23,7 @@ type Condition struct {
 	// Name has the name of the conditional operation.
 	Name string
 
-	// Args contains the arguments
+	// Args contains the arguments to the function.
 	Args []string
 }
 
@@ -51,8 +51,20 @@ func New(input string) *Parser {
 }
 
 // mapper is a helper to expand variables.
+//
+// ${foo} will be converted to the contents of the variable named foo
+// which was created with `let foo = "bar"`, or failing that the contents
+// of the environmental variable.
 func (p *Parser) mapper(val string) string {
-	return p.vars[val]
+
+	// Lookup a variable which exists?
+	res, ok := p.vars[val]
+	if ok {
+		return res
+	}
+
+	// Lookup an environmental variable?
+	return os.Getenv(val)
 }
 
 // expand processes a token returned from the parser, returning
