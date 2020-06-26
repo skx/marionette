@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	mcfg "github.com/skx/marionette/config"
 	"github.com/skx/marionette/file"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
@@ -13,6 +14,9 @@ import (
 
 // GitModule stores our state
 type GitModule struct {
+
+	// cfg contains our configuration object.
+	cfg *mcfg.Config
 }
 
 // Check is part of the module-api, and checks arguments.
@@ -140,7 +144,7 @@ func (g *GitModule) Execute(args map[string]interface{}) (bool, error) {
 
 // init is used to dynamically register our module.
 func init() {
-	Register("git", func() ModuleAPI {
-		return &GitModule{}
+	Register("git", func(cfg *mcfg.Config) ModuleAPI {
+		return &GitModule{cfg: cfg}
 	})
 }

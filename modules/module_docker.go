@@ -10,10 +10,14 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
+	"github.com/skx/marionette/config"
 )
 
 // DockerModule stores our state
 type DockerModule struct {
+
+	// cfg contains our configuration object.
+	cfg *config.Config
 
 	// Cached list of image-tags we've got available on the local host.
 	Tags []string
@@ -166,7 +170,7 @@ func (dm *DockerModule) Execute(args map[string]interface{}) (bool, error) {
 
 // init is used to dynamically register our module.
 func init() {
-	Register("docker", func() ModuleAPI {
-		return &DockerModule{}
+	Register("docker", func(cfg *config.Config) ModuleAPI {
+		return &DockerModule{cfg: cfg}
 	})
 }

@@ -7,11 +7,12 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/skx/marionette/config"
 	"github.com/skx/marionette/executor"
 	"github.com/skx/marionette/parser"
 )
 
-func runFile(filename string, verbose bool) error {
+func runFile(filename string, cfg *config.Config) error {
 
 	// Read the file contents.
 	data, err := ioutil.ReadFile(filename)
@@ -31,8 +32,8 @@ func runFile(filename string, verbose bool) error {
 	// Now we'll create an executor with the rules
 	ex := executor.New(rules)
 
-	// Set the verbosity
-	ex.SetVerbose(verbose)
+	// Set the configuration options.
+	ex.SetConfig(cfg)
 
 	// Check for broken dependencies
 	err = ex.Check()
@@ -56,6 +57,9 @@ func main() {
 	verbose := flag.Bool("verbose", false, "Be verbose in execution")
 	flag.Parse()
 
+	// Create our configuration object
+	cfg := &config.Config{Verbose: *verbose}
+
 	// Ensure we got at least one recipe to execute.
 	if len(flag.Args()) < 1 {
 		fmt.Printf("Usage %s file1 file2 .. fileN\n", os.Args[0])
@@ -64,7 +68,7 @@ func main() {
 
 	// Process each given file.
 	for _, file := range flag.Args() {
-		err := runFile(file, *verbose)
+		err := runFile(file, cfg)
 		if err != nil {
 			fmt.Printf("Error:%s\n", err.Error())
 			return

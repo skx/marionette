@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/skx/marionette/config"
 	"github.com/skx/marionette/file"
 	"github.com/skx/marionette/modules"
 	"github.com/skx/marionette/parser"
@@ -38,9 +39,8 @@ type Executor struct {
 	// their index.
 	index map[string]int
 
-	// verbose is used to specify if we should be verbose
-	// or quiet.
-	verbose bool
+	// cfg holds our configuration options.
+	cfg *config.Config
 }
 
 // New creates a new executor, using a series of rules which should have
@@ -55,12 +55,17 @@ func New(r []rules.Rule) *Executor {
 	e.PluginDirectories = append(e.PluginDirectories, "/opt/marionette/plugins")
 	e.PluginDirectories = append(e.PluginDirectories, os.Getenv("HOME")+"/.marionette/plugins/")
 
+	//
+	// Default configuration
+	//
+	e.cfg = &config.Config{}
+
 	return e
 }
 
-// SetVerbose enables the verbosity settings to be changed
-func (e *Executor) SetVerbose(value bool) {
-	e.verbose = value
+// SetConfig updates the executor with a configuration object.
+func (e *Executor) SetConfig(cfg *config.Config) {
+	e.cfg = cfg
 }
 
 // Get the rules a rule depends upon, via the given key.
@@ -259,7 +264,7 @@ func (e *Executor) runConditional(cond interface{}) (bool, error) {
 func (e *Executor) executeSingleRule(rule rules.Rule) error {
 
 	// Show what we're doing
-	if e.verbose {
+	if e.cfg.Verbose {
 		fmt.Printf("Running %s-module rule: %s\n", rule.Type, rule.Name)
 	}
 
@@ -272,7 +277,7 @@ func (e *Executor) executeSingleRule(rule rules.Rule) error {
 			return err
 		}
 		if !res {
-			if e.verbose {
+			if e.cfg.Verbose {
 				fmt.Printf("\tSkipping rule condition was not true: %s\n", rule.Params["if"])
 			}
 			return nil
@@ -285,7 +290,7 @@ func (e *Executor) executeSingleRule(rule rules.Rule) error {
 			return err
 		}
 		if res {
-			if e.verbose {
+			if e.cfg.Verbose {
 				fmt.Printf("\tSkipping rule condition was true: %s\n", rule.Params["unless"])
 			}
 			return nil
@@ -300,7 +305,7 @@ func (e *Executor) executeSingleRule(rule rules.Rule) error {
 	var err error
 
 	// Create the instance of the module
-	helper := modules.Lookup(rule.Type)
+	helper := modules.Lookup(rule.Type, e.cfg)
 	if helper != nil {
 
 		// Run the module

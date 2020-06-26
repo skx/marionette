@@ -4,11 +4,15 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/skx/marionette/config"
 	"github.com/skx/marionette/file"
 )
 
 // LinkModule stores our state
 type LinkModule struct {
+
+	// cfg contains our configuration object.
+	cfg *config.Config
 }
 
 // Check is part of the module-api, and checks arguments.
@@ -94,7 +98,7 @@ func (f *LinkModule) Execute(args map[string]interface{}) (bool, error) {
 
 // init is used to dynamically register our module.
 func init() {
-	Register("link", func() ModuleAPI {
-		return &LinkModule{}
+	Register("link", func(cfg *config.Config) ModuleAPI {
+		return &LinkModule{cfg: cfg}
 	})
 }

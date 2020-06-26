@@ -5,10 +5,15 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/skx/marionette/config"
 )
 
 // ShellModule stores our state
 type ShellModule struct {
+
+	// cfg contains our configuration object.
+	cfg *config.Config
 }
 
 // Check is part of the module-api, and checks arguments.
@@ -61,7 +66,7 @@ func (f *ShellModule) Execute(args map[string]interface{}) (bool, error) {
 
 // init is used to dynamically register our module.
 func init() {
-	Register("shell", func() ModuleAPI {
-		return &ShellModule{}
+	Register("shell", func(cfg *config.Config) ModuleAPI {
+		return &ShellModule{cfg: cfg}
 	})
 }

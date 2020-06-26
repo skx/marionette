@@ -4,10 +4,15 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+
+	"github.com/skx/marionette/config"
 )
 
 // DPKGModule stores our state
 type DPKGModule struct {
+
+	// cfg contains our configuration object.
+	cfg *config.Config
 }
 
 // Check is part of the module-api, and checks arguments.
@@ -56,7 +61,7 @@ func (f *DPKGModule) Execute(args map[string]interface{}) (bool, error) {
 
 // init is used to dynamically register our module.
 func init() {
-	Register("dpkg", func() ModuleAPI {
-		return &DPKGModule{}
+	Register("dpkg", func(cfg *config.Config) ModuleAPI {
+		return &DPKGModule{cfg: cfg}
 	})
 }

@@ -7,11 +7,15 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/skx/marionette/config"
 	"github.com/skx/marionette/file"
 )
 
 // FileModule stores our state
 type FileModule struct {
+
+	// cfg contains our configuration object.
+	cfg *config.Config
 }
 
 // Check is part of the module-api, and checks arguments.
@@ -241,7 +245,7 @@ func (f *FileModule) CreateFile(dst string, content string) (bool, error) {
 
 // init is used to dynamically register our module.
 func init() {
-	Register("file", func() ModuleAPI {
-		return &FileModule{}
+	Register("file", func(cfg *config.Config) ModuleAPI {
+		return &FileModule{cfg: cfg}
 	})
 }
