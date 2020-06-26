@@ -115,8 +115,10 @@ func (dm *DockerModule) installImage(img string) error {
 	//
 	// TODO: Clean this up
 	defer out.Close()
-	io.Copy(os.Stdout, out)
 
+	if dm.cfg.Verbose {
+		io.Copy(os.Stdout, out)
+	}
 	// No error.
 	return nil
 }
@@ -156,6 +158,11 @@ func (dm *DockerModule) Execute(args map[string]interface{}) (bool, error) {
 
 		// Not installed; fetch.
 		if !present || (force == "yes") {
+
+			if dm.cfg.Verbose {
+				fmt.Printf("\tPulling docker image %s\n", img)
+			}
+
 			err := dm.installImage(img)
 			if err != nil {
 				return false, err
