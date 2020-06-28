@@ -313,6 +313,10 @@ func (e *Executor) executeSingleRule(rule rules.Rule) error {
 
 	if changed {
 
+		if e.cfg.Verbose {
+			fmt.Printf("\tRule resulted in a change being made.\n")
+		}
+
 		// Now call any rules that we should notify.
 		notify := e.deps(rule, "notify")
 
@@ -321,6 +325,11 @@ func (e *Executor) executeSingleRule(rule rules.Rule) error {
 
 			// get the actual rule, by index
 			dr := e.Rules[e.index[child]]
+
+			// report upon it if we're being verbose
+			if e.cfg.Verbose {
+				fmt.Printf("\t\tNotifying rule: %s\n", dr.Name)
+			}
 
 			// Execute the rule.
 			err := e.executeSingleRule(dr)
