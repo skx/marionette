@@ -259,4 +259,19 @@ func Test15Assignment(t *testing.T) {
 			t.Fatalf("tests[%d] - Literal wrong, expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
 		}
 	}
+
+	//
+	// We've parsed the whole input.
+	//
+	// Reading more should just return \0.
+	//
+	i := 0
+	for i < 10 {
+
+		p := l.peekChar()
+		if p != rune(0) {
+			t.Errorf("after reading past input we didn't get null")
+		}
+		i++
+	}
 }
