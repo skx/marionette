@@ -99,7 +99,7 @@ func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 	//
 	// Change the mode, if required.
 	//
-	changed := false
+	var changed bool
 	changed, err = file.ChangeMode(target, mode)
 	if err != nil {
 		return false, err
@@ -111,7 +111,7 @@ func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 	// User and group changes
 	owner := StringParam(args, "owner")
 	if owner != "" {
-		changed := false
+		var changed bool
 		changed, err = file.ChangeOwner(target, owner)
 		if err != nil {
 			return false, err
@@ -122,7 +122,7 @@ func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 	}
 	group := StringParam(args, "group")
 	if group != "" {
-		changed := false
+		var changed bool
 		changed, err = file.ChangeGroup(target, group)
 		if err != nil {
 			return false, err
