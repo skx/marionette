@@ -5,7 +5,7 @@ import "testing"
 // TestLookup just ensures we can find expected methods
 func TestLookup(t *testing.T) {
 
-	expected := []string{"exists"}
+	expected := []string{"exists", "equals", "equal"}
 	bogus := []string{"bar", "baz"}
 
 	for _, name := range expected {

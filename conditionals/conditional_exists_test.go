@@ -1,4 +1,4 @@
-// exists() method
+// exists() method tests
 
 package conditionals
 
