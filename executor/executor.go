@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/skx/marionette/conditionals"
 	"github.com/skx/marionette/config"
 	"github.com/skx/marionette/file"
 	"github.com/skx/marionette/modules"
@@ -224,40 +225,27 @@ func (e *Executor) Execute() error {
 }
 
 // runConditional returns true if the given conditional is true.
+//
+// The conditionals are implemented in their own package, and can be
+// looked up by name.  We lookup the conditional, and if it exists
+// invoke it dynamically returning the appropriate result.
 func (e *Executor) runConditional(cond interface{}) (bool, error) {
 
-	// Get the value as a string
+	// Get the value as an instance of our Conditional struct
 	test, ok := cond.(*parser.Condition)
 	if !ok {
 		return false, fmt.Errorf("we expected a conditional structure, but got %v", cond)
 	}
 
-	if test.Name == "exists" {
-
-		if len(test.Args) != 1 {
-			return false, fmt.Errorf("wrong number of args for 'exists': %d != 1", len(test.Args))
-		}
-
-		if file.Exists(test.Args[0]) {
-			return true, nil
-		}
-
-		return false, nil
+	// Look for the implementation of the conditional-method.
+	helper := conditionals.Lookup(test.Name)
+	if helper == nil {
+		return false, fmt.Errorf("conditional-function %s not available", test.Name)
 	}
 
-	if test.Name == "equal" || test.Name == "equals" {
-
-		if len(test.Args) != 2 {
-			return false, fmt.Errorf("wrong number of args for 'equale': %d != 2", len(test.Args))
-		}
-
-		if test.Args[0] == test.Args[1] {
-			return true, nil
-		}
-		return false, nil
-	}
-
-	return false, fmt.Errorf("unknown conditional-type: %s", test)
+	// Call the function, and return whatever result it gives us.
+	res, err := helper(test.Args)
+	return res, err
 }
 
 // executeSingleRule creates the appropriate module, and runs the single rule.
