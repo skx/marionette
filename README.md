@@ -111,10 +111,10 @@ directory {
 We have two ways to link rules to each other, using a pair of keys with
 special meaning:
 
-* `dependencies`
-  * This key contains a list of any rules which must be executed before this one.
+* `require`
+  * This key contains either a single rule-name, or a list of any rule-names, which must be executed before _this_ one.
 * `notify`
-  * A list of any number of rules which should be notified, because this rule resulted in a state-change.
+  * A list of any number of rules which should be notified, because _this_ rule resulted in a state-change.
 
 **Note** You only need to specify a rule-name to link rules for the purpose of managing dependencies.
 
