@@ -22,6 +22,7 @@
    * [shell](#shell)
 * [Example Rules](#example-rules)
 * [Future Plans](#future-plans)
+  * [See also](#see-also)
 * [Github Setup](#github-setup)
 
 
@@ -472,9 +473,7 @@ That should be safe to run for all users, as it only modifies files beneath `/tm
 * Gathering "facts" about the local system, and storing them as variables would be useful.
 
 
-
-
-# See Also
+## See Also
 
 There are brief brief notes on implementation contained within [HACKING.md](HACKING.md)
 
