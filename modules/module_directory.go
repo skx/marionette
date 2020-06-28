@@ -76,9 +76,9 @@ func (f *DirectoryModule) Execute(args map[string]interface{}) (bool, error) {
 		if os.IsNotExist(err) {
 
 			// make the directory hierarchy
-			err := os.MkdirAll(target, os.FileMode(modeI))
-			if err != nil {
-				return false, err
+			er := os.MkdirAll(target, os.FileMode(modeI))
+			if er != nil {
+				return false, er
 			}
 
 			changed = true
