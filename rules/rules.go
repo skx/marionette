@@ -1,7 +1,7 @@
 // Package rules contains the definition of the user supplied rules.
 //
 // A rule has a type, and then a series of key=value pairs.  Sometimes
-// the values are strings, other times the are arrays
+// the values are strings, other times they are arrays.
 package rules
 
 import "fmt"
@@ -9,7 +9,7 @@ import "fmt"
 // Rule is the structure which contains a single rule
 type Rule struct {
 
-	// Type contains the rule-type
+	// Type contains the rule-type.
 	Type string
 
 	// Name contains the name of the rule.
