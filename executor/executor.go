@@ -71,7 +71,7 @@ func (e *Executor) SetConfig(cfg *config.Config) {
 
 // Get the rules a rule depends upon, via the given key.
 //
-// This is used to find any `requires` or `notify` rules.
+// This is used to find any `require` or `notify` rules.
 func (e *Executor) deps(rule rules.Rule, key string) []string {
 
 	var res []string
@@ -143,7 +143,7 @@ func (e *Executor) Check() error {
 		// Get the dependencies of that rule, and the things
 		// it will notify in the event it is triggered.
 		//
-		deps := e.deps(r, "requires")
+		deps := e.deps(r, "require")
 		notify := e.deps(r, "notify")
 
 		// Join the pair of rules

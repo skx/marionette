@@ -45,8 +45,8 @@ let today = `date`
 # the module.  However there are also two magical keys which are global
 # and used for defining relationships/dependencies:
 #
-#    dependencies:
-#      Specify a single, or multiple, rules this depends upon.
+#    require:
+#      Specify the single, or multiple, rules this depends upon.
 #
 #    notify:
 #      Specify either a single rule to trigger, or multiple rules to
@@ -123,13 +123,13 @@ shell triggered { name    => "test-shell-command",
 # With that rule defined we can now create a file "/tmp/input" with
 # some fixed content, and explicitly notify the rule it should run.
 #
-file { name => "test-static-content",
-       target => "/tmp/input",
+file { name    => "test-static-content",
+       target  => "/tmp/input",
        content => "This is my file content
 The string has inline newlines.
 I think three lines is enough
 ",
-       notify => "test-shell-command" }
+       notify  => "test-shell-command" }
 
 #
 # As a result of running this two things should have happened:
@@ -234,9 +234,9 @@ file {  name       => "fetch file",
 #
 #   "if" => "equals( \"foo\", \"bar\" )",
 #
-shell { name => "Echo Test",
+shell { name    => "Echo Test",
         command => "echo I'm Unix, probably.",
-        if => exists( /bin/ls ) }
+        if      => exists( /bin/ls ) }
 
 #
 # These are some shell-commands.
@@ -246,10 +246,10 @@ shell { name => "Echo Test",
 #
 # The second runs every time.
 #
-shell triggered { name => "I count your lines",
+shell triggered { name    => "I count your lines",
                   command => "wc -l /tmp/${foo}.txt > /tmp/line.count"  }
 
-shell { name => "I touch your file.",
+shell { name    => "I touch your file.",
         command => "touch /tmp/test.me" }
 
 

@@ -117,7 +117,7 @@ func TestBrokenDependencies(t *testing.T) {
 	//
 	params := make(map[string]interface{})
 	// -> missing rule
-	params["requires"] = "foo"
+	params["require"] = "foo"
 
 	//
 	// Create a rule with a single dependency
@@ -129,7 +129,7 @@ func TestBrokenDependencies(t *testing.T) {
 
 	//
 	// Create a rule with a pair of dependencies
-	params["requires"] = []string{"foo", "bar"}
+	params["require"] = []string{"foo", "bar"}
 	r2 := []rules.Rule{rules.Rule{Type: "file",
 		Name:      "test",
 		Triggered: false,
@@ -225,6 +225,44 @@ func TestIf(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "not available") {
 		t.Errorf("got an error, but not the right kind: %s", err.Error())
+	}
+
+}
+
+// TestTriggered uses a rule which is "triggered", and thus shouldn't be
+// executed normally.
+func TestTriggered(t *testing.T) {
+
+	//
+	// Create our rule.
+	//
+	r1 := []rules.Rule{
+
+		rules.Rule{Type: "file",
+			Name:      "bob",
+			Triggered: false,
+			Params: map[string]interface{}{"require": "test",
+				"if": &parser.Condition{Name: "equal",
+					Args: []string{"foo", "bar"}}},
+		},
+		rules.Rule{Type: "file",
+			Name:      "test",
+			Triggered: true,
+			Params:    make(map[string]interface{})}}
+
+	//
+	// Create the executor
+	//
+	ex := New(r1)
+	ex.SetConfig(&config.Config{Verbose: true})
+
+	err := ex.Check()
+	if err != nil {
+		t.Errorf("unexpected error checking rules")
+	}
+	err = ex.Execute()
+	if err != nil {
+		t.Errorf("unexpected error running rules")
 	}
 
 }
