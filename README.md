@@ -20,7 +20,6 @@
    * [git](#git)
    * [link](#link)
    * [shell](#shell)
-* [Adding Modules](#adding-modules)
 * [Example Rules](#example-rules)
 * [Future Plans](#future-plans)
 * [Github Setup](#github-setup)
@@ -43,7 +42,7 @@ As things stand we have a small number of built-in modules, providing the primit
 
 In the future it is possible that more modules will be added, but this will require users to file bug-reports requesting them, contribute code, or the author realizing something is necessary.
 
-Although it is expected that additional modules will be integrated into the core application it is possible to extend the application via the use of [external plugins](#adding-modules), so they don't necessarily need to be implemented in Golang, or included in this repository.
+Although it is expected that additional modules will be integrated into the core application it is also possible to extend the application via the use of external-plugins - as described in the file [HACKING.mod](HACKING.md)
 
 
 
@@ -56,11 +55,13 @@ Binaries for several systems are available upon our [download page](https://gith
 go get github.com/skx/marionette
 ```
 
-Once installed you can then execute it with the path of one or more rule-files like so:
+The main application can then be launched with the path to a set of rules, which it will then try to apply:
 
 ```
 marionette [flags] ./rules.txt ./rules2.txt ... ./rulesN.txt
 ```
+
+Currently `-verbose` is the only command-line flag provided, however that might change in the future.
 
 
 
@@ -80,12 +81,25 @@ $MODULE [triggered] {
 
 Each rule starts by declaring the type of module which is being invoked, then there is a block containing "`key => value`" sections.  Different modules will accept/expect different keys to configure themselves.  (Unknown arguments will generally be ignored.)
 
-Here is an example rule which creates a file containing the output of a command:
+A rule can also contain the optional `triggered` attribute, which is discussed later.  (Basically a `triggered`-rule is skipped, unless it is explicitly invoked by another rule - think of it as a "handler" if you're used to `ansible`.)
+
+Here is a concrete example rule which executes a shell-command:
 
 ```
 # Run a command, unconditionally
 shell { command => "uptime > /tmp/uptime.txt" }
 
+```
+
+Another simple example to illustrate the available syntax might look like the following, which ensures that I have `~/bin/` owned by myself:
+
+```
+directory {
+             target  => "/home/${USER}/bin",
+             mode    => "0755",
+             owner   => "${USER}",
+             group   => "${USER}",
+}
 ```
 
 
@@ -238,7 +252,7 @@ Dependency resolution will work across modules, as the rule-names use a single g
 
 # Module Types
 
-Our primitives are implemented in 100% pure golang, however adding [new modules as plugins](#adding-modules) is possible, and contributions for various purposes are most welcome.
+Our primitives are implemented in 100% pure golang, and are included with our binary.  However note that it is possible to implement external plugin-modules, as described in [HACKING.md](HACKING.md).
 
 There now follows a brief list of available/included modules:
 
@@ -440,35 +454,6 @@ shell { name => "I touch your file.",
 
 
 
-# Adding Modules
-
-Adding marionette modules can be done in two ways:
-
-* Writing your module in 100% pure go.
-  * This is how the bundled modules are written, there is a simple API which only requires implementing the methods in the [ModuleAPI interface](modules/api.go).
-* Writing an external/binary  plugin.
-  * You can write a plugin in __any__ language you like.
-
-Given a rule such as the following we'll look for a handler for `foo`:
-
-```
-foo { name => "My rule",
-      param1 => "One", }
-```
-
-If there is no built-in plugin with that name then instead we'll execute an external binary, if it exists.  The parameters supplied in the rule-block will be passed as JSON piped to STDIN when the process is launched.
-
-If that plugin makes a change, such that triggers should be executed, it should print `changed` to STDOUT and exit with a return code of 0.  If no change was made then it should print `unchanged` to STDOUT and also exit with a return code of 0.
-
-A non-zero return code will be assumed to mean something failed, and execution will terminate.
-
-There are two directories searched for plugins:
-
-* `/opt/marionette/plugins`
-* `~/.marionette/plugins`
-
-So in the example above we'd execute `/opt/marionette/plugins/foo` or `~/.marionette/plugins/foo` if they exist.  If there was no built-in module with the name, and no binary plugin found then we'd have to report an error and terminate.
-
 
 
 # Example Rules
@@ -485,6 +470,13 @@ That should be safe to run for all users, as it only modifies files beneath `/tm
 # Future Plans
 
 * Gathering "facts" about the local system, and storing them as variables would be useful.
+
+
+
+
+# See Also
+
+There are brief brief notes on implementation contained within [HACKING.md](HACKING.md)
 
 
 
