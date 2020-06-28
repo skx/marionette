@@ -47,7 +47,7 @@ func TestSimpleRule(t *testing.T) {
 	// Create the executor
 	//
 	ex := New(r)
-	ex.SetConfig(&config.Config{})
+	ex.SetConfig(&config.Config{Verbose: true})
 
 	err = ex.Check()
 	if err != nil {
@@ -71,6 +71,42 @@ func TestSimpleRule(t *testing.T) {
 		t.Errorf("post-execution file has wrong content")
 	}
 	os.Remove(tmpfile.Name())
+}
+
+// TestCheckFail - calls a rule without a mandatory parameter.
+func TestCheckFail(t *testing.T) {
+
+	//
+	// Setup the parameters - empty.  Bogus.
+	//
+	params := make(map[string]interface{})
+
+	//
+	// Create a simple rule
+	//
+	r := []rules.Rule{rules.Rule{Type: "file",
+		Name:   "test",
+		Params: params}}
+
+	//
+	// Create the executor
+	//
+	ex := New(r)
+	ex.SetConfig(&config.Config{Verbose: true})
+
+	err := ex.Check()
+	if err != nil {
+		t.Errorf("unexpected error checking rules")
+	}
+
+	err = ex.Execute()
+	if err == nil {
+		t.Errorf("expected error running rules, got none")
+	}
+	if !strings.Contains(err.Error(), "error validating") {
+		t.Errorf("got an error, but the wrong one: %s", err.Error())
+	}
+
 }
 
 // TestRepeatedNames ensures non-unique names are detected
@@ -98,7 +134,7 @@ func TestRepeatedNames(t *testing.T) {
 	// Create the executor
 	//
 	ex := New(r)
-	ex.SetConfig(&config.Config{})
+	ex.SetConfig(&config.Config{Verbose: true})
 
 	err := ex.Check()
 	if err == nil {
@@ -139,7 +175,7 @@ func TestBrokenDependencies(t *testing.T) {
 	// Create the executor
 	//
 	ex := New(r1)
-	ex.SetConfig(&config.Config{})
+	ex.SetConfig(&config.Config{Verbose: true})
 
 	err := ex.Check()
 	if err == nil {
@@ -153,7 +189,7 @@ func TestBrokenDependencies(t *testing.T) {
 	// Create the executor, again
 	//
 	ex = New(r2)
-	ex.SetConfig(&config.Config{})
+	ex.SetConfig(&config.Config{Verbose: true})
 
 	err = ex.Check()
 	if err == nil {
@@ -248,7 +284,8 @@ func TestTriggered(t *testing.T) {
 		rules.Rule{Type: "file",
 			Name:      "test",
 			Triggered: true,
-			Params:    make(map[string]interface{})}}
+			Params:    map[string]interface{}{"require": 3}},
+	}
 
 	//
 	// Create the executor
