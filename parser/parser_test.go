@@ -8,6 +8,8 @@
 package parser
 
 import (
+	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 )
@@ -192,5 +194,98 @@ func TestConditional(t *testing.T) {
 	formatted := res.String()
 	if formatted != "equal(foo,foo)" {
 		t.Errorf("failed to stringify valid comparison")
+	}
+}
+
+// TestInclude handles some simple include-file things.
+func TestInclude(t *testing.T) {
+
+	// Invalid tests
+	invalid := []string{
+		"include ",
+		"include {",
+		"include (",
+	}
+
+	for _, txt := range invalid {
+		p := New(txt)
+		_, err := p.Parse()
+
+		if err == nil {
+			t.Errorf("expected error parsing '%s', got none", txt)
+		}
+		if !strings.Contains(err.Error(), "supported for include statements") {
+			t.Errorf("got error (expected) but wrong value (%s)", err.Error())
+		}
+	}
+
+	//
+	// Attempt to include file that doesn't exist
+	//
+	txt := `include "/path/to/fil/not/found"`
+	p := New(txt)
+	_, err := p.Parse()
+	if err == nil {
+		t.Fatalf("including a file that wasn't found worked!")
+	}
+
+	//
+	// Now write out a temporary file
+	//
+	tmpfile, err := ioutil.TempFile("", "example")
+	if err != nil {
+		t.Fatalf("create a temporary file failed")
+	}
+
+	// Write the input
+	_, err = tmpfile.Write([]byte("# This is a comment\n"))
+	if err != nil {
+		t.Fatalf("error writing temporary file")
+	}
+
+	//
+	// Parse the file that includes this
+	//
+	txt = `include "` + tmpfile.Name() + `"`
+	p = New(txt)
+	_, err = p.Parse()
+	if err != nil {
+		t.Fatalf("got error reading include file %s", err.Error())
+	}
+
+	//
+	// Cleanup
+	//
+	os.Remove(tmpfile.Name())
+
+}
+
+// TestMapper handles mapper-invokation
+func TestMapper(t *testing.T) {
+
+	txt := `# Comment
+let foo = "bar"
+
+shell { command => "x" }
+`
+	p := New(txt)
+	_, err := p.Parse()
+	if err != nil {
+		t.Fatalf("unexpected error parsing file")
+	}
+
+	//
+	// Now we should have a variable "foo"
+	//
+	x := p.mapper("foo")
+	if x != "bar" {
+		t.Fatalf("${foo} had wrong value 'bar' != '%s'", x)
+	}
+
+	//
+	// Now getenv
+	//
+	if p.mapper("USER") != os.Getenv("USER") {
+		t.Fatalf("getenv failed")
 	}
 }
