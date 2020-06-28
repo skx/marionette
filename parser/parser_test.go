@@ -126,7 +126,7 @@ func TestConditinalErrors(t *testing.T) {
 	// Broken tests
 	broken := []TestCase{
 		{Input: `shell { name => "OK",
-                                 command => "echo Comparision Worked!",
+                                 command => "echo Comparison Worked!",
                                  if =>        }`,
 			Error: "expected identifier"},
 
@@ -134,16 +134,16 @@ func TestConditinalErrors(t *testing.T) {
 			Error: "expected identifier"},
 
 		{Input: `shell { name => "OK",
-                                 command => "echo Comparision Worked!",
+                                 command => "echo Comparison Worked!",
                                  if => equal(
         }`,
 			Error: "unexpected EOF in conditional"},
 		{Input: `shell { name => "OK",
-                                 command => "echo Comparision Worked!",
+                                 command => "echo Comparison Worked!",
                                  unless`,
 			Error: "expected => after conditional"},
 		{Input: `shell { name => "OK",
-                                 command => "echo Comparision Worked!",
+                                 command => "echo Comparison Worked!",
                                  unless => foo foo`,
 			Error: "expected ( after conditional"},
 	}
@@ -168,7 +168,7 @@ func TestConditinalErrors(t *testing.T) {
 func TestConditional(t *testing.T) {
 
 	input := `shell { name => "OK",
-                          command => "echo Comparision Worked!",
+                          command => "echo Comparison Worked!",
                           if => equal( "foo", "foo" ),
                   }`
 
