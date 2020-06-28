@@ -2,8 +2,34 @@ package file
 
 import (
 	"io/ioutil"
+	"os"
 	"testing"
 )
+
+// TestExists ensures we report on file existence.
+func TestExists(t *testing.T) {
+
+	// Create a file, and ensure it exists
+	tmpfile, err := ioutil.TempFile("", "example")
+	if err != nil {
+		t.Fatalf("create a temporary file failed")
+	}
+
+	// Does it exist
+	res := Exists(tmpfile.Name())
+	if !res {
+		t.Fatalf("after creating a temporary file it doesnt exist")
+	}
+
+	// Remove the file
+	os.Remove(tmpfile.Name()) // clean up
+
+	// Does it exist, still?
+	res = Exists(tmpfile.Name())
+	if res {
+		t.Fatalf("after removing a temporary file it still exists")
+	}
+}
 
 // TestHash tests our hashing function
 func TestHash(t *testing.T) {
