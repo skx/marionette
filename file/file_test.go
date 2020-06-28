@@ -67,6 +67,7 @@ func TestHash(t *testing.T) {
 			t.Fatalf("invalid hash %s != %s", out, test.output)
 		}
 
+		os.Remove(tmpfile.Name())
 	}
 
 	// Hashing a missing file should fail
