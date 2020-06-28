@@ -39,6 +39,7 @@ func TestSimpleRule(t *testing.T) {
 	params := make(map[string]interface{})
 	params["foo"] = "bar"
 	params["name"] = "steve"
+	params["if"] = "exists(/bin/ls)"
 
 	// create a new rule and format as string
 	r := NewRule("shell", "my-rule-name", params)
@@ -50,8 +51,15 @@ func TestSimpleRule(t *testing.T) {
 		if !strings.Contains(out, k) {
 			t.Fatalf("didn't find expected key %s in output", k)
 		}
-		if !strings.Contains(out, fmt.Sprintf("\"%s\"", v)) {
-			t.Fatalf("didn't find expected value %s in output", k)
+
+		if k == "if" {
+			if !strings.Contains(out, fmt.Sprintf("%s", v)) {
+				t.Fatalf("didn't find expected value %s in output", k)
+			}
+		} else {
+			if !strings.Contains(out, fmt.Sprintf("\"%s\"", v)) {
+				t.Fatalf("didn't find expected value %s in output", k)
+			}
 		}
 	}
 }
