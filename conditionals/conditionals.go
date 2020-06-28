@@ -1,4 +1,4 @@
-// Package conditional contains the implementation of our conditional
+// Package conditionals contains the implementation of our conditional
 // functions.
 //
 // A conditional function is something that can be referred to within
