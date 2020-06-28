@@ -117,8 +117,12 @@ func (dm *DockerModule) installImage(img string) error {
 	defer out.Close()
 
 	if dm.cfg.Verbose {
-		io.Copy(os.Stdout, out)
+		_, err := io.Copy(os.Stdout, out)
+		if err != nil {
+			return err
+		}
 	}
+
 	// No error.
 	return nil
 }

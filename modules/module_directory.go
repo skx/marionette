@@ -74,8 +74,13 @@ func (f *DirectoryModule) Execute(args map[string]interface{}) (bool, error) {
 	// Create the directory, if it is missing, with the correct mode.
 	if _, err := os.Stat(target); err != nil {
 		if os.IsNotExist(err) {
-			// make it
-			os.MkdirAll(target, os.FileMode(modeI))
+
+			// make the directory hierarchy
+			err := os.MkdirAll(target, os.FileMode(modeI))
+			if err != nil {
+				return false, err
+			}
+
 			changed = true
 		} else {
 			// Error running the stat

@@ -170,7 +170,10 @@ func (e *EditModule) RemoveLines(path string, pattern string) (bool, error) {
 
 		// If it doesn't match the regexp, write to the temporary file
 		if !re.MatchString(line) {
-			tmpfile.WriteString(line + "\n")
+			_, err := tmpfile.WriteString(line + "\n")
+			if err != nil {
+				return false, err
+			}
 		}
 	}
 

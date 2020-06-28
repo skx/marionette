@@ -219,7 +219,10 @@ func (f *FileModule) CreateFile(dst string, content string) (bool, error) {
 	defer os.Remove(tmpfile.Name())
 
 	// Write to it.
-	ioutil.WriteFile(tmpfile.Name(), []byte(content), 0644)
+	err = ioutil.WriteFile(tmpfile.Name(), []byte(content), 0644)
+	if err != nil {
+		return false, err
+	}
 
 	// File doesn't exist - copy it
 	if !file.Exists(dst) {
