@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/skx/marionette/config"
+	"github.com/skx/marionette/parser"
 	"github.com/skx/marionette/rules"
 )
 
@@ -160,6 +161,135 @@ func TestBrokenDependencies(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "has reference to") {
 		t.Errorf("received an error, but not the one we expected: %s", err.Error())
+	}
+}
+
+// TestIf tests the support for our `if` conditional handling.
+func TestIf(t *testing.T) {
+
+	//
+	// Setup the parameters
+	//
+	params := make(map[string]interface{})
+	params["name"] = "foo"
+	params["if"] = &parser.Condition{Name: "equals",
+		Args: []string{"foo", "bar"}}
+
+	//
+	// Create our rule.
+	//
+	r1 := []rules.Rule{rules.Rule{Type: "file",
+		Name:      "test",
+		Triggered: false,
+		Params:    params}}
+
+	//
+	// Create the executor
+	//
+	ex := New(r1)
+	ex.SetConfig(&config.Config{Verbose: true})
+
+	err := ex.Check()
+	if err != nil {
+		t.Errorf("unexpected error checking rules")
+	}
+	err = ex.Execute()
+	if err != nil {
+		t.Errorf("unexpected error running rules")
+	}
+
+	//
+	// Now we try to run with the wrong type for our conditional
+	//
+	params["if"] = "foo"
+	r1[0].Params = params
+	ex = New(r1)
+	err = ex.Execute()
+	if err == nil {
+		t.Errorf("expected error running rules, got none")
+	}
+	if !strings.Contains(err.Error(), "xpected a conditional structure") {
+		t.Errorf("got an error, but not the right kind: %s", err.Error())
+	}
+
+	//
+	// Finally we try to run with an unknown conditional
+	//
+	params["if"] = &parser.Condition{Name: "agrees",
+		Args: []string{"foo", "bar"}}
+	r1[0].Params = params
+	ex = New(r1)
+	err = ex.Execute()
+	if err == nil {
+		t.Errorf("expected error running rules, got none")
+	}
+	if !strings.Contains(err.Error(), "not available") {
+		t.Errorf("got an error, but not the right kind: %s", err.Error())
+	}
+
+}
+
+// TestUnless tests the support for our `unless` conditional handling.
+func TestUnless(t *testing.T) {
+
+	//
+	// Setup the parameters
+	//
+	params := make(map[string]interface{})
+	params["name"] = "foo"
+	params["unless"] = &parser.Condition{Name: "equals",
+		Args: []string{"bar", "bar"}}
+
+	//
+	// Create our rule.
+	//
+	r1 := []rules.Rule{rules.Rule{Type: "file",
+		Name:      "test",
+		Triggered: false,
+		Params:    params}}
+
+	//
+	// Create the executor
+	//
+	ex := New(r1)
+	ex.SetConfig(&config.Config{Verbose: true})
+
+	err := ex.Check()
+	if err != nil {
+		t.Errorf("unexpected error checking rules")
+	}
+	err = ex.Execute()
+	if err != nil {
+		t.Errorf("unexpected error running rules")
+	}
+
+	//
+	// Now we try to run with the wrong type for our conditional
+	//
+	params["unless"] = "foo"
+	r1[0].Params = params
+	ex = New(r1)
+	err = ex.Execute()
+	if err == nil {
+		t.Errorf("expected error running rules, got none")
+	}
+	if !strings.Contains(err.Error(), "xpected a conditional structure") {
+		t.Errorf("got an error, but not the right kind: %s", err.Error())
+	}
+
+	//
+	// Finally we try to run with an unknown conditional
+	//
+	params["unless"] = &parser.Condition{Name: "agrees",
+		Args: []string{"foo", "bar"}}
+	r1[0].Params = params
+	ex = New(r1)
+	err = ex.Execute()
+	if err == nil {
+		t.Errorf("expected error running rules, got none")
+	}
+	if !strings.Contains(err.Error(), "not available") {
+		t.Errorf("got an error, but not the right kind: %s", err.Error())
 	}
 
 }
