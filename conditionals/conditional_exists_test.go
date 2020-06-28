@@ -51,7 +51,7 @@ func TestExists(t *testing.T) {
 	}
 
 	// Remove the file
-	os.Remove(tmpfile.Name()) // clean up
+	os.Remove(tmpfile.Name())
 
 	// Does it exist, still?
 	res, err = Exists([]string{tmpfile.Name()})
