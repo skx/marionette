@@ -128,8 +128,8 @@ We could wing-it and write the rules in the logical order, but it would be far b
 There are two ways we could implement this.  The simplest way would be this:
 
 ```
-shell { command      => "uptime > /tmp/blah/uptime",
-        dependencies => "Create /tmp/blah" }
+shell { command   => "uptime > /tmp/blah/uptime",
+        require   => "Create /tmp/blah" }
 
 directory{ name   => "Create /tmp/blah",
            target => "/tmp/blah" }
