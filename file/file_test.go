@@ -101,13 +101,13 @@ func TestIdentical(t *testing.T) {
 	}
 
 	// Left missing
-	out, err = Identical(a.Name()+"foo", b.Name())
+	_, err = Identical(a.Name()+"foo", b.Name())
 	if err == nil {
 		t.Fatalf("expected error comparing a missing file")
 	}
 
 	// Right missing
-	out, err = Identical(a.Name(), b.Name()+"foo")
+	_, err = Identical(a.Name(), b.Name()+"foo")
 	if err == nil {
 		t.Fatalf("expected error comparing a missing file")
 	}
