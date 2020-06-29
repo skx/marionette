@@ -191,7 +191,7 @@ func (e *Executor) Execute() error {
 		}
 
 		// Get the rule dependencies.
-		deps := e.deps(r, "requires")
+		deps := e.deps(r, "require")
 
 		// Process each one
 		for i, dep := range deps {
@@ -203,6 +203,13 @@ func (e *Executor) Execute() error {
 
 			// get the actual rule, by index
 			dr := e.Rules[e.index[dep]]
+
+			// Don't run rules that are only present to
+			// be notified by a trigger.
+			if dr.Triggered {
+				continue
+			}
+
 			err := e.executeSingleRule(dr)
 			if err != nil {
 				return err

@@ -284,7 +284,7 @@ func TestTriggered(t *testing.T) {
 		rules.Rule{Type: "file",
 			Name:      "test",
 			Triggered: true,
-			Params:    map[string]interface{}{"require": 3}},
+			Params:    map[string]interface{}{"require": 3, "target": "/tmp/foo", "ensure": "present", "content": "foo"}},
 	}
 
 	//
@@ -295,11 +295,11 @@ func TestTriggered(t *testing.T) {
 
 	err := ex.Check()
 	if err != nil {
-		t.Errorf("unexpected error checking rules")
+		t.Errorf("unexpected error checking rules: %s", err.Error())
 	}
 	err = ex.Execute()
 	if err != nil {
-		t.Errorf("unexpected error running rules")
+		t.Errorf("unexpected error running rules: %s", err.Error())
 	}
 
 }
