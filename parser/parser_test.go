@@ -1,9 +1,6 @@
 //
 // Test-cases for our parser.
 //
-// The parser is designed to consume tokens from our lexer so we have to
-// fake-feed them in.  We do this via the `FakeLexer` helper.
-//
 
 package parser
 
@@ -148,6 +145,8 @@ func TestConditinalErrors(t *testing.T) {
                                  command => "echo Comparison Worked!",
                                  unless => foo foo`,
 			Error: "expected ( after conditional"},
+		{Input: "shell { command => \"echo OK\", if => equals( \"test\", `/missing/file/here`,     ) }",
+			Error: "error running command"},
 	}
 
 	for _, test := range broken {
@@ -230,6 +229,16 @@ func TestInclude(t *testing.T) {
 	}
 
 	//
+	// Attempt to include file, via a broken backtick.
+	//
+	txt = "include `/path/to/fil/not/found`"
+	p = New(txt)
+	_, err = p.Parse()
+	if err == nil {
+		t.Fatalf("including a file that wasn't found worked!")
+	}
+
+	//
 	// Now write out a temporary file
 	//
 	tmpfile, err := ioutil.TempFile("", "example")
@@ -250,6 +259,25 @@ func TestInclude(t *testing.T) {
 	p = New(txt)
 	_, err = p.Parse()
 	if err != nil {
+		t.Fatalf("got error reading include file %s", err.Error())
+	}
+
+	//
+	// Second attempt, update our include file to include
+	// broken syntax
+	//
+	_, err = tmpfile.Write([]byte("let f => ff \n"))
+	if err != nil {
+		t.Fatalf("error writing temporary file")
+	}
+
+	//
+	// Parse the file that includes this
+	//
+	txt = `include "` + tmpfile.Name() + `"`
+	p = New(txt)
+	_, err = p.Parse()
+	if err == nil {
 		t.Fatalf("got error reading include file %s", err.Error())
 	}
 

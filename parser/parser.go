@@ -1,4 +1,15 @@
-// Package parser contains a rudimentary parser for our input language.
+// Package parser contains a parser for our input language.
+//
+// We consume tokens from the lexer, and attempt to process
+// them into either:
+//
+//  1. A series of rules.
+//
+//  2. A series of variable assignments.
+//
+//  We support the inclusion of other files, and command
+// expansion via backticks, but we're otherwise pretty
+// minimal.
 package parser
 
 import (
@@ -14,12 +25,16 @@ import (
 	"github.com/skx/marionette/token"
 )
 
-// Condition holds a conditional expression.
+// Condition holds the definition of a conditional expression.
 //
 // Currently we support two types "exists" and "equal", which can
 // be used as the values for magical blocks "if" and "unless".
 //
+// We're flexible enough that new conditional-types can be
+// implemented without touching the parser-code, or even the
+// executor.
 type Condition struct {
+
 	// Name has the name of the conditional operation.
 	Name string
 
@@ -54,7 +69,7 @@ func New(input string) *Parser {
 //
 // ${foo} will be converted to the contents of the variable named foo
 // which was created with `let foo = "bar"`, or failing that the contents
-// of the environmental variable.
+// of the environmental variable named `foo`.
 func (p *Parser) mapper(val string) string {
 
 	// Lookup a variable which exists?
@@ -134,7 +149,12 @@ func (p *Parser) Parse() ([]rules.Rule, error) {
 			if err != nil {
 				return found, err
 			}
-		} else if tok.Literal == "include" {
+
+			continue
+		}
+
+		// Is this an include-file?
+		if tok.Literal == "include" {
 
 			// Get the thing we should include.
 			t := p.l.NextToken()
@@ -177,24 +197,24 @@ func (p *Parser) Parse() ([]rules.Rule, error) {
 			//
 			found = append(found, rules...)
 
-		} else {
-
-			// Otherwise it must be a block statement.
-			var r rules.Rule
-
-			r, err = p.parseBlock(tok.Literal)
-			if err != nil {
-				return nil, err
-			}
-
-			found = append(found, r)
+			continue
 		}
+
+		// Otherwise it must be a block statement.
+		var r rules.Rule
+
+		r, err = p.parseBlock(tok.Literal)
+		if err != nil {
+			return nil, err
+		}
+
+		found = append(found, r)
 	}
 
 	return found, err
 }
 
-// Variables returns any defined variables.
+// Variables returns any defined variables we found when parsing the file.
 func (p *Parser) Variables() map[string]string {
 	return p.vars
 }
@@ -257,6 +277,22 @@ func (p *Parser) runCommand(command string) (string, error) {
 }
 
 // parseBlock parses the contents of modules' block.
+//
+// A block has the general form:
+//
+//  type [triggered] {
+//       key1   => "value",
+//       key2   => [ "foo", "bar", "baz" ],
+//       unless => expression(),
+//       if     => expression,
+//  }
+//
+// The values of the keys can either be quoted strings,
+// backtick-strings, or arrays of the same.
+//
+// The two keys `if` and `unless` have unquoted expressions
+// as arguments.
+//
 func (p *Parser) parseBlock(ty string) (rules.Rule, error) {
 
 	var r rules.Rule
