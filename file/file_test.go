@@ -76,3 +76,95 @@ func TestHash(t *testing.T) {
 		t.Fatalf("should have seen an error, didn't")
 	}
 }
+
+// TestIdentical checks our identical file handling.
+func TestIdentical(t *testing.T) {
+
+	// create a pair of files
+	a, err := ioutil.TempFile("", "example")
+	if err != nil {
+		t.Fatalf("create a temporary file failed")
+	}
+	var b *os.File
+	b, err = ioutil.TempFile("", "example")
+	if err != nil {
+		t.Fatalf("create a temporary file failed")
+	}
+
+	// Two identical files
+	out, err := Identical(a.Name(), b.Name())
+	if err != nil {
+		t.Fatalf("unexpected error comparing files")
+	}
+	if !out {
+		t.Fatalf("two files should be identical")
+	}
+
+	// Left missing
+	out, err = Identical(a.Name()+"foo", b.Name())
+	if err == nil {
+		t.Fatalf("expected error comparing a missing file")
+	}
+
+	// Right missing
+	out, err = Identical(a.Name(), b.Name()+"foo")
+	if err == nil {
+		t.Fatalf("expected error comparing a missing file")
+	}
+
+	// Now write some data to one file
+	_, err = a.Write([]byte("random data"))
+	if err != nil {
+		t.Fatalf("error writing temporary file")
+	}
+
+	// Now we have two different files
+	out, err = Identical(a.Name(), b.Name())
+	if err != nil {
+		t.Fatalf("unexpected error comparing files")
+	}
+	if out {
+		t.Fatalf("two files should be different")
+	}
+
+	// Cleanup
+	os.Remove(a.Name())
+	os.Remove(b.Name())
+}
+
+// TestCopy does minimal testing of the Copy function.
+func TestCopy(t *testing.T) {
+
+	// create a pair of files
+	a, err := ioutil.TempFile("", "example")
+	if err != nil {
+		t.Fatalf("create a temporary file failed")
+	}
+	var b *os.File
+	b, err = ioutil.TempFile("", "example")
+	if err != nil {
+		t.Fatalf("create a temporary file failed")
+	}
+
+	// Two files
+	err = Copy(a.Name(), b.Name())
+	if err != nil {
+		t.Errorf("found unexpected error copying files")
+	}
+
+	// Source missing
+	err = Copy(a.Name()+"foo", b.Name())
+	if err == nil {
+		t.Errorf("expected error copying missing source")
+	}
+
+	// Destination invalid
+	err = Copy(a.Name(), "/path/to/file/not/found"+b.Name())
+	if err == nil {
+		t.Errorf("expected error copying missing destination directory")
+	}
+
+	// Cleanup
+	os.Remove(a.Name())
+	os.Remove(b.Name())
+}
