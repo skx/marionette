@@ -43,8 +43,6 @@ As things stand we have a small number of built-in modules, providing the primit
 
 In the future it is possible that more modules will be added, but this will require users to file bug-reports requesting them, contribute code, or the author realizing something is necessary.
 
-Although it is expected that additional modules will be integrated into the core application it is also possible to extend the application via the use of external-plugins - as described in the file [HACKING.mod](HACKING.md)
-
 
 
 
@@ -253,9 +251,7 @@ Dependency resolution will work across modules, as the rule-names use a single g
 
 # Module Types
 
-Our primitives are implemented in 100% pure golang, and are included with our binary.  However note that it is possible to implement external plugin-modules, as described in [HACKING.md](HACKING.md).
-
-There now follows a brief list of available/included modules:
+Our primitives are implemented in 100% pure golang, and are included with our binary, these are now described briefly:
 
 
 ## `apt`
