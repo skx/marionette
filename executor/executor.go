@@ -6,17 +6,10 @@
 package executor
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
 
 	"github.com/skx/marionette/conditionals"
 	"github.com/skx/marionette/config"
-	"github.com/skx/marionette/file"
 	"github.com/skx/marionette/modules"
 	"github.com/skx/marionette/parser"
 	"github.com/skx/marionette/rules"
@@ -27,10 +20,6 @@ type Executor struct {
 
 	// Rules are the things we'll execute.
 	Rules []rules.Rule
-
-	// PluginDirectories contains an array of directories in which
-	// to look for binary/external plugins.
-	PluginDirectories []string
 
 	// Index is a mapping between rule-name and index.
 	//
@@ -49,12 +38,6 @@ type Executor struct {
 func New(r []rules.Rule) *Executor {
 
 	e := &Executor{Rules: r}
-
-	//
-	// Setup plugin paths.
-	//
-	e.PluginDirectories = append(e.PluginDirectories, "/opt/marionette/plugins")
-	e.PluginDirectories = append(e.PluginDirectories, os.Getenv("HOME")+"/.marionette/plugins/")
 
 	//
 	// Default configuration
@@ -301,21 +284,14 @@ func (e *Executor) executeSingleRule(rule rules.Rule) error {
 
 	// Create the instance of the module
 	helper := modules.Lookup(rule.Type, e.cfg)
-	if helper != nil {
+	if helper == nil {
+		return fmt.Errorf("unknown module type %s, from rule %v", rule.Type, rule)
+	}
 
-		// Run the module
-		changed, err = e.runInternalModule(helper, rule)
-		if err != nil {
-			return err
-		}
-
-	} else {
-
-		// Run the external plugin
-		changed, err = e.runBinaryPlugin(rule)
-		if err != nil {
-			return err
-		}
+	// Run the module instance
+	changed, err = e.runInternalModule(helper, rule)
+	if err != nil {
+		return err
 	}
 
 	if changed {
@@ -369,55 +345,4 @@ func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule rules.Rule) 
 	}
 
 	return changed, nil
-}
-
-// runBinaryPlugin invokes our rule with an external binary plugin,
-// found upon one of the directories stored in PluginDirectories.
-func (e *Executor) runBinaryPlugin(rule rules.Rule) (bool, error) {
-
-	//
-	// Look for the file
-	//
-	path := ""
-
-	for _, dir := range e.PluginDirectories {
-
-		complete := filepath.Join(dir, rule.Type)
-		if file.Exists(complete) {
-			path = complete
-		}
-	}
-
-	if path == "" {
-		return false, fmt.Errorf("module %s is not built-in, and couldn't be found as an external plugin in directories: %s", rule.Type, strings.Join(e.PluginDirectories, ","))
-	}
-
-	//
-	// We're looking for an external plugin.
-	//
-	login := exec.Command(path)
-
-	buffer := bytes.Buffer{}
-	result := bytes.Buffer{}
-	input, _ := json.Marshal(rule.Params)
-	buffer.Write(input)
-
-	login.Stdout = &result
-	login.Stdin = &buffer
-
-	err := login.Run()
-	if err != nil {
-		return false, fmt.Errorf("error running plugin %s (%s) - %s", rule.Type, path, err)
-	}
-
-	// What did we get ?
-	res := result.String()
-
-	// Did it start with "changed" ?
-	if strings.HasPrefix(res, "changed") {
-		return true, nil
-	}
-
-	return false, nil
-
 }
