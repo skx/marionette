@@ -22,6 +22,13 @@ func Register(id string, newfunc TestCtor) {
 	handlers.Unlock()
 }
 
+// RegisterAlias allows a new name to refer to an existing implementation.
+func RegisterAlias(alias string, impl string) {
+	handlers.Lock()
+	handlers.m[alias] = handlers.m[impl]
+	handlers.Unlock()
+}
+
 // Lookup is the factory-method which looks up and returns
 // an object of the given type - if possible.
 func Lookup(id string, cfg *config.Config) (a ModuleAPI) {
