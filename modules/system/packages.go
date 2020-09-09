@@ -7,13 +7,17 @@ package system
 
 import (
 	"fmt"
+	"log"
 	"os"
+	"os/exec"
+	"strings"
+	"syscall"
 )
 
 // Known-system types
 const (
-	CENTOS = "CENTOS"
-	DEBIAN = "DEBIAN"
+	CENTOS_YUM = "CENTOS_YUM"
+	DEBIAN     = "DEBIAN"
 )
 
 // Mapping between CLI packages and systems
@@ -22,19 +26,31 @@ var (
 	// These are used to identify systems.
 	mappings = map[string]string{
 		"/usr/bin/dpkg": DEBIAN,
-		"/usr/bin/yum":  CENTOS,
+		"/usr/bin/yum":  CENTOS_YUM,
+	}
+
+	// Is installed?
+	checkCmd = map[string]string{
+		DEBIAN:     "dpkg -s %s",
+		CENTOS_YUM: "yum list installed %s",
 	}
 
 	// Install command for different systems.
 	installCmd = map[string]string{
-		DEBIAN: "apt-get install --yes %s",
-		CENTOS: "yum install --assume-yes %s",
+		DEBIAN:     "apt-get install --yes %s",
+		CENTOS_YUM: "yum install --assume-yes %s",
 	}
 
 	// Uninstallation command for different systems
 	uninstallCmd = map[string]string{
-		DEBIAN: "dpkg --purge %s",
-		CENTOS: "rpm -e %s",
+		DEBIAN:     "dpkg --purge %s",
+		CENTOS_YUM: "yum remove %s",
+	}
+
+	// Update command for each system
+	updateCmd = map[string]string{
+		DEBIAN:     "apt-get update --quiet --quiet",
+		CENTOS_YUM: "??",
 	}
 )
 
@@ -80,9 +96,50 @@ func (p *Package) IsKnown() bool {
 	return (p.system != "")
 }
 
+// Update carries out the update command for a given system
+func (p *Package) Update() error {
+	return fmt.Errorf("todo - use our updateCmd")
+}
+
+// IsInstalled checks a package installed?
+func (p *Package) IsInstalled(name string) (bool, error) {
+
+	if !p.IsKnown() {
+		return false, fmt.Errorf("failed to recognize system-type")
+	}
+
+	// Get the command
+	tmp := checkCmd[p.System()]
+	tmp = strings.ReplaceAll(tmp, "%s", name)
+
+	// Split
+	run := strings.Split(tmp, " ")
+
+	// Run
+	cmd := exec.Command(run[0], run[1:]...)
+	if err := cmd.Start(); err != nil {
+		return false, err
+	}
+
+	// Wait for completion
+	if err := cmd.Wait(); err != nil {
+
+		if exiterr, ok := err.(*exec.ExitError); ok {
+
+			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
+				log.Printf("Exit Status: %d", status.ExitStatus())
+				return false, nil
+			}
+		}
+	}
+
+	// Package is installed.
+	return true, nil
+
+}
+
 // Install a single package to the system.
 func (p *Package) Install(name string) error {
-
 	return fmt.Errorf("todo - use our installCmd")
 }
 

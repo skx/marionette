@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/skx/marionette/config"
+	"github.com/skx/marionette/modules/system"
 )
 
 // AptModule stores our state
@@ -31,25 +32,10 @@ func (am *AptModule) Check(args map[string]interface{}) error {
 // isInstalled tests if the package is installed
 func (am *AptModule) isInstalled(pkg string) (bool, error) {
 
-	// Run the command
-	cmd := exec.Command("dpkg", "-s", pkg)
+	x := system.New()
 
-	// Get the output
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return false, fmt.Errorf("error running command 'dpkg -s %s' %s", pkg, err.Error())
-	}
-
-	// Look for "Status:"
-	for _, line := range strings.Split(string(output), "\n") {
-		if strings.HasPrefix(line, "Status:") {
-			if strings.Contains(line, "installed") {
-				return true, nil
-			}
-		}
-	}
-
-	return false, nil
+	res, err := x.IsInstalled(pkg)
+	return res, err
 }
 
 // Execute is part of the module-api, and is invoked to run a rule.
