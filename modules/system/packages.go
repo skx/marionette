@@ -30,26 +30,26 @@ var (
 
 	// Is installed?
 	checkCmd = map[string]string{
-		DEBIAN: "dpkg -s %s",
-		YUM:    "yum list installed %s",
+		DEBIAN: "/usr/bin/dpkg -s %s",
+		YUM:    "/usr/bin/yum list installed %s",
 	}
 
 	// Install command for different systems.
 	installCmd = map[string]string{
-		DEBIAN: "apt-get install --yes %s",
-		YUM:    "yum install --assume-yes %s",
+		DEBIAN: "/usr/bin/apt-get install --yes %s",
+		YUM:    "/usr/bin/yum install --assumeyes %s",
 	}
 
 	// Uninstallation command for different systems
 	uninstallCmd = map[string]string{
-		DEBIAN: "dpkg --purge %s",
-		YUM:    "yum remove %s",
+		DEBIAN: "/usr/bin/dpkg --purge %s",
+		YUM:    "/usr/bin/yum remove --assumeyes %s",
 	}
 
 	// Update command for each system
 	updateCmd = map[string]string{
-		DEBIAN: "apt-get update --quiet --quiet",
-		YUM:    "??",
+		DEBIAN: "/usr/bin/apt-get update --quiet --quiet",
+		YUM:    "/usr/bin/yum clean expire-cache --quiet",
 	}
 )
 
