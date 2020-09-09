@@ -11,14 +11,13 @@
     * [Command Execution](#command-execution)
     * [File Inclusion](#file-inclusion)
 * [Module Types](#module-types)
-   * [apt](#apt)
    * [directory](#directory)
-   * [dpkg](#dpkg)
    * [docker](#docker)
    * [edit](#edit)
    * [file](#file)
    * [git](#git)
    * [link](#link)
+   * [package](#package)
    * [shell](#shell)
 * [Example Rules](#example-rules)
 * [Future Plans](#future-plans)
@@ -38,7 +37,8 @@ As things stand we have a small number of built-in modules, providing the primit
 * Creating/modifying files/directories.
 * Fetching Docker images.
 * Installing and removing packages.
-  * Currently only for Debian GNU/Linux systems, and others that use `apt-get` and `dpkg`.
+  * Currently we support Debian GNU/Linux, and CentOS
+  * Using `apt-get`, `dpkg`, and `yum` as appropriate..
 * Triggering shell actions.
 
 In the future it is possible that more modules will be added, but this will require users to file bug-reports requesting them, contribute code, or the author realizing something is necessary.
@@ -254,29 +254,6 @@ Dependency resolution will work across modules, as the rule-names use a single g
 Our primitives are implemented in 100% pure golang, and are included with our binary, these are now described briefly:
 
 
-## `apt`
-
-The apt-module allows you to install a package, or set of packages, via the Debian `apt-get` command.
-
-Example usage:
-
-```
-apt { name    => "Install bash",
-      package => "bash",
-    }
-
-apt { name    => "Install bash",
-      package => [ "bash", "screen", "sudo" ],
-    }
-```
-
-Valid parameters are:
-
-* `package` is a mandatory parameter, containing the package, or packages to install.
-* `update` - If this is set to `yes` then `apt-get update` will be executed before the package installation is attempted.
-
-
-
 ## `directory`
 
 The directory module allows you to create a directory, or change the permissions of one.
@@ -299,19 +276,6 @@ Valid parameters are:
 * `state` - Set the state of the directory.
   * `state => "absent"` remove it.
   * `state => "present"` create it (this is the default).
-
-
-
-## `dpkg`
-
-This module allows purging a package, or set of packages:
-
-```
-dpkg { name => "Remove stuff",
-       package => ["vlc", "vlc-l10n"] }
-```
-
-Only the `package` key is required.
 
 
 
@@ -432,6 +396,33 @@ Valid parameters are:
 
 * `target` is a mandatory parameter, and specifies the location of the symlink to create.
 * `source` is a mandatory parameter, and specifies the item the symlink should point to.
+
+
+
+## `package`
+
+The package-module allows you to install or remove a package from your system, via the execution of `apt-get`, `dpkg`, and `yum`, as appropriate.
+
+Example usage:
+
+```
+# Install a single package
+package { name    => "Install bash",
+          package => "bash",
+          state   => "installed",
+        }
+
+# Uninstall a series of packages
+package { package => [ "nano", "vim-tiny", "nvi" ],
+          state => "absent" }
+```
+
+Valid parameters are:
+
+* `package` is a mandatory parameter, containing the package, or packages to install.
+* `state` - Should be one of `installed` or `absent`, depending upon whether you want to install or uninstall a package.
+* `update` - If this is set to `yes` then `apt-get update` will be executed before the package installation is attempted.
+
 
 
 
