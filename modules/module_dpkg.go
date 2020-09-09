@@ -2,10 +2,9 @@ package modules
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
 
 	"github.com/skx/marionette/config"
+	"github.com/skx/marionette/modules/system"
 )
 
 // DPKGModule stores our state
@@ -16,7 +15,7 @@ type DPKGModule struct {
 }
 
 // Check is part of the module-api, and checks arguments.
-func (f *DPKGModule) Check(args map[string]interface{}) error {
+func (dm *DPKGModule) Check(args map[string]interface{}) error {
 
 	// Ensure we have a command to run.
 	_, ok := args["package"]
@@ -28,11 +27,16 @@ func (f *DPKGModule) Check(args map[string]interface{}) error {
 }
 
 // Execute is part of the module-api, and is invoked to run a rule.
-func (f *DPKGModule) Execute(args map[string]interface{}) (bool, error) {
+func (dm *DPKGModule) Execute(args map[string]interface{}) (bool, error) {
+
+	// Did we make a change, by removing a package?
+	changed := false
+
+	// Package abstraction
+	pkg := system.New()
 
 	// We might have multiple packages
 	var packages []string
-	packages = append(packages, "--purge")
 
 	// Single package?
 	p := StringParam(args, "package")
@@ -46,17 +50,33 @@ func (f *DPKGModule) Execute(args map[string]interface{}) (bool, error) {
 		packages = append(packages, a...)
 	}
 
-	// Now run
-	cmd := exec.Command("dpkg", packages...)
+	// For each package, remove if installed
+	for _, name := range packages {
 
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	err := cmd.Run()
-	if err != nil {
-		return false, fmt.Errorf("error running command %s", err.Error())
+		// Is it instaled?
+		inst, err := pkg.IsInstalled(name)
+		if err != nil {
+			return false, err
+		}
+
+		// If it is not installed we do nothing
+		if !inst {
+			continue
+		}
+
+		if dm.cfg.Verbose {
+			fmt.Printf("\tPackage is not installed, removing: %s\n", name)
+		}
+		// Uninstall
+		err = pkg.Uninstall(name)
+		if err != nil {
+			return false, err
+		}
+
+		changed = true
 	}
 
-	return false, nil
+	return changed, nil
 }
 
 // init is used to dynamically register our module.

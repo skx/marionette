@@ -2,9 +2,6 @@ package modules
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
-	"strings"
 
 	"github.com/skx/marionette/config"
 	"github.com/skx/marionette/modules/system"
@@ -20,7 +17,7 @@ type AptModule struct {
 // Check is part of the module-api, and checks arguments.
 func (am *AptModule) Check(args map[string]interface{}) error {
 
-	// Ensure we have a command to run.
+	// Ensure we have a package to install.
 	_, ok := args["package"]
 	if !ok {
 		return fmt.Errorf("missing 'package' parameter")
@@ -29,25 +26,19 @@ func (am *AptModule) Check(args map[string]interface{}) error {
 	return nil
 }
 
-// isInstalled tests if the package is installed
-func (am *AptModule) isInstalled(pkg string) (bool, error) {
-
-	x := system.New()
-	res, err := x.IsInstalled(pkg)
-	return res, err
-}
-
 // Execute is part of the module-api, and is invoked to run a rule.
 func (am *AptModule) Execute(args map[string]interface{}) (bool, error) {
 
+	// Did we make a change, by installing a package?
+	changed := false
+
 	// Package abstraction
-	x := system.New()
+	pkg := system.New()
 
 	// Are we updating first?
 	p := StringParam(args, "update")
 	if p == "yes" {
-
-		err := x.Update()
+		err := pkg.Update()
 		if err != nil {
 			return false, err
 		}
@@ -68,44 +59,32 @@ func (am *AptModule) Execute(args map[string]interface{}) (bool, error) {
 		packages = append(packages, a...)
 	}
 
-	// Assume all packages are installed, but if not we'll add them.
-	installed := true
-	for _, pkg := range packages {
-		present, err := am.isInstalled(pkg)
+	// For each package, install if missing
+	for _, name := range packages {
+
+		// Is it instaled?
+		inst, err := pkg.IsInstalled(name)
 		if err != nil {
 			return false, err
 		}
 
-		// One package was missing; so we'll install.
-		if !present {
-			installed = false
+		// If not then we add it
+		if !inst {
 			if am.cfg.Verbose {
-				fmt.Printf("\tPackages not installed: %s\n", pkg)
+				fmt.Printf("\tPackage is not installed, installing: %s\n", name)
 			}
 
+			// Install
+			err = pkg.Install(name)
+			if err != nil {
+				return false, err
+			}
+
+			changed = true
 		}
 	}
 
-	// Package(s) are installed already.
-	if installed {
-		if am.cfg.Verbose {
-			fmt.Printf("\tPackages installed already: %s\n", strings.Join(packages, ","))
-		}
-
-		return false, nil
-	}
-
-	// Now run
-	packages = append([]string{"install", "--yes"}, packages...)
-	cmd := exec.Command("apt-get", packages...)
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	err := cmd.Run()
-	if err != nil {
-		return false, fmt.Errorf("error running command %s", err.Error())
-	}
-
-	return true, nil
+	return changed, nil
 }
 
 // init is used to dynamically register our module.
