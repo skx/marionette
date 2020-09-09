@@ -7,7 +7,6 @@ package system
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -173,19 +172,6 @@ func (p *Package) Install(name string) error {
 	return p.run(run)
 }
 
-// InstallPackages allows Installing multiple packages to the system.
-func (p *Package) InstallPackages(names []string) error {
-
-	for _, ent := range names {
-		err := p.Install(ent)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 // Uninstall a single package from the system.
 func (p *Package) Uninstall(name string) error {
 
@@ -204,19 +190,6 @@ func (p *Package) Uninstall(name string) error {
 	return p.run(run)
 }
 
-// UninstallPackages allows uninstalling multiple packages from the system.
-func (p *Package) UninstallPackages(names []string) error {
-
-	for _, ent := range names {
-		err := p.Uninstall(ent)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 // run executes the named command and returns an error unless
 // the execution launched and the return-code was zero.
 func (p *Package) run(run []string) error {
@@ -233,7 +206,6 @@ func (p *Package) run(run []string) error {
 		if exiterr, ok := err.(*exec.ExitError); ok {
 
 			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
-				log.Printf("Exit Status: %d", status.ExitStatus())
 				return fmt.Errorf("exit code for '%s' was %d", strings.Join(run, ","), status.ExitStatus())
 			}
 		}
