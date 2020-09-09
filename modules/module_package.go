@@ -14,6 +14,9 @@ type PackageModule struct {
 
 	// cfg contains our configuration object.
 	cfg *config.Config
+
+	// state when using a compatibility-module
+	state string
 }
 
 // Check is part of the module-api, and checks arguments.
@@ -28,7 +31,11 @@ func (pm *PackageModule) Check(args map[string]interface{}) error {
 	// Ensure we have a state to move towards.
 	state, ok2 := args["state"]
 	if !ok2 {
-		return fmt.Errorf("missing 'state' parameter")
+		if pm.state != "" {
+			state = pm.state
+		} else {
+			return fmt.Errorf("missing 'state' parameter")
+		}
 	}
 
 	// The state should make sense.
@@ -79,9 +86,11 @@ func (pm *PackageModule) Execute(args map[string]interface{}) (bool, error) {
 	// Are we installing, or uninstalling?
 	state := StringParam(args, "state")
 	if state == "" {
-
-		// state might be an array.
-		return false, fmt.Errorf("state must be a string")
+		if pm.state != "" {
+			state = pm.state
+		} else {
+			return false, fmt.Errorf("state must be a string")
+		}
 	}
 
 	// For each package install/uninstall
@@ -142,5 +151,13 @@ func (pm *PackageModule) Execute(args map[string]interface{}) (bool, error) {
 func init() {
 	Register("package", func(cfg *config.Config) ModuleAPI {
 		return &PackageModule{cfg: cfg}
+	})
+
+	// compat
+	Register("apt", func(cfg *config.Config) ModuleAPI {
+		return &PackageModule{cfg: cfg, state: "installed"}
+	})
+	Register("dpkg", func(cfg *config.Config) ModuleAPI {
+		return &PackageModule{cfg: cfg, state: "absent"}
 	})
 }
