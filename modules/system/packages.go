@@ -16,8 +16,8 @@ import (
 
 // Known-system types
 const (
-	CENTOS_YUM = "CENTOS_YUM"
-	DEBIAN     = "DEBIAN"
+	YUM    = "YUM"
+	DEBIAN = "DEBIAN"
 )
 
 // Mapping between CLI packages and systems
@@ -26,31 +26,31 @@ var (
 	// These are used to identify systems.
 	mappings = map[string]string{
 		"/usr/bin/dpkg": DEBIAN,
-		"/usr/bin/yum":  CENTOS_YUM,
+		"/usr/bin/yum":  YUM,
 	}
 
 	// Is installed?
 	checkCmd = map[string]string{
-		DEBIAN:     "dpkg -s %s",
-		CENTOS_YUM: "yum list installed %s",
+		DEBIAN: "dpkg -s %s",
+		YUM:    "yum list installed %s",
 	}
 
 	// Install command for different systems.
 	installCmd = map[string]string{
-		DEBIAN:     "apt-get install --yes %s",
-		CENTOS_YUM: "yum install --assume-yes %s",
+		DEBIAN: "apt-get install --yes %s",
+		YUM:    "yum install --assume-yes %s",
 	}
 
 	// Uninstallation command for different systems
 	uninstallCmd = map[string]string{
-		DEBIAN:     "dpkg --purge %s",
-		CENTOS_YUM: "yum remove %s",
+		DEBIAN: "dpkg --purge %s",
+		YUM:    "yum remove %s",
 	}
 
 	// Update command for each system
 	updateCmd = map[string]string{
-		DEBIAN:     "apt-get update --quiet --quiet",
-		CENTOS_YUM: "??",
+		DEBIAN: "apt-get update --quiet --quiet",
+		YUM:    "??",
 	}
 )
 
@@ -163,12 +163,41 @@ func (p *Package) IsInstalled(name string) (bool, error) {
 
 	// Package is installed.
 	return true, nil
-
 }
 
 // Install a single package to the system.
 func (p *Package) Install(name string) error {
-	return fmt.Errorf("todo - use our installCmd")
+
+	if !p.IsKnown() {
+		return fmt.Errorf("failed to recognize system-type")
+	}
+
+	// Get the command
+	tmp := installCmd[p.System()]
+	tmp = strings.ReplaceAll(tmp, "%s", name)
+
+	// Split
+	run := strings.Split(tmp, " ")
+
+	// Run
+	cmd := exec.Command(run[0], run[1:]...)
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	// Wait for completion
+	if err := cmd.Wait(); err != nil {
+
+		if exiterr, ok := err.(*exec.ExitError); ok {
+
+			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
+				log.Printf("Exit Status: %d", status.ExitStatus())
+				return fmt.Errorf("exit code for '%s' was %d", tmp, status.ExitStatus())
+			}
+		}
+	}
+
+	return nil
 }
 
 // InstallPackages allows Installing multiple packages to the system.
@@ -186,7 +215,37 @@ func (p *Package) InstallPackages(names []string) error {
 
 // Uninstall a single package from the system.
 func (p *Package) Uninstall(name string) error {
-	return fmt.Errorf("todo - use our uninstallCmd")
+
+	if !p.IsKnown() {
+		return fmt.Errorf("failed to recognize system-type")
+	}
+
+	// Get the command
+	tmp := uninstallCmd[p.System()]
+	tmp = strings.ReplaceAll(tmp, "%s", name)
+
+	// Split
+	run := strings.Split(tmp, " ")
+
+	// Run
+	cmd := exec.Command(run[0], run[1:]...)
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	// Wait for completion
+	if err := cmd.Wait(); err != nil {
+
+		if exiterr, ok := err.(*exec.ExitError); ok {
+
+			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
+				log.Printf("Exit Status: %d", status.ExitStatus())
+				return fmt.Errorf("exit code for '%s' was %d", tmp, status.ExitStatus())
+			}
+		}
+	}
+
+	return nil
 }
 
 // UninstallPackages allows uninstalling multiple packages from the system.
