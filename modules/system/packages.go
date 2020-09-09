@@ -143,26 +143,16 @@ func (p *Package) IsInstalled(name string) (bool, error) {
 	// Split
 	run := strings.Split(tmp, " ")
 
-	// Run
-	cmd := exec.Command(run[0], run[1:]...)
-	if err := cmd.Start(); err != nil {
-		return false, err
+	// Run the command
+	err := p.run(run)
+
+	// No error?  Then the package is installed
+	if err == nil {
+		return true, nil
 	}
 
-	// Wait for completion
-	if err := cmd.Wait(); err != nil {
-
-		if exiterr, ok := err.(*exec.ExitError); ok {
-
-			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
-				log.Printf("Exit Status: %d", status.ExitStatus())
-				return false, nil
-			}
-		}
-	}
-
-	// Package is installed.
-	return true, nil
+	// Error means it isn't.
+	return false, nil
 }
 
 // Install a single package to the system.
@@ -179,25 +169,8 @@ func (p *Package) Install(name string) error {
 	// Split
 	run := strings.Split(tmp, " ")
 
-	// Run
-	cmd := exec.Command(run[0], run[1:]...)
-	if err := cmd.Start(); err != nil {
-		return err
-	}
-
-	// Wait for completion
-	if err := cmd.Wait(); err != nil {
-
-		if exiterr, ok := err.(*exec.ExitError); ok {
-
-			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
-				log.Printf("Exit Status: %d", status.ExitStatus())
-				return fmt.Errorf("exit code for '%s' was %d", tmp, status.ExitStatus())
-			}
-		}
-	}
-
-	return nil
+	// Run the command
+	return p.run(run)
 }
 
 // InstallPackages allows Installing multiple packages to the system.
@@ -227,25 +200,8 @@ func (p *Package) Uninstall(name string) error {
 	// Split
 	run := strings.Split(tmp, " ")
 
-	// Run
-	cmd := exec.Command(run[0], run[1:]...)
-	if err := cmd.Start(); err != nil {
-		return err
-	}
-
-	// Wait for completion
-	if err := cmd.Wait(); err != nil {
-
-		if exiterr, ok := err.(*exec.ExitError); ok {
-
-			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
-				log.Printf("Exit Status: %d", status.ExitStatus())
-				return fmt.Errorf("exit code for '%s' was %d", tmp, status.ExitStatus())
-			}
-		}
-	}
-
-	return nil
+	// Run the command
+	return p.run(run)
 }
 
 // UninstallPackages allows uninstalling multiple packages from the system.
@@ -259,4 +215,30 @@ func (p *Package) UninstallPackages(names []string) error {
 	}
 
 	return nil
+}
+
+// run executes the named command and returns an error unless
+// the execution launched and the return-code was zero.
+func (p *Package) run(run []string) error {
+
+	// Run
+	cmd := exec.Command(run[0], run[1:]...)
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	// Wait for completion
+	if err := cmd.Wait(); err != nil {
+
+		if exiterr, ok := err.(*exec.ExitError); ok {
+
+			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
+				log.Printf("Exit Status: %d", status.ExitStatus())
+				return fmt.Errorf("exit code for '%s' was %d", strings.Join(run, ","), status.ExitStatus())
+			}
+		}
+	}
+
+	return nil
+
 }
