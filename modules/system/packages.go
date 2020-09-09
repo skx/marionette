@@ -98,7 +98,35 @@ func (p *Package) IsKnown() bool {
 
 // Update carries out the update command for a given system
 func (p *Package) Update() error {
-	return fmt.Errorf("todo - use our updateCmd")
+
+	if !p.IsKnown() {
+		return fmt.Errorf("failed to recognize system-type")
+	}
+
+	// Get the command
+	tmp := updateCmd[p.System()]
+
+	// Split
+	run := strings.Split(tmp, " ")
+
+	// Run
+	cmd := exec.Command(run[0], run[1:]...)
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	// Wait for completion
+	if err := cmd.Wait(); err != nil {
+
+		if exiterr, ok := err.(*exec.ExitError); ok {
+
+			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
+				return fmt.Errorf("exit code for '%s' was %d", tmp, status.ExitStatus())
+			}
+		}
+	}
+
+	return nil
 }
 
 // IsInstalled checks a package installed?

@@ -33,7 +33,6 @@ func (am *AptModule) Check(args map[string]interface{}) error {
 func (am *AptModule) isInstalled(pkg string) (bool, error) {
 
 	x := system.New()
-
 	res, err := x.IsInstalled(pkg)
 	return res, err
 }
@@ -41,15 +40,16 @@ func (am *AptModule) isInstalled(pkg string) (bool, error) {
 // Execute is part of the module-api, and is invoked to run a rule.
 func (am *AptModule) Execute(args map[string]interface{}) (bool, error) {
 
+	// Package abstraction
+	x := system.New()
+
 	// Are we updating first?
 	p := StringParam(args, "update")
 	if p == "yes" {
-		cmd := exec.Command("apt-get", "update")
-		cmd.Stderr = os.Stderr
-		cmd.Stdout = os.Stdout
-		err := cmd.Run()
+
+		err := x.Update()
 		if err != nil {
-			return false, fmt.Errorf("error running 'apt-get update' %s", err.Error())
+			return false, err
 		}
 	}
 
