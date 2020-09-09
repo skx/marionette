@@ -419,9 +419,10 @@ package { package => [ "nano", "vim-tiny", "nvi" ],
 
 Valid parameters are:
 
-* `package` is a mandatory parameter, containing the package, or packages to install.
-* `state` - Should be one of `installed` or `absent`, depending upon whether you want to install or uninstall a package.
-* `update` - If this is set to `yes` then `apt-get update` will be executed before the package installation is attempted.
+* `package` is a mandatory parameter, containing the package, or list of packages.
+* `state` - Should be one of `installed` or `absent`, depending upon whether you want to install or uninstall the named package(s).
+* `update` - If this is set to `yes` then the system will be updated prior to installation.
+  * In the case of a Debian system, for example, `apt-get update` will be executed.
 
 
 
