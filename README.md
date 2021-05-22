@@ -190,8 +190,14 @@ Here we see that we've used two functions:
   * Return true if the two values are identical.
 * `true(string|variable)`
   * Return true if the string/variable is non-empty.
+  * `nonempty` and `set` are synonyms.
 * `false(string|variable)`
   * Return true if the string/variable is empty.
+  * `empty` and `unset` are synonyms.
+* `success(string)`
+  * Returns true if the command `string` is executed and returns a non-error exit-code (i.e. 0).
+* `failure(string)`
+  * Returns true if the command `string` is executed and returns an error exit-code (i.e. non-zero 0).
 
 More conditional primitives may be added if they appear to be necessary, or if users request them.
 
