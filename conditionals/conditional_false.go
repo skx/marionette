@@ -6,8 +6,7 @@ import (
 	"fmt"
 )
 
-// True takes a single argument and returns true if that argument was an empty
-// string.
+// False takes a single argument and returns true if that argument was an empty string.
 func False(args []string) (bool, error) {
 	if len(args) != 1 {
 		return false, fmt.Errorf("wrong number of args for 'false': %d != 1", len(args))
