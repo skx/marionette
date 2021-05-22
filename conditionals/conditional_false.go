@@ -21,7 +21,6 @@ func False(args []string) (bool, error) {
 
 // init is used to dynamically register our conditional method.
 func init() {
-	Register("false", False)
 	Register("empty", False)
 	Register("unset", False)
 }
