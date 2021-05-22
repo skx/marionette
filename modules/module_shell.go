@@ -47,8 +47,8 @@ func (f *ShellModule) Execute(args map[string]interface{}) (bool, error) {
 	var bits []string
 	bits = strings.Split(str, " ")
 
-	// but if we see redirection use the shell instead
-	if strings.Contains(str, ">") || strings.Contains(str, "<") {
+	// but if we see redirection, or the use of a pipe, use the shell instead
+	if strings.Contains(str, ">") || strings.Contains(str, "|") || strings.Contains(str, "<") {
 		bits = []string{"bash", "-c", str}
 	}
 
