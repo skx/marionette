@@ -188,6 +188,10 @@ Here we see that we've used two functions:
   * Return true if the specified file/directory exists.
 * `equal( foo, bar )`
   * Return true if the two values are identical.
+* `true(string|variable)`
+  * Return true if the string/variable is non-empty.
+* `false(string|variable)`
+  * Return true if the string/variable is empty.
 
 More conditional primitives may be added if they appear to be necessary, or if users request them.
 
