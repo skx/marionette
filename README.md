@@ -196,8 +196,10 @@ Here we see that we've used two functions:
   * `unset` is a synonym.
 * `success(string)`
   * Returns true if the command `string` is executed and returns a non-error exit-code (i.e. 0).
+  * Output is discarded, and not captured.
 * `failure(string)`
   * Returns true if the command `string` is executed and returns an error exit-code (i.e. non-zero 0).
+  * Output is discarded, and not captured.
 
 More conditional primitives may be added if they appear to be necessary, or if users request them.
 
