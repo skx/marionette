@@ -196,8 +196,10 @@ Here we see that we've used two functions:
   * `unset` is a synonym.
 * `success(string)`
   * Returns true if the command `string` is executed and returns a non-error exit-code (i.e. 0).
+  * Output is discarded, and not captured.
 * `failure(string)`
   * Returns true if the command `string` is executed and returns an error exit-code (i.e. non-zero 0).
+  * Output is discarded, and not captured.
 
 More conditional primitives may be added if they appear to be necessary, or if users request them.
 
@@ -324,6 +326,26 @@ The following keys are supported:
 * `target` - Mandatory filename to edit.
 * `remove_lines` - Remove any lines of the file matching the specified regular expression.
 * `append_if_missing` - Append the given text if not already present in the file.
+
+
+
+## `fail`
+
+The fail-module is designed to terminate processing, if you find a situation where the local
+environment doesn't match your requirements.  For example:
+
+```
+let path = `which useradd`
+
+fail {
+   message => "I can't find a working useradd binary to use",
+   if      => empty(path)
+}
+```
+
+The only parameter supported/used is the `message` value:
+
+* `message` - The message to print before terminating the script.
 
 
 

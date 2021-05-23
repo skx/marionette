@@ -280,3 +280,18 @@ file { name   => "copy input.txt to tmp.txt",
 edit { name => "drop comments",
        target => "copy.txt",
        remove_lines => "^#" }
+
+
+#
+# Create a new user for the local system, "server", unless it already exists.
+#
+# NOTE: The use of `echo` means we don't really run the user-creation, as that
+# would fail unless you ran the script under sudo.
+#
+let user = "server"
+
+shell {
+    name => "Create user: ${user}",
+    command => "echo useradd --system --no-create-home ${user}",
+    unless => success("id ${user}"),
+}
