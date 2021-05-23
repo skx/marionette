@@ -329,6 +329,26 @@ The following keys are supported:
 
 
 
+## `fail`
+
+The fail-module is designed to terminate processing, if you find a situation where the local
+environment doesn't match your requirements.  For example:
+
+```
+let path = `which useradd`
+
+fail {
+   message => "I can't find a working useradd binary to use",
+   if      => empty(path)
+}
+```
+
+The only parameter supported/used is the `message` value:
+
+* `message` - The message to print before terminating the script.
+
+
+
 ## `file`
 
 The file module allows a file to be created, from a local file, or via a remote HTTP-source.
