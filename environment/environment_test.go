@@ -32,6 +32,10 @@ func TestSet(t *testing.T) {
 
 	e := New()
 
+	// Count the variables
+	vars := e.Variables()
+	vlen := len(vars)
+
 	// Confirm getting a missing value fails
 	_, ok := e.Get("STEVE")
 	if ok {
@@ -51,6 +55,9 @@ func TestSet(t *testing.T) {
 		t.Fatalf("Wrong value retrieved")
 	}
 
+	if len(e.Variables()) != vlen+1 {
+		t.Errorf("After setting variable length didn't increase")
+	}
 	// Update the value
 	e.Set("STEVE", "STEVE")
 
