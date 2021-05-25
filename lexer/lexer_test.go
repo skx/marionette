@@ -6,9 +6,29 @@ import (
 	"github.com/skx/marionette/token"
 )
 
+// TestEmpty tests a couple of different empty strings
+func TestEmpty(t *testing.T) {
+	empty := []string{
+		";;;;;;;;;;;;;;;",
+		"",
+		"#!/usr/bin/blah",
+		"#!/usr/bin/blah\n# Comment1\n# Comment2",
+	}
+
+	for _, line := range empty {
+		lexer := New(line)
+		result := lexer.NextToken()
+
+		if result.Type != token.EOF {
+			t.Fatalf("First token of empty input is %v", result)
+		}
+	}
+
+}
+
 // TestAssign tests we can assign something.
 func TestAssign(t *testing.T) {
-	input := `let foo = "steve"`
+	input := `let foo = "steve";`
 
 	tests := []struct {
 		expectedType    token.Type
@@ -84,7 +104,7 @@ func TestComments(t *testing.T) {
 
 // TestShebang skips the shebang
 func TestShebang(t *testing.T) {
-	input := `#!/usr/bin/env deployr
+	input := `#!/usr/bin/env marionette
 "Steve"
 # This is another comment`
 
