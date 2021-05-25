@@ -38,7 +38,7 @@ func TestSimpleRule(t *testing.T) {
 	//
 	// Create a simple rule
 	//
-	r := []rules.Rule{rules.Rule{Type: "file",
+	r := []rules.Rule{{Type: "file",
 		Name:      "test",
 		Triggered: false,
 		Params:    params}}
@@ -84,7 +84,7 @@ func TestCheckFail(t *testing.T) {
 	//
 	// Create a simple rule
 	//
-	r := []rules.Rule{rules.Rule{Type: "file",
+	r := []rules.Rule{{Type: "file",
 		Name:   "test",
 		Params: params}}
 
@@ -121,11 +121,11 @@ func TestRepeatedNames(t *testing.T) {
 	// Create a pair of rules with identical names.
 	//
 	r := []rules.Rule{
-		rules.Rule{Type: "file",
+		{Type: "file",
 			Name:      "test",
 			Triggered: false,
 			Params:    params},
-		rules.Rule{Type: "file",
+		{Type: "file",
 			Name:      "test",
 			Triggered: false,
 			Params:    params}}
@@ -158,7 +158,7 @@ func TestBrokenDependencies(t *testing.T) {
 	//
 	// Create a rule with a single dependency
 	//
-	r1 := []rules.Rule{rules.Rule{Type: "file",
+	r1 := []rules.Rule{{Type: "file",
 		Name:      "test",
 		Triggered: false,
 		Params:    params}}
@@ -166,7 +166,7 @@ func TestBrokenDependencies(t *testing.T) {
 	//
 	// Create a rule with a pair of dependencies
 	params["require"] = []string{"foo", "bar"}
-	r2 := []rules.Rule{rules.Rule{Type: "file",
+	r2 := []rules.Rule{{Type: "file",
 		Name:      "test",
 		Triggered: false,
 		Params:    params}}
@@ -214,7 +214,7 @@ func TestIf(t *testing.T) {
 	//
 	// Create our rule.
 	//
-	r1 := []rules.Rule{rules.Rule{Type: "file",
+	r1 := []rules.Rule{{Type: "file",
 		Name:      "test",
 		Triggered: false,
 		Params:    params}}
@@ -274,14 +274,14 @@ func TestTriggered(t *testing.T) {
 	//
 	r1 := []rules.Rule{
 
-		rules.Rule{Type: "file",
+		{Type: "file",
 			Name:      "bob",
 			Triggered: false,
 			Params: map[string]interface{}{"require": "test",
 				"if": &conditionals.ConditionCall{Name: "equal",
 					Args: []string{"foo", "bar"}}},
 		},
-		rules.Rule{Type: "file",
+		{Type: "file",
 			Name:      "test",
 			Triggered: true,
 			Params:    map[string]interface{}{"require": 3, "target": "/tmp/foo", "ensure": "present", "content": "foo"}},
@@ -318,7 +318,7 @@ func TestUnless(t *testing.T) {
 	//
 	// Create our rule.
 	//
-	r1 := []rules.Rule{rules.Rule{Type: "file",
+	r1 := []rules.Rule{{Type: "file",
 		Name:      "test",
 		Triggered: false,
 		Params:    params}}
