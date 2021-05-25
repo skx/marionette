@@ -255,7 +255,7 @@ include "foo.in"
 include "${prefix}/test.in"
 ```
 
-Dependency resolution will work across modules, as the rule-names use a single global namespace - that might change in the future if it causes surprises.
+Dependency resolution will work across modules, as the rule-names use a single global namespace - that might change in the future if it causes surprises.  Variables defined in files which are included are also available outside their scope.
 
 
 
