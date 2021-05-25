@@ -44,3 +44,12 @@ func (e *Environment) Get(key string) (string, bool) {
 	val, ok := e.vars[key]
 	return val, ok
 }
+
+// Variables returns all of variables which have been set, as well as their
+// values.
+//
+// This is only used for the parser test-cases, but that doesn't mean it
+// won't be more generally useful..
+func (e *Environment) Variables() map[string]string {
+	return e.vars
+}
