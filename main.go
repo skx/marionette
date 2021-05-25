@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/skx/marionette/config"
+	"github.com/skx/marionette/environment"
 	"github.com/skx/marionette/executor"
 	"github.com/skx/marionette/parser"
 )
@@ -20,8 +21,11 @@ func runFile(filename string, cfg *config.Config) error {
 		return err
 	}
 
-	// Create a new parser.
-	p := parser.New(string(data))
+	// Create a new execution environment
+	env := environment.New()
+
+	// Create a new parser, ensuring it uses the new environment.
+	p := parser.NewWithEnvironment(string(data), env)
 
 	// Parse the rules
 	rules, err := p.Parse()
