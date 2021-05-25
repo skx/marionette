@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/skx/marionette/environment"
 	"github.com/skx/marionette/lexer"
 	"github.com/skx/marionette/rules"
 	"github.com/skx/marionette/token"
@@ -27,18 +28,17 @@ import (
 
 // Condition holds the definition of a conditional expression.
 //
-// Currently we support two types "exists" and "equal", which can
-// be used as the values for magical blocks "if" and "unless".
+// Currently we support a few different types of conditional methods,
+// which can only be used as the values for magical blocks "if" and "unless".
 //
-// We're flexible enough that new conditional-types can be
-// implemented without touching the parser-code, or even the
-// executor.
+// We're flexible enough that new conditional-types can be implemented
+// without touching the parser-code, or even the executor.
 type Condition struct {
 
-	// Name has the name of the conditional operation.
+	// Name stores the name of the conditional-functions to be called.
 	Name string
 
-	// Args contains the arguments to the function.
+	// Args contains the arguments to be used for the function invocation.
 	Args []string
 }
 
@@ -52,8 +52,8 @@ type Parser struct {
 	// l is the handle to our lexer
 	l *lexer.Lexer
 
-	// variables we've found
-	vars map[string]string
+	// e is the handle to our environment
+	e *environment.Environment
 
 	// Files we've included
 	included map[string]bool
@@ -62,10 +62,17 @@ type Parser struct {
 // New creates a new parser from the given input.
 func New(input string) *Parser {
 	p := &Parser{}
-
 	p.l = lexer.New(input)
-	p.vars = make(map[string]string)
+	p.e = environment.New()
 	p.included = make(map[string]bool)
+	return p
+}
+
+// NewWithEnvironment creates a new parser, along with a defined
+// environment.
+func NewWithEnvironment(input string, env *environment.Environment) *Parser {
+	p := New(input)
+	p.e = env
 	return p
 }
 
@@ -77,7 +84,7 @@ func New(input string) *Parser {
 func (p *Parser) mapper(val string) string {
 
 	// Lookup a variable which exists?
-	res, ok := p.vars[val]
+	res, ok := p.e.Get(val)
 	if ok {
 		return res
 	}
@@ -208,14 +215,17 @@ func (p *Parser) Parse() ([]rules.Rule, error) {
 			}
 
 			//
-			// Create a new instance of the parser
+			// Create a new parser instance, making sure
+			// that it uses the same environment we're using.
 			//
-			tmp := New(string(data))
+			tmp := NewWithEnvironment(string(data), p.e)
 
 			//
-			// But make sure we propagate the files
+			// Also make sure we propagate the files
 			// we've already seen.
 			//
+			// This will ensure that recursive includes do
+			// not cause us problems.
 			tmp.includedAlready(p.included)
 
 			//
@@ -247,11 +257,6 @@ func (p *Parser) Parse() ([]rules.Rule, error) {
 	}
 
 	return found, err
-}
-
-// Variables returns any defined variables we found when parsing the file.
-func (p *Parser) Variables() map[string]string {
-	return p.vars
 }
 
 // parseVariable parses a variable assignment, storing it in our map.
@@ -286,7 +291,9 @@ func (p *Parser) parseVariable() error {
 		return err
 	}
 
-	p.vars[name.Literal] = value
+	// Set the value in the environment
+	p.e.Set(name.Literal, value)
+
 	return nil
 }
 
@@ -394,7 +401,7 @@ func (p *Parser) parseBlock(ty string) (rules.Rule, error) {
 			}
 
 			//
-			// The type of operation "exists", "equal"
+			// The type of operation "exists", "equal", etc
 			//
 			tType := p.l.NextToken()
 			if tType.Type != token.IDENT {
