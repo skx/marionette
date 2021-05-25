@@ -11,7 +11,6 @@ import (
 	"github.com/skx/marionette/conditionals"
 	"github.com/skx/marionette/config"
 	"github.com/skx/marionette/modules"
-	"github.com/skx/marionette/parser"
 	"github.com/skx/marionette/rules"
 )
 
@@ -222,7 +221,7 @@ func (e *Executor) Execute() error {
 func (e *Executor) runConditional(cond interface{}) (bool, error) {
 
 	// Get the value as an instance of our Conditional struct
-	test, ok := cond.(*parser.Condition)
+	test, ok := cond.(*conditionals.ConditionCall)
 	if !ok {
 		return false, fmt.Errorf("we expected a conditional structure, but got %v", cond)
 	}

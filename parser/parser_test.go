@@ -9,6 +9,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/skx/marionette/conditionals"
 )
 
 // TestAssign tests we can assign variables
@@ -202,7 +204,7 @@ func TestConditional(t *testing.T) {
 		t.Errorf("unexpected number of results")
 	}
 
-	res, ok := out[0].Params["if"].(*Condition)
+	res, ok := out[0].Params["if"].(*conditionals.ConditionCall)
 	if !ok {
 		t.Errorf("we didn't parse a conditional")
 	}

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/skx/marionette/conditionals"
 	"github.com/skx/marionette/config"
-	"github.com/skx/marionette/parser"
 	"github.com/skx/marionette/rules"
 )
 
@@ -208,7 +208,7 @@ func TestIf(t *testing.T) {
 	//
 	params := make(map[string]interface{})
 	params["name"] = "foo"
-	params["if"] = &parser.Condition{Name: "equals",
+	params["if"] = &conditionals.ConditionCall{Name: "equals",
 		Args: []string{"foo", "bar"}}
 
 	//
@@ -251,7 +251,7 @@ func TestIf(t *testing.T) {
 	//
 	// Finally we try to run with an unknown conditional
 	//
-	params["if"] = &parser.Condition{Name: "agrees",
+	params["if"] = &conditionals.ConditionCall{Name: "agrees",
 		Args: []string{"foo", "bar"}}
 	r1[0].Params = params
 	ex = New(r1)
@@ -278,7 +278,7 @@ func TestTriggered(t *testing.T) {
 			Name:      "bob",
 			Triggered: false,
 			Params: map[string]interface{}{"require": "test",
-				"if": &parser.Condition{Name: "equal",
+				"if": &conditionals.ConditionCall{Name: "equal",
 					Args: []string{"foo", "bar"}}},
 		},
 		rules.Rule{Type: "file",
@@ -312,7 +312,7 @@ func TestUnless(t *testing.T) {
 	//
 	params := make(map[string]interface{})
 	params["name"] = "foo"
-	params["unless"] = &parser.Condition{Name: "equals",
+	params["unless"] = &conditionals.ConditionCall{Name: "equals",
 		Args: []string{"bar", "bar"}}
 
 	//
@@ -355,7 +355,7 @@ func TestUnless(t *testing.T) {
 	//
 	// Finally we try to run with an unknown conditional
 	//
-	params["unless"] = &parser.Condition{Name: "agrees",
+	params["unless"] = &conditionals.ConditionCall{Name: "agrees",
 		Args: []string{"foo", "bar"}}
 	r1[0].Params = params
 	ex = New(r1)

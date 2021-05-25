@@ -20,32 +20,12 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/skx/marionette/conditionals"
 	"github.com/skx/marionette/environment"
 	"github.com/skx/marionette/lexer"
 	"github.com/skx/marionette/rules"
 	"github.com/skx/marionette/token"
 )
-
-// Condition holds the definition of a conditional expression.
-//
-// Currently we support a few different types of conditional methods,
-// which can only be used as the values for magical blocks "if" and "unless".
-//
-// We're flexible enough that new conditional-types can be implemented
-// without touching the parser-code, or even the executor.
-type Condition struct {
-
-	// Name stores the name of the conditional-functions to be called.
-	Name string
-
-	// Args contains the arguments to be used for the function invocation.
-	Args []string
-}
-
-// String converts a Condition to a string.
-func (c Condition) String() string {
-	return fmt.Sprintf("%s(%s)", c.Name, strings.Join(c.Args, ","))
-}
 
 // Parser holds our state.
 type Parser struct {
@@ -456,7 +436,7 @@ func (p *Parser) parseBlock(ty string) (rules.Rule, error) {
 			//
 			// Save those values away in our interface map.
 			//
-			r.Params[name] = &Condition{Name: tType.Literal, Args: args}
+			r.Params[name] = &conditionals.ConditionCall{Name: tType.Literal, Args: args}
 		} else {
 
 			// Now look for "=>"

@@ -10,8 +10,32 @@
 package conditionals
 
 import (
+	"fmt"
+	"strings"
 	"sync"
 )
+
+// ConditionCall holds the invokation of a conditional expression.
+//
+// Currently we support a few different types of conditional methods,
+// which can only be used as the values for magical blocks "if" and "unless".
+//
+// New conditional-types can be implemented without touching the parser-code,
+// or even the executor, just defining new self-registering classes in the
+// conditionals package.
+type ConditionCall struct {
+
+	// Name stores the name of the conditional-functions to be called.
+	Name string
+
+	// Args contains the arguments to be used for the function invocation.
+	Args []string
+}
+
+// String converts a ConditionCall to a string.
+func (c ConditionCall) String() string {
+	return fmt.Sprintf("%s(%s)", c.Name, strings.Join(c.Args, ","))
+}
 
 // This is a map of known conditional methods.
 var handlers = struct {
