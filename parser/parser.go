@@ -54,6 +54,9 @@ type Parser struct {
 
 	// variables we've found
 	vars map[string]string
+
+	// Files we've included
+	included map[string]bool
 }
 
 // New creates a new parser from the given input.
@@ -62,6 +65,7 @@ func New(input string) *Parser {
 
 	p.l = lexer.New(input)
 	p.vars = make(map[string]string)
+	p.included = make(map[string]bool)
 	return p
 }
 
@@ -112,6 +116,13 @@ func (p *Parser) expand(tok token.Token) (string, error) {
 
 	// Return the value we've found.
 	return value, nil
+}
+
+// mark the given files as having already been included
+func (p *Parser) includedAlready(seen map[string]bool) {
+	for k := range seen {
+		p.included[k] = true
+	}
 }
 
 // Parse parses our input, returning an array of rules found,
@@ -175,6 +186,20 @@ func (p *Parser) Parse() ([]rules.Rule, error) {
 			}
 
 			//
+			// Have we already included this file?
+			//
+			// If so then we'll ignore the second attempt.
+			//
+			if p.included[path] {
+				continue
+			}
+
+			//
+			// Mark the file as having been included
+			//
+			p.included[path] = true
+
+			//
 			// Read the file we're supposed to process.
 			//
 			data, er := ioutil.ReadFile(path)
@@ -183,9 +208,19 @@ func (p *Parser) Parse() ([]rules.Rule, error) {
 			}
 
 			//
-			// Parse it via a new instance of the parser
+			// Create a new instance of the parser
 			//
 			tmp := New(string(data))
+
+			//
+			// But make sure we propagate the files
+			// we've already seen.
+			//
+			tmp.includedAlready(p.included)
+
+			//
+			// Now parse the new input.
+			//
 			rules, er := tmp.Parse()
 			if er != nil {
 				return found, er
