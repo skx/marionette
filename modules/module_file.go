@@ -27,6 +27,11 @@ func (f *FileModule) Check(args map[string]interface{}) error {
 		return fmt.Errorf("missing 'target' parameter")
 	}
 
+	target := StringParam(args, "target")
+	if target == "" {
+		return fmt.Errorf("failed to convert target to string")
+	}
+
 	return nil
 }
 
@@ -38,9 +43,6 @@ func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 
 	// Get the target
 	target := StringParam(args, "target")
-	if target == "" {
-		return false, fmt.Errorf("failed to convert target to string")
-	}
 
 	// We assume we're creating the file, but we might be removing it.
 	state := StringParam(args, "state")
