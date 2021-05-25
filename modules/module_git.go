@@ -22,32 +22,40 @@ type GitModule struct {
 // Check is part of the module-api, and checks arguments.
 func (g *GitModule) Check(args map[string]interface{}) error {
 
+	// Required keys for this module
 	required := []string{"repository", "path"}
 
+	// Ensure they exist.
 	for _, key := range required {
 		_, ok := args[key]
 		if !ok {
 			return fmt.Errorf("missing '%s' parameter", key)
 		}
-	}
 
+		val := StringParam(args, key)
+		if val == "" {
+			return fmt.Errorf("'%s' wasn't a simple string", key)
+
+		}
+
+	}
 	return nil
+}
+
+// verbose will show the message if the verbose flag is set
+func (g *GitModule) verbose(msg string) {
+	if g.cfg.Verbose {
+		fmt.Printf("%s\n", msg)
+	}
 }
 
 // Execute is part of the module-api, and is invoked to run a rule.
 func (g *GitModule) Execute(args map[string]interface{}) (bool, error) {
 
-	// Repository location
+	// Repository location - we've already confirmed these are valid
+	// in our check function.
 	repo := StringParam(args, "repository")
-	if repo == "" {
-		return false, fmt.Errorf("failed to convert 'repository' to string")
-	}
-
-	// Repository location
 	path := StringParam(args, "path")
-	if path == "" {
-		return false, fmt.Errorf("failed to convert 'path' to string")
-	}
 
 	// optional branch to checkout
 	branch := StringParam(args, "branch")
@@ -59,9 +67,7 @@ func (g *GitModule) Execute(args map[string]interface{}) (bool, error) {
 	tmp := filepath.Join(path, ".git")
 	if !file.Exists(tmp) {
 
-		if g.cfg.Verbose {
-			fmt.Printf("\tRepository not present at destination; cloning\n")
-		}
+		g.verbose("\tRepository not present at destination; cloning")
 
 		// Clone since it is missing.
 		_, err := git.PlainClone(path, false, &git.CloneOptions{
@@ -98,6 +104,8 @@ func (g *GitModule) Execute(args map[string]interface{}) (bool, error) {
 		return false, err
 	}
 
+	options := &git.PullOptions{RemoteName: "origin"}
+
 	// If we're to switch branch do that
 	if branch != "" {
 
@@ -117,12 +125,7 @@ func (g *GitModule) Execute(args map[string]interface{}) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-	}
 
-	// Update the work-tree.  Note that we have to set the
-	// reference to the branch if we're using one.
-	options := &git.PullOptions{RemoteName: "origin"}
-	if branch != "" {
 		options.ReferenceName = plumbing.ReferenceName(fmt.Sprintf("refs/heads/%s", branch))
 	}
 
@@ -140,18 +143,10 @@ func (g *GitModule) Execute(args map[string]interface{}) (bool, error) {
 
 	// If the hashes differ we've updated, and thus changed
 	if ref2.Hash() != ref.Hash() {
-
-		if g.cfg.Verbose {
-			fmt.Printf("\tRepository updated.\n")
-		}
-
+		g.verbose("\tRepository updated.")
 		changed = true
 	} else {
-
-		if g.cfg.Verbose {
-			fmt.Printf("\tNo changes to local repository.\n")
-		}
-
+		g.verbose("\tNo changes to local repository.\n")
 	}
 
 	return changed, err
