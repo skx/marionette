@@ -4,6 +4,7 @@
 package environment
 
 import (
+	"os"
 	"runtime"
 )
 
@@ -26,6 +27,14 @@ func New() *Environment {
 	// Set some default values
 	tmp.vars["ARCH"] = runtime.GOARCH
 	tmp.vars["OS"] = runtime.GOOS
+
+	// Hostname
+	host, err := os.Hostname()
+	if err == nil {
+		tmp.vars["HOSTNAME"] = host
+	} else {
+		tmp.vars["HOSTNAME"] = "unknown"
+	}
 
 	return tmp
 }

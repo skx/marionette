@@ -265,8 +265,8 @@ The following variables are available by default:
 
 | Name          | Value                                                 |
 |---------------|-------------------------------------------------------|
-| `${ARCH}`     | The system architecture (as taken from `sys.GOARCH.`) |
-| `${HOSTNAME}` | The hostname of the local system                      |
+| `${ARCH}`     | The system architecture (as taken from `sys.GOARCH`). |
+| `${HOSTNAME}` | The hostname of the local system.                     |
 | `${OS}`       | The operating system name (as taken from `sys.GOOS`). |
 
 
@@ -500,6 +500,7 @@ That should be safe to run for all users, as it only modifies files beneath `/tm
 # Future Plans
 
 * Gathering "facts" about the local system, and storing them as variables would be useful.
+  * At the moment we just have a small number of [pre-declared variables](#pre-declared-variables).
 
 
 ## See Also
