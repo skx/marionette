@@ -24,3 +24,17 @@ func TestLookup(t *testing.T) {
 		}
 	}
 }
+
+// TestString confirms we can convert a call into a string
+func TestString(t *testing.T) {
+
+	tmp := &ConditionCall{Name: "equal",
+		Args: []string{"one", "two"}}
+
+	out := tmp.String()
+
+	if out != "equal(one,two)" {
+		t.Fatalf("wrong string result")
+	}
+
+}

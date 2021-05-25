@@ -28,12 +28,13 @@ func New() *Environment {
 	tmp.vars["ARCH"] = runtime.GOARCH
 	tmp.vars["OS"] = runtime.GOOS
 
-	// Hostname
+	// Default hostname
+	tmp.vars["HOSTNAME"] = "unknown"
+
+	// Get the real one, and set it if no errors
 	host, err := os.Hostname()
 	if err == nil {
 		tmp.vars["HOSTNAME"] = host
-	} else {
-		tmp.vars["HOSTNAME"] = "unknown"
 	}
 
 	return tmp
