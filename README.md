@@ -9,7 +9,8 @@
   * [Conditionals](#conditionals)
   * [Misc. Features](#misc-features)
     * [Command Execution](#command-execution)
-    * [File Inclusion](#file-inclusion)
+    * [File Inclusion](#include-files)
+    * [Pre-Declared Variables](#pre-declared-variables)
 * [Module Types](#module-types)
    * [directory](#directory)
    * [docker](#docker)
@@ -222,7 +223,7 @@ shell { name    => "Show arch",
         command => "echo We are running on an ${arch} system" }
 ```
 
-Here `${arch}` expands to the output of the command, as you would expect, with any trailing newline removed.
+Here `${arch}` expands to the output of the command, as you would expect, with any trailing newline removed.  Note that `${ARCH}` is available by default, as noted in the [pre-declared variables](#pre-declared-variables) section.
 
 It is also possible to use backticks for any parameter value.  Here we'll write the current date to a file:
 
@@ -258,7 +259,15 @@ Dependency resolution will work across modules, as the rule-names use a single g
 
 
 
+### Pre-Declared Variables
 
+The following variables are available by default:
+
+| Name          | Value                                                 |
+|---------------|-------------------------------------------------------|
+| `${ARCH}`     | The system architecture (as taken from `sys.GOARCH.`) |
+| `${HOSTNAME}` | The hostname of the local system                      |
+| `${OS}`       | The operating system name (as taken from `sys.GOOS`). |
 
 
 # Module Types
