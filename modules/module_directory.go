@@ -24,6 +24,11 @@ func (f *DirectoryModule) Check(args map[string]interface{}) error {
 		return fmt.Errorf("missing 'target' parameter")
 	}
 
+	target := StringParam(args, "target")
+	if target == "" {
+		return fmt.Errorf("failed to convert target to string")
+	}
+
 	return nil
 }
 
@@ -35,9 +40,6 @@ func (f *DirectoryModule) Execute(args map[string]interface{}) (bool, error) {
 
 	// Get the target
 	target := StringParam(args, "target")
-	if target == "" {
-		return false, fmt.Errorf("failed to convert target to string")
-	}
 
 	// We assume we're creating the directory, but we might be removing it.
 	state := StringParam(args, "state")
@@ -49,12 +51,9 @@ func (f *DirectoryModule) Execute(args map[string]interface{}) (bool, error) {
 	if state == "absent" {
 
 		// Does it exist?
-		if _, err := os.Stat(target); err != nil {
-			if os.IsNotExist(err) {
-
-				// Does not exist
-				return false, nil
-			}
+		if !file.Exists(target) {
+			// Does not exist - nothing to do
+			return false, nil
 		}
 
 		// OK remove
@@ -72,20 +71,15 @@ func (f *DirectoryModule) Execute(args map[string]interface{}) (bool, error) {
 	modeI, _ := strconv.ParseInt(mode, 8, 64)
 
 	// Create the directory, if it is missing, with the correct mode.
-	if _, err := os.Stat(target); err != nil {
-		if os.IsNotExist(err) {
+	if !file.Exists(target) {
 
-			// make the directory hierarchy
-			er := os.MkdirAll(target, os.FileMode(modeI))
-			if er != nil {
-				return false, er
-			}
-
-			changed = true
-		} else {
-			// Error running the stat
-			return false, err
+		// make the directory hierarchy
+		er := os.MkdirAll(target, os.FileMode(modeI))
+		if er != nil {
+			return false, er
 		}
+
+		changed = true
 	}
 
 	// User and group changes
