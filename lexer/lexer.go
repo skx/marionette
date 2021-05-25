@@ -1,5 +1,16 @@
 // Package lexer contains a simple lexer for reading an input-string
 // and converting it into a series of tokens.
+//
+// In terms of syntax we're not very complex, so our lexer only needs
+// to care about simple tokens:
+//
+// - Comments
+// - Strings
+// - Some simple characters such as "(", ")", "[", "]", "=>", "=", etc.
+// -
+//
+// We can catch some basic errors in the lexing stage, such as unterminated
+// strings, but the parser is the better place to catch such things.
 package lexer
 
 import (
@@ -49,6 +60,12 @@ func (l *Lexer) NextToken() token.Token {
 	// skip single-line comments
 	if l.ch == rune('#') {
 		l.skipComment()
+		return (l.NextToken())
+	}
+
+	// Semi-colons are skipped.
+	if l.ch == rune(';') {
+		l.readChar()
 		return (l.NextToken())
 	}
 
@@ -207,7 +224,7 @@ func (l *Lexer) readBacktick() (string, error) {
 	return out, nil
 }
 
-// peek character
+// peek ahead at the next character
 func (l *Lexer) peekChar() rune {
 	if l.readPosition >= len(l.characters) {
 		return rune(0)
@@ -215,18 +232,18 @@ func (l *Lexer) peekChar() rune {
 	return l.characters[l.readPosition]
 }
 
-// determinate ch is identifier or not
+// determinate whether the given character is legal within an identifier or not.
 func isIdentifier(ch rune) bool {
 	return !isWhitespace(ch) && ch != rune(',') && ch != rune('(') && ch != rune(')') && ch != rune('=') && !isEmpty(ch)
 
 }
 
-// is white space
+// is the character white space?
 func isWhitespace(ch rune) bool {
 	return ch == rune(' ') || ch == rune('\t') || ch == rune('\n') || ch == rune('\r')
 }
 
-// is empty
+// is the given character empty?
 func isEmpty(ch rune) bool {
 	return rune(0) == ch
 }
