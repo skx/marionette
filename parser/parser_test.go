@@ -26,15 +26,24 @@ func TestAssign(t *testing.T) {
 
 	for _, test := range broken {
 
+		// Create a new parser
 		p := New(test)
-		_, err := p.Parse()
 
+		// Count the number of variables which exist in an
+		// empty parser
+		vars := p.e.Variables()
+		vlen := len(vars)
+
+		// Parse the input
+		_, err := p.Parse()
 		if err == nil {
 			t.Errorf("expected error parsing broken assign '%s' - got none", test)
 		}
 
-		v := p.Variables()
-		if len(v) != 0 {
+		// Count the variables which are set,
+		// there should be no increase.
+		v := p.e.Variables()
+		if len(v) != vlen {
 			t.Errorf("unexpected variables present")
 		}
 	}
@@ -46,15 +55,23 @@ func TestAssign(t *testing.T) {
 
 	for _, test := range valid {
 
+		// Create the parser
 		p := New(test)
-		_, err := p.Parse()
 
+		// Count the number of variables which exist in an
+		// empty parser
+		vars := p.e.Variables()
+		vlen := len(vars)
+
+		// Parse
+		_, err := p.Parse()
 		if err != nil {
 			t.Errorf("unexpected error parsing '%s' %s", test, err.Error())
 		}
 
-		v := p.Variables()
-		if len(v) != 1 {
+		// Now we should have one more variable.
+		v := p.e.Variables()
+		if len(v) != (vlen + 1) {
 			t.Errorf("variable not present")
 		}
 	}
