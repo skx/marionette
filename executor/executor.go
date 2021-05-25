@@ -46,6 +46,13 @@ func New(r []rules.Rule) *Executor {
 	return e
 }
 
+// verbose will output a message if running verbosely
+func (e *Executor) verbose(msg string) {
+	if e.cfg.Verbose {
+		fmt.Printf("%s\n", msg)
+	}
+}
+
 // SetConfig updates the executor with a configuration object.
 func (e *Executor) SetConfig(cfg *config.Config) {
 	e.cfg = cfg
@@ -241,9 +248,7 @@ func (e *Executor) runConditional(cond interface{}) (bool, error) {
 func (e *Executor) executeSingleRule(rule rules.Rule) error {
 
 	// Show what we're doing
-	if e.cfg.Verbose {
-		fmt.Printf("Running %s-module rule: %s\n", rule.Type, rule.Name)
-	}
+	e.verbose(fmt.Sprintf("Running %s-module rule: %s", rule.Type, rule.Name))
 
 	//
 	// Are there conditionals present?
@@ -254,9 +259,7 @@ func (e *Executor) executeSingleRule(rule rules.Rule) error {
 			return err
 		}
 		if !res {
-			if e.cfg.Verbose {
-				fmt.Printf("\tSkipping rule condition was not true: %s\n", rule.Params["if"])
-			}
+			e.verbose(fmt.Sprintf("\tSkipping rule condition was not true: %s", rule.Params["if"]))
 			return nil
 		}
 	}
@@ -267,9 +270,7 @@ func (e *Executor) executeSingleRule(rule rules.Rule) error {
 			return err
 		}
 		if res {
-			if e.cfg.Verbose {
-				fmt.Printf("\tSkipping rule condition was true: %s\n", rule.Params["unless"])
-			}
+			e.verbose(fmt.Sprintf("\tSkipping rule condition was true: %s", rule.Params["unless"]))
 			return nil
 		}
 	}
@@ -295,9 +296,7 @@ func (e *Executor) executeSingleRule(rule rules.Rule) error {
 
 	if changed {
 
-		if e.cfg.Verbose {
-			fmt.Printf("\tRule resulted in a change being made.\n")
-		}
+		e.verbose("\tRule resulted in a change being made.")
 
 		// Now call any rules that we should notify.
 		notify := e.deps(rule, "notify")
@@ -309,9 +308,7 @@ func (e *Executor) executeSingleRule(rule rules.Rule) error {
 			dr := e.Rules[e.index[child]]
 
 			// report upon it if we're being verbose
-			if e.cfg.Verbose {
-				fmt.Printf("\t\tNotifying rule: %s\n", dr.Name)
-			}
+			e.verbose(fmt.Sprintf("\t\tNotifying rule: %s", dr.Name))
 
 			// Execute the rule.
 			err := e.executeSingleRule(dr)
