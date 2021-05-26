@@ -42,11 +42,21 @@ func TestFail(t *testing.T) {
 
 	f := &FailModule{}
 
-	// Append my name
+	// Setup params
 	args := make(map[string]interface{})
-	args["message"] = "I have no cake"
 
 	changed, err := f.Execute(args)
+	if err == nil {
+		t.Fatalf("expected error, got none")
+	}
+	if !strings.Contains(err.Error(), "missing 'message'") {
+		t.Fatalf("got error - but wrong one : %s", err)
+	}
+
+	// Setup a message
+	args["message"] = "I have no cake"
+
+	changed, err = f.Execute(args)
 	if err == nil {
 		t.Fatalf("expected error, got none")
 	}

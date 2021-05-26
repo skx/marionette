@@ -26,6 +26,11 @@ func (f *ShellModule) Check(args map[string]interface{}) error {
 		return fmt.Errorf("missing 'command' parameter")
 	}
 
+	cmd := StringParam(args, "command")
+	if cmd == "" {
+		return fmt.Errorf("failed to convert cmd to string")
+	}
+
 	return nil
 }
 
