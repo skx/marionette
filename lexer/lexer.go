@@ -15,22 +15,38 @@ package lexer
 
 import (
 	"errors"
+	"unicode"
 
 	"github.com/skx/marionette/token"
 )
 
 // Lexer is used as the lexer for our deployr "language".
 type Lexer struct {
-	position     int    //current character position
-	readPosition int    //next character position
-	ch           rune   //current character
-	characters   []rune //rune slice of input string
+	position     int                  // current character position
+	readPosition int                  // next character position
+	ch           rune                 // current character
+	characters   []rune               // rune slice of input string
+	lookup       map[rune]token.Token // lookup map for simple tokens
 }
 
 // New a Lexer instance from string input.
 func New(input string) *Lexer {
-	l := &Lexer{characters: []rune(input)}
+	l := &Lexer{characters: []rune(input),
+		lookup: make(map[rune]token.Token)}
 	l.readChar()
+
+	//
+	// Lookup map of simple token-types.
+	//
+	l.lookup['('] = token.Token{Literal: "(", Type: token.LPAREN}
+	l.lookup[')'] = token.Token{Literal: ")", Type: token.RPAREN}
+	l.lookup['['] = token.Token{Literal: "[", Type: token.LSQUARE}
+	l.lookup[']'] = token.Token{Literal: "]", Type: token.RSQUARE}
+	l.lookup['{'] = token.Token{Literal: "{", Type: token.LBRACE}
+	l.lookup['}'] = token.Token{Literal: "}", Type: token.RBRACE}
+	l.lookup[','] = token.Token{Literal: ",", Type: token.COMMA}
+	l.lookup[rune(0)] = token.Token{Literal: "", Type: token.EOF}
+
 	return l
 }
 
@@ -51,24 +67,32 @@ func (l *Lexer) NextToken() token.Token {
 	var tok token.Token
 	l.skipWhitespace()
 
-	// skip shebang
-	if l.ch == rune('#') && l.peekChar() == rune('!') && l.position == 0 {
-		l.skipComment()
-		return (l.NextToken())
-	}
-
 	// skip single-line comments
+	//
+	// This also skips the shebang line at the start of a file - as
+	// "#!/usr/bin/blah" is treated as a comment.
 	if l.ch == rune('#') {
 		l.skipComment()
 		return (l.NextToken())
 	}
 
-	// Semi-colons are skipped.
+	// Semi-colons are skipped, always.
 	if l.ch == rune(';') {
 		l.readChar()
 		return (l.NextToken())
 	}
 
+	// Was this a simple token-type?
+	val, ok := l.lookup[l.ch]
+	if ok {
+		// Yes, then skip the character itself, and return the
+		// value we found
+		l.readChar()
+		return val
+
+	}
+
+	// OK it wasn't a simple type
 	switch l.ch {
 	case rune('='):
 		tok.Literal = "="
@@ -79,15 +103,6 @@ func (l *Lexer) NextToken() token.Token {
 			tok.Type = token.LASSIGN
 			tok.Literal = "=>"
 		}
-	case rune('('):
-		tok.Literal = "("
-		tok.Type = token.LPAREN
-	case rune(')'):
-		tok.Literal = ")"
-		tok.Type = token.RPAREN
-	case rune('['):
-		tok.Literal = "["
-		tok.Type = token.LSQUARE
 	case rune('`'):
 		str, err := l.readBacktick()
 
@@ -98,18 +113,6 @@ func (l *Lexer) NextToken() token.Token {
 			tok.Type = token.ILLEGAL
 			tok.Literal = err.Error()
 		}
-	case rune(']'):
-		tok.Literal = "]"
-		tok.Type = token.RSQUARE
-	case rune('{'):
-		tok.Literal = "{"
-		tok.Type = token.LBRACE
-	case rune(','):
-		tok.Literal = ","
-		tok.Type = token.COMMA
-	case rune('}'):
-		tok.Literal = "}"
-		tok.Type = token.RBRACE
 	case rune('"'):
 		str, err := l.readString()
 
@@ -120,14 +123,13 @@ func (l *Lexer) NextToken() token.Token {
 			tok.Type = token.ILLEGAL
 			tok.Literal = err.Error()
 		}
-	case rune(0):
-		tok.Literal = ""
-		tok.Type = token.EOF
 	default:
 		tok.Literal = l.readIdentifier()
 		tok.Type = token.IDENT
 		return tok
 	}
+
+	// skip the character we've processed, and return the value
 	l.readChar()
 	return tok
 }
@@ -240,7 +242,7 @@ func isIdentifier(ch rune) bool {
 
 // is the character white space?
 func isWhitespace(ch rune) bool {
-	return ch == rune(' ') || ch == rune('\t') || ch == rune('\n') || ch == rune('\r')
+	return unicode.IsSpace(ch)
 }
 
 // is the given character empty?
