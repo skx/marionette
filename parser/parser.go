@@ -280,6 +280,11 @@ func (p *Parser) parseVariable() error {
 // runCommand returns the output of the specified command
 func (p *Parser) runCommand(command string) (string, error) {
 
+	// Are we running under a fuzzer?  If so disable this
+	if os.Getenv("FUZZ") == "FUZZ" {
+		return command, nil
+	}
+
 	// Build up the thing to run, using a shell so that
 	// we can handle pipes/redirection.
 	toRun := []string{"/bin/bash", "-c", command}
@@ -364,67 +369,30 @@ func (p *Parser) parseBlock(ty string) (rules.Rule, error) {
 		name := t.Literal
 
 		//
+		// Skip the assign
+		//
+		//  We expect:
+		//
+		//   "if|unless|blah" =>  FOO ( arg1, arg2 .. )
+		//
+		next := p.l.NextToken()
+		if next.Literal != token.LASSIGN {
+			return r, fmt.Errorf("expected => after conditional %s, got %v", name, next)
+		}
+
+		//
 		// Is this a conditional key?
 		//
 		if name == "if" || name == "unless" {
 
 			//
-			// Skip the assign
+			// Get the name/arguments of the function call we
+			// expect to come next.
 			//
-			//  We expect:
-			//
-			//   "if" =>  FOO ( arg1, arg2 .. )
-			//
-			next := p.l.NextToken()
-			if next.Literal != token.LASSIGN {
-				return r, fmt.Errorf("expected => after conditional %s, got %v", name, next)
-			}
+			fname, args, error := p.parseFunctionCall()
 
-			//
-			// The type of operation "exists", "equal", etc
-			//
-			tType := p.l.NextToken()
-			if tType.Type != token.IDENT {
-				return r, fmt.Errorf("expected identifier name after conditional %s, got %v", tType, tType)
-			}
-
-			//
-			// Skip the opening bracket
-			//
-			open := p.l.NextToken()
-			if open.Type != token.LPAREN {
-				return r, fmt.Errorf("expected ( after conditional name %s, got %v", open, open)
-			}
-
-			//
-			// Collect the arguments, until we get a close-bracket
-			//
-			var args []string
-
-			t := p.l.NextToken()
-			for t.Literal != ")" && t.Type != token.EOF {
-
-				//
-				// Append the argument, unless it is a comma
-				//
-				if t.Type != token.COMMA {
-
-					//
-					// Expand any variable in the
-					// string, and if it is a backtick
-					// run the command.
-					//
-					value, err := p.expand(t)
-					if err != nil {
-						return r, err
-					}
-					args = append(args, value)
-				}
-				t = p.l.NextToken()
-			}
-
-			if t.Type == token.EOF {
-				return r, fmt.Errorf("unexpected EOF in conditional")
+			if error != nil {
+				return r, error
 			}
 
 			//
@@ -436,40 +404,101 @@ func (p *Parser) parseBlock(ty string) (rules.Rule, error) {
 			//
 			// Save those values away in our interface map.
 			//
-			r.Params[name] = &conditionals.ConditionCall{Name: tType.Literal, Args: args}
-		} else {
-
-			// Now look for "=>"
-			next := p.l.NextToken()
-			if next.Literal != token.LASSIGN {
-				return r, fmt.Errorf("expected => after name %s, got %v", name, next)
-			}
-
-			// Read the value
-			value, err := p.readValue(name)
-			if err != nil {
-				return r, err
-			}
-
-			r.Params[name] = value
+			r.Params[name] = &conditionals.ConditionCall{Name: fname, Args: args}
+			continue
 		}
+
+		// Read the value of the key
+		value, err := p.readValue(name)
+		if err != nil {
+			return r, err
+		}
+
+		// Save it
+		r.Params[name] = value
 	}
 
-	// If we got a name then place it in our struct
-	n, ok := r.Params["name"]
-	if ok {
-		str, ok := n.(string)
-		if ok {
-			r.Name = str
-		}
-	} else {
-
-		// Generate a fakename if there is none present.
-		id := uuid.New()
-		r.Name = id.String()
-	}
+	r.Name = p.getName(r.Params)
 
 	return r, nil
+}
+
+// getName returns the name from the specified map, if one wasn't
+// set then we return a random UUID.
+func (p *Parser) getName(params map[string]interface{}) string {
+
+	// Did we get a name parameter?
+	n, ok := params["name"]
+	if ok {
+
+		// OK we did.  Was it a string?
+		str, ok := n.(string)
+		if ok {
+
+			// Yes.  Use it.
+			return str
+		}
+	}
+
+	// Otherwise return a random UUID
+	return uuid.New().String()
+}
+
+// parseFunctionCall is invoked for the `if` & `unless` handlers.
+//
+// It parsers Foo(Val,val,val...) and returns the argument collection.
+func (p *Parser) parseFunctionCall() (string, []string, error) {
+
+	var name string
+	var args []string
+
+	//
+	// The function-call "exists", "equal", etc
+	//
+	tType := p.l.NextToken()
+	if tType.Type != token.IDENT {
+		return name, args, fmt.Errorf("expected identifier name after conditional %s, got %v", tType, tType)
+	}
+	name = tType.Literal
+
+	//
+	// Skip the opening bracket
+	//
+	open := p.l.NextToken()
+	if open.Type != token.LPAREN {
+		return name, args, fmt.Errorf("expected ( after conditional name %s, got %v", open, open)
+	}
+
+	//
+	// Collect the arguments, until we get a close-bracket
+	//
+	t := p.l.NextToken()
+	for t.Literal != ")" && t.Type != token.EOF {
+
+		//
+		// Append the argument, unless it is a comma
+		//
+		if t.Type != token.COMMA {
+
+			//
+			// Expand any variable in the
+			// string, and if it is a backtick
+			// run the command.
+			//
+			value, err := p.expand(t)
+			if err != nil {
+				return name, args, err
+			}
+			args = append(args, value)
+		}
+		t = p.l.NextToken()
+	}
+
+	if t.Type == token.EOF {
+		return name, args, fmt.Errorf("unexpected EOF in conditional")
+	}
+
+	return name, args, nil
 }
 
 // readValue returns the value associated with a name.

@@ -27,6 +27,11 @@ func (e *EditModule) Check(args map[string]interface{}) error {
 		return fmt.Errorf("missing 'target' parameter")
 	}
 
+	target := StringParam(args, "target")
+	if target == "" {
+		return fmt.Errorf("failed to convert target to string")
+	}
+
 	return nil
 }
 

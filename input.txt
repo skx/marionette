@@ -270,7 +270,7 @@ git { path       => "/tmp/foot/bar/baz",
 #
 # Copy this file to a new name.
 #
-file { name   => "copy input.txt to tmp.txt",
+file { name   => "copy input.txt to copy.txt",
        source => "input.txt",
        target => "copy.txt" }
 

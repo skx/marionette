@@ -336,3 +336,38 @@ shell { command => "x" }
 		t.Fatalf("getenv failed")
 	}
 }
+
+// Test including a file multiple times doesn't cause problems
+func TestIncludeMultiple(t *testing.T) {
+
+	// Create a temporary file
+	tmpFile, err := ioutil.TempFile(os.TempDir(), "include")
+	if err != nil {
+		t.Fatalf("Cannot create temporary file")
+	}
+	defer os.Remove(tmpFile.Name())
+
+	// Example writing to the file
+	text := []byte("# Comment")
+	if _, err = tmpFile.Write(text); err != nil {
+		t.Fatalf("failed to write to temporary file")
+	}
+
+	// Close the file
+	if err = tmpFile.Close(); err != nil {
+		t.Fatalf("error closing temporary file")
+	}
+
+	// Now try to include that a few times
+	txt := `# Comment
+include "XXX"
+include "XXX"
+`
+	txt = strings.ReplaceAll(txt, "XXX", tmpFile.Name())
+	p := New(txt)
+	_, err = p.Parse()
+	if err != nil {
+		t.Fatalf("unexpected error parsing file")
+	}
+
+}

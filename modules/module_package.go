@@ -19,6 +19,13 @@ type PackageModule struct {
 	state string
 }
 
+// verbose will show the message if the verbose flag is set
+func (pm *PackageModule) verbose(msg string) {
+	if pm.cfg.Verbose {
+		fmt.Printf("%s\n", msg)
+	}
+}
+
 // Check is part of the module-api, and checks arguments.
 func (pm *PackageModule) Check(args map[string]interface{}) error {
 
@@ -46,17 +53,10 @@ func (pm *PackageModule) Check(args map[string]interface{}) error {
 	return nil
 }
 
-// Execute is part of the module-api, and is invoked to run a rule.
-func (pm *PackageModule) Execute(args map[string]interface{}) (bool, error) {
+// getPackages returns the packages we're operating upon.
+func (pm *PackageModule) getPackages(args map[string]interface{}) []string {
 
-	// Did we make a change, by installing/removing a package?
-	changed := false
-
-	// Package abstraction
-	pkg := system.New()
-
-	// We might have multiple packages
-	var packages []string
+	packages := []string{}
 
 	// Single package?
 	p := StringParam(args, "package")
@@ -70,12 +70,27 @@ func (pm *PackageModule) Execute(args map[string]interface{}) (bool, error) {
 		packages = append(packages, a...)
 	}
 
+	return packages
+}
+
+// Execute is part of the module-api, and is invoked to run a rule.
+func (pm *PackageModule) Execute(args map[string]interface{}) (bool, error) {
+
+	// Did we make a change, by installing/removing a package?
+	changed := false
+
+	// Package abstraction
+	pkg := system.New()
+
+	// Get the packages we're working with
+	packages := pm.getPackages(args)
+
 	// Do we need to update?
 	//
 	// This only makes sense for a package-installation, but
 	// we'll accept it for the module globally as there is no
 	// harm in it.
-	p = StringParam(args, "update")
+	p := StringParam(args, "update")
 	if p == "yes" {
 		err := pkg.Update()
 		if err != nil {
@@ -103,12 +118,10 @@ func (pm *PackageModule) Execute(args map[string]interface{}) (bool, error) {
 		}
 
 		// Show the output
-		if pm.cfg.Verbose {
-			if inst {
-				fmt.Printf("\tPackage %s is installed\n", name)
-			} else {
-				fmt.Printf("\tPackage %s is not currently installed\n", name)
-			}
+		if inst {
+			pm.verbose(fmt.Sprintf("\tPackage %s is installed", name))
+		} else {
+			pm.verbose(fmt.Sprintf("\tPackage %s is not currently installed", name))
 		}
 
 		if state == "installed" {

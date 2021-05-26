@@ -505,9 +505,10 @@ That should be safe to run for all users, as it only modifies files beneath `/tm
 
 ## See Also
 
-There are brief brief notes on implementation contained within [HACKING.md](HACKING.md)
-
-
+* There are some brief notes on our implementation contained within [HACKING.md](HACKING.md).
+  * This gives an overview of the structure.
+* There are some brief-notes on [fuzz-testing the parser](FUZZING.md).
+  * This should ensure that there is no input that can crash our application.
 
 
 ## Github Setup
