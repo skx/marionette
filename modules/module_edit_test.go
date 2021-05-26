@@ -93,6 +93,9 @@ func TestEditAppend(t *testing.T) {
 	// file size shouldn't have changed
 	var newSize int64
 	newSize, err = file.Size(tmpfile.Name())
+	if err != nil {
+		t.Fatalf("error getting file size")
+	}
 
 	if newSize != size {
 		t.Fatalf("file size changed!")
@@ -110,6 +113,9 @@ func TestEditAppend(t *testing.T) {
 
 	// And confirm new size is four (+newline) bytes longer
 	newSize, err = file.Size(tmpfile.Name())
+	if err != nil {
+		t.Fatalf("error getting file size")
+	}
 
 	if newSize != (size + 5) {
 		t.Fatalf("file size mismatch!")
@@ -167,14 +173,14 @@ func TestEditRemove(t *testing.T) {
 
 	// Now test that an invalid regexp is taken
 	args["remove_lines"] = "*"
-	changed, err = e.Execute(args)
+	_, err = e.Execute(args)
 	if err == nil {
 		t.Fatalf("expected error, got none")
 	}
 
 	// Remove the temporary file, and confirm we get somethign similar
 	os.Remove(tmpfile.Name())
-	changed, err = e.Execute(args)
+	_, err = e.Execute(args)
 	if err != nil {
 		t.Fatalf("didn't expect error, got one")
 	}
