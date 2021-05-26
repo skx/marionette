@@ -52,6 +52,9 @@ func TestFail(t *testing.T) {
 	if !strings.Contains(err.Error(), "missing 'message'") {
 		t.Fatalf("got error - but wrong one : %s", err)
 	}
+	if changed {
+		t.Fatalf("unexpected change")
+	}
 
 	// Setup a message
 	args["message"] = "I have no cake"
