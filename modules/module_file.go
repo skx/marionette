@@ -41,7 +41,7 @@ func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 	var ret bool
 	var err error
 
-	// Get the target
+	// Get the target (i.e. file/directory we're operating upon.)
 	target := StringParam(args, "target")
 
 	// We assume we're creating the file, but we might be removing it.
@@ -50,45 +50,25 @@ func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 		state = "present"
 	}
 
-	// Remove the directory, if we should.
+	//
+	// Now we start to handle the request.
+	//
+	// Remove the file/directory, if we should.
 	if state == "absent" {
-
-		// Does it exist?
-		if file.Exists(target) {
-			err = os.Remove(target)
-			return true, err
-		}
-
-		// Didn't exist, nothing to change.
-		return false, nil
+		return f.removeFile(target)
 	}
 
-	// If we have a source file, copy
-	source := StringParam(args, "source")
-	if source != "" {
-		ret, err = f.CopyFile(source, target)
-		if err != nil {
-			return ret, err
-		}
-	}
-
-	// If we have a content to set, then use it
-	content := StringParam(args, "content")
-	if content != "" {
-		ret, err = f.CreateFile(target, content)
-		if err != nil {
-			return ret, err
-		}
-	}
-
-	// If we have a source URL, fetch.
-	srcURL := StringParam(args, "source_url")
-	if srcURL != "" {
-		ret, err = f.FetchURL(srcURL, target)
-		if err != nil {
-			return ret, err
-		}
-	}
+	//
+	// At this point we're going to create/update the file
+	// via one of our support options.
+	//
+	// Go do that, then once that is complete we can update
+	// the owner/group/mode, etc.
+	//
+	ret, err = f.populateFile(target, args)
+    if err != nil {
+        return ret,err
+    }
 
 	//
 	// Get the mode, if any.  We'll have a default here.
@@ -135,6 +115,52 @@ func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 	}
 
 	return ret, err
+}
+
+// removeFile removes the named file, returning whether a change
+// was made or not
+func (f *FileModule) removeFile(target string) (bool, error) {
+
+	// Does it exist?
+	if file.Exists(target) {
+		err := os.Remove(target)
+		return true, err
+	}
+
+	// Didn't exist, nothing to change.
+	return false, nil
+}
+
+// populateFile is designed to create/update the file contents via one
+// of our supported methods.
+func (f *FileModule) populateFile(target string, args map[string]interface{}) (bool, error) {
+
+	var ret bool
+	var err error
+
+	// If we have a source file, copy that into place
+	source := StringParam(args, "source")
+	if source != "" {
+
+		ret, err = f.CopyFile(source, target)
+		return ret, err
+	}
+
+	// If we have a content to set, then use it.
+	content := StringParam(args, "content")
+	if content != "" {
+		ret, err = f.CreateFile(target, content)
+		return ret, err
+	}
+
+	// If we have a source URL, fetch.
+	srcURL := StringParam(args, "source_url")
+	if srcURL != "" {
+		ret, err = f.FetchURL(srcURL, target)
+		return ret, err
+	}
+
+	return ret, fmt.Errorf("neither 'content', 'source', or 'source_url' were specified")
 }
 
 // CopyFile copies the source file to the destination, returning if we changed
