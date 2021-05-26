@@ -178,7 +178,7 @@ func TestEditRemove(t *testing.T) {
 		t.Fatalf("expected error, got none")
 	}
 
-	// Remove the temporary file, and confirm we get somethign similar
+	// Remove the temporary file, and confirm we get something similar
 	os.Remove(tmpfile.Name())
 	_, err = e.Execute(args)
 	if err != nil {

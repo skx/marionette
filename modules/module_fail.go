@@ -23,6 +23,12 @@ func (f *FailModule) Check(args map[string]interface{}) error {
 		return fmt.Errorf("missing 'message' parameter")
 	}
 
+	// Ensure the message is a string
+	msg := StringParam(args, "message")
+	if msg == "" {
+		return fmt.Errorf("failed to convert 'message' to string")
+	}
+
 	return nil
 }
 
@@ -37,9 +43,10 @@ func (f *FailModule) Execute(args map[string]interface{}) (bool, error) {
 
 	// Show it, and terminate
 	fmt.Fprintf(os.Stderr, "FAIL: %s\n", str)
-	os.Exit(1)
 
-	return true, nil
+	// Return an error
+	return false, fmt.Errorf("%s", str)
+
 }
 
 // init is used to dynamically register our module.
