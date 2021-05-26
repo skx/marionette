@@ -354,7 +354,7 @@ func TestIncludeMultiple(t *testing.T) {
 	}
 
 	// Close the file
-	if err := tmpFile.Close(); err != nil {
+	if err = tmpFile.Close(); err != nil {
 		t.Fatalf("error closing temporary file")
 	}
 
