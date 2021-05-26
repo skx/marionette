@@ -43,6 +43,78 @@ func TestEditCheck(t *testing.T) {
 }
 
 func TestEditAppend(t *testing.T) {
+
+	// create a temporary file
+	tmpfile, err := ioutil.TempFile("", "example")
+	if err != nil {
+		t.Fatalf("create a temporary file failed")
+	}
+
+	// delete it
+	os.Remove(tmpfile.Name())
+
+	e := &EditModule{}
+
+	// Append my name
+	args := make(map[string]interface{})
+	args["target"] = tmpfile.Name()
+	args["append_if_missing"] = "Steve Kemp"
+
+	changed, err := e.Execute(args)
+	if err != nil {
+		t.Fatalf("error changing file")
+	}
+	if !changed {
+		t.Fatalf("expected file change, got none")
+	}
+
+	// If the file doesn't exist now that's a bug
+	if !file.Exists(tmpfile.Name()) {
+		t.Fatalf("file doesn't exist")
+	}
+
+	// Get the file size
+	var size int64
+
+	size, err = file.Size(tmpfile.Name())
+	if err != nil {
+		t.Fatalf("error getting file size")
+	}
+
+	// Call again
+	changed, err = e.Execute(args)
+	if err != nil {
+		t.Fatalf("error changing file")
+	}
+	if changed {
+		t.Fatalf("didn't expect file change, got one")
+	}
+
+	// file size shouldn't have changed
+	var newSize int64
+	newSize, err = file.Size(tmpfile.Name())
+
+	if newSize != size {
+		t.Fatalf("file size changed!")
+	}
+
+	// Finally append "Test"
+	args["append_if_missing"] = "Test"
+	changed, err = e.Execute(args)
+	if err != nil {
+		t.Fatalf("error changing file")
+	}
+	if !changed {
+		t.Fatalf("expected file change, got none")
+	}
+
+	// And confirm new size is four (+newline) bytes longer
+	newSize, err = file.Size(tmpfile.Name())
+
+	if newSize != (size + 5) {
+		t.Fatalf("file size mismatch!")
+	}
+	os.Remove(tmpfile.Name())
 }
 
 func TestEditRemove(t *testing.T) {
