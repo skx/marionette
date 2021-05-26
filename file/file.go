@@ -41,6 +41,17 @@ func Exists(name string) bool {
 	return true
 }
 
+// Size returns the named files size.
+func Size(name string) (int64, error) {
+	fi, err := os.Stat(name)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return fi.Size(), nil
+}
+
 // HashFile returns the SHA1-hash of the contents of the specified file.
 func HashFile(filePath string) (string, error) {
 	var returnSHA1String string
