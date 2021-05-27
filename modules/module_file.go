@@ -66,9 +66,9 @@ func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 	// the owner/group/mode, etc.
 	//
 	ret, err = f.populateFile(target, args)
-    if err != nil {
-        return ret,err
-    }
+	if err != nil {
+		return ret, err
+	}
 
 	//
 	// Get the mode, if any.  We'll have a default here.
