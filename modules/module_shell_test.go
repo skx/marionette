@@ -1,8 +1,12 @@
+// +build linux
+
 package modules
 
 import (
 	"strings"
 	"testing"
+
+	"github.com/skx/marionette/config"
 )
 
 func TestShellCheck(t *testing.T) {
@@ -35,5 +39,70 @@ func TestShellCheck(t *testing.T) {
 	err = s.Check(args)
 	if err != nil {
 		t.Fatalf("unexpected error")
+	}
+}
+
+func TestShell(t *testing.T) {
+
+	// Quiet and Verbose
+	sQuiet := &ShellModule{cfg: &config.Config{Verbose: false}}
+	sVerbose := &ShellModule{cfg: &config.Config{Verbose: true}}
+
+	// Arguments
+	args := make(map[string]interface{})
+
+	// Rn with no arguments to see an error
+	changed, err := sQuiet.Execute(args)
+	if changed {
+		t.Fatalf("unexpected change")
+	}
+	if err == nil {
+		t.Fatalf("Expected error with no command")
+	}
+	if !strings.Contains(err.Error(), "missing 'command'") {
+		t.Fatalf("Got error, but wrong one")
+	}
+
+	// Now setup a command to run - a harmless one!
+	args["command"] = "true"
+
+	changed, err = sQuiet.Execute(args)
+
+	if !changed {
+		t.Fatalf("Expected to see changed result")
+	}
+	if err != nil {
+		t.Fatalf("unexpected error:%s", err.Error())
+	}
+
+	changed, err = sVerbose.Execute(args)
+
+	if !changed {
+		t.Fatalf("Expected to see changed result")
+	}
+	if err != nil {
+		t.Fatalf("unexpected error:%s", err.Error())
+	}
+
+	// Try a command with redirection
+	args["command"] = "true >/dev/null"
+	changed, err = sQuiet.Execute(args)
+
+	if !changed {
+		t.Fatalf("Expected to see changed result")
+	}
+	if err != nil {
+		t.Fatalf("unexpected error:%s", err.Error())
+	}
+
+	// Now finally try a command that doesn't exist.
+	args["command"] = "/this/does/not/exist"
+	changed, err = sQuiet.Execute(args)
+
+	if changed {
+		t.Fatalf("Didn't expect to see changed result")
+	}
+	if err == nil {
+		t.Fatalf("wanted error running missing command, got none")
 	}
 }
