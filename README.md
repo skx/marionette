@@ -183,9 +183,11 @@ file { name   => "Create file",
        unless => equal( "x86_64", `/usr/bin/arch` ) }
 ```
 
-Here we see that we've used two functions:
+Here we see that we've used two functions `equal` and `exists`, these are both built-in functions which do what you'd expect.
 
-* `exist( /some/file )`
+The following list shows all the built-in functions that you may use (but only within the `if` or `unless` keys):
+
+* `exists( /some/file )`
   * Return true if the specified file/directory exists.
 * `equal( foo, bar )`
   * Return true if the two values are identical.
@@ -223,7 +225,9 @@ shell { name    => "Show arch",
         command => "echo We are running on an ${arch} system" }
 ```
 
-Here `${arch}` expands to the output of the command, as you would expect, with any trailing newline removed.  Note that `${ARCH}` is available by default, as noted in the [pre-declared variables](#pre-declared-variables) section.
+Here `${arch}` expands to the output of the command, as you would expect, with any trailing newline removed.
+
+> **Note** `${ARCH}` is available by default, as noted in the [pre-declared variables](#pre-declared-variables) section.  This was just an example of command-execution.
 
 It is also possible to use backticks for any parameter value.  Here we'll write the current date to a file:
 
