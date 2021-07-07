@@ -165,6 +165,7 @@ func (e *EditModule) RemoveLines(path string, pattern string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	defer os.Remove(tmpfile.Name())
 
 	// Process the input file line by line
 	scanner := bufio.NewScanner(in)
