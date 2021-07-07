@@ -50,18 +50,6 @@ func (e *EditModule) Execute(args map[string]interface{}) (bool, error) {
 	// Now look at our actions
 	//
 
-	// Append a line if missing
-	append := StringParam(args, "append_if_missing")
-	if append != "" {
-		changed, err := e.Append(target, append)
-		if err != nil {
-			return false, err
-		}
-		if changed {
-			ret = true
-		}
-	}
-
 	// Remove lines matching a regexp.
 	remove := StringParam(args, "remove_lines")
 	if remove != "" {
@@ -70,6 +58,18 @@ func (e *EditModule) Execute(args map[string]interface{}) (bool, error) {
 			return false, err
 		}
 
+		if changed {
+			ret = true
+		}
+	}
+
+	// Append a line if missing
+	append := StringParam(args, "append_if_missing")
+	if append != "" {
+		changed, err := e.Append(target, append)
+		if err != nil {
+			return false, err
+		}
 		if changed {
 			ret = true
 		}
