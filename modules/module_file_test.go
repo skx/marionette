@@ -2,6 +2,7 @@ package modules
 
 import (
 	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 
@@ -48,6 +49,8 @@ func TestAbsent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create a temporary file failed")
 	}
+
+	defer os.Remove(tmpfile.Name())
 
 	// Confirm it exists
 	if !file.Exists(tmpfile.Name()) {
