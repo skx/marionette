@@ -70,24 +70,17 @@ func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 		return ret, err
 	}
 
-	//
-	// Get the mode, if any.  We'll have a default here.
-	//
+	// File permission changes
 	mode := StringParam(args, "mode")
-	if mode == "" {
-		mode = "0755"
-	}
-
-	//
-	// Change the mode, if required.
-	//
-	var changed bool
-	changed, err = file.ChangeMode(target, mode)
-	if err != nil {
-		return false, err
-	}
-	if changed {
-		ret = true
+	if mode != "" {
+		var changed bool
+		changed, err = file.ChangeMode(target, mode)
+		if err != nil {
+			return false, err
+		}
+		if changed {
+			ret = true
+		}
 	}
 
 	// User and group changes
