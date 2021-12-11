@@ -108,24 +108,8 @@ func (p *Package) Update() error {
 	// Split
 	run := strings.Split(tmp, " ")
 
-	// Run
-	cmd := exec.Command(run[0], run[1:]...)
-	if err := cmd.Start(); err != nil {
-		return err
-	}
-
-	// Wait for completion
-	if err := cmd.Wait(); err != nil {
-
-		if exiterr, ok := err.(*exec.ExitError); ok {
-
-			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
-				return fmt.Errorf("exit code for '%s' was %d", tmp, status.ExitStatus())
-			}
-		}
-	}
-
-	return nil
+	// Run the command
+	return p.run(run)
 }
 
 // IsInstalled checks a package installed?
