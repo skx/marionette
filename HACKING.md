@@ -19,3 +19,16 @@ Our implementation is pretty simple and all revolves around a set of rules.
   * Conditional execution is managed via the [conditionals](conditionals/) package.
 
 In addition to the above we also have a [config](config/) object which is passed around to allow us to centralize global state, and we have a set of [file](file/) helpers which contain some central code.
+
+
+# Testing Overview
+
+There is an associated github action to run our test-cases, and some linters, every time a pull-request is created/updated against the remote repository.
+
+You should probably run the driver when you're testing:
+
+     .github/run-tests.sh
+
+Note that this installs some tools if the environmental variable "`$CI`" is set, so you might need to do that the first time:
+
+     CI=true .github/run-tests.sh
