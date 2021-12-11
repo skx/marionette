@@ -190,7 +190,7 @@ func (p *Package) run(run []string) error {
 		if exiterr, ok := err.(*exec.ExitError); ok {
 
 			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
-				return fmt.Errorf("exit code for '%s' was %d", strings.Join(run, ","), status.ExitStatus())
+				return fmt.Errorf("exit code for '%s' was %d", strings.Join(run, " "), status.ExitStatus())
 			}
 		}
 	}
