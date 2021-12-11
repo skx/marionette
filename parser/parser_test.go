@@ -265,6 +265,8 @@ func TestInclude(t *testing.T) {
 		t.Fatalf("create a temporary file failed")
 	}
 
+	defer os.Remove(tmpfile.Name())
+
 	// Write the input
 	_, err = tmpfile.Write([]byte("# This is a comment\n"))
 	if err != nil {
@@ -299,12 +301,6 @@ func TestInclude(t *testing.T) {
 	if err == nil {
 		t.Fatalf("got error reading include file %s", err.Error())
 	}
-
-	//
-	// Cleanup
-	//
-	os.Remove(tmpfile.Name())
-
 }
 
 // TestMapper handles mapper-invokation
