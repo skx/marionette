@@ -272,6 +272,7 @@ The following variables are available by default:
 | `${ARCH}`     | The system architecture (as taken from `sys.GOARCH`). |
 | `${HOSTNAME}` | The hostname of the local system.                     |
 | `${OS}`       | The operating system name (as taken from `sys.GOOS`). |
+| `${USERNAME}` | The username of user running marionette.              |
 
 
 # Module Types
