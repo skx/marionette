@@ -5,6 +5,7 @@ package environment
 
 import (
 	"os"
+	"os/user"
 	"runtime"
 )
 
@@ -35,6 +36,15 @@ func New() *Environment {
 	host, err := os.Hostname()
 	if err == nil {
 		tmp.vars["HOSTNAME"] = host
+	}
+
+	// Default username as empty
+	tmp.vars["USERNAME"] = ""
+
+	// Get the real username, and set it if no errors
+	user, err := user.Current()
+	if err == nil {
+		tmp.vars["USERNAME"] = user.Username
 	}
 
 	return tmp
