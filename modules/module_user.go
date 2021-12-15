@@ -20,7 +20,7 @@ type UserModule struct {
 func (g *UserModule) Check(args map[string]interface{}) error {
 
 	// Required keys for this module
-	required := []string{"user", "state"}
+	required := []string{"login", "state"}
 
 	// Ensure they exist.
 	for _, key := range required {
@@ -34,9 +34,18 @@ func (g *UserModule) Check(args map[string]interface{}) error {
 			return fmt.Errorf("'%s' wasn't a simple string", key)
 
 		}
-
 	}
-	return nil
+
+	// Ensure state is one of "present"/"absent"
+	state := StringParam(args, "state")
+	if state == "absent" {
+		return nil
+	}
+	if state == "present" {
+		return nil
+	}
+
+	return fmt.Errorf("state must be one of 'absent' or 'present'")
 }
 
 // verbose will show the message if the verbose flag is set
@@ -51,66 +60,41 @@ func (g *UserModule) Execute(args map[string]interface{}) (bool, error) {
 
 	// User/State - we've already confirmed these are valid
 	// in our check function.
-	user := StringParam(args, "user")
+	login := StringParam(args, "login")
 	state := StringParam(args, "state")
 
-	// Optional arguments
-	shell := StringParam(args, "shell")
-
 	// TODO: Does the username have sane characters?
-	// TODO: Does the shell have sane characters?
 
 	// Does the user exist?
-	if g.userExists(user) {
+	if g.userExists(login) {
 
-		// We're supposed to create the user, but it
-		// already exists.  Do nothing.
 		if state == "present" {
+
+			// We're supposed to create the user, but it
+			// already exists.  Do nothing.
 			return false, nil
 		}
 		if state == "absent" {
 
 			// remove the user
-			err := g.removeUser(user)
+			err := g.removeUser(login)
 			return true, err
-
 		}
-
-		return false, fmt.Errorf("Invalid state - only 'absent' or 'present' are supported")
 	}
 
-	// User is missing.
 	if state == "absent" {
-		return false, nil
-	}
-	if state != "present" {
-		return false, fmt.Errorf("Invalid state - only 'absent' or 'present' are supported")
-	}
 
-	// Setup default shell, if nothing was specified.
-	if shell == "" {
-		shell = "/bin/bash"
+		// The user is not present, and we're supposed to remove
+		// it.  Do nothing.
+		return false, nil
 	}
 
 	// Create the user
-	cmdArgs := []string{"useradd", "-s", shell, user}
-	g.verbose(fmt.Sprintf("Running %v", cmdArgs))
+	ret := g.createUser(args)
 
-	cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
-
-	if err := cmd.Start(); err != nil {
-		return false, err
-	}
-
-	// Wait for completion
-	if err := cmd.Wait(); err != nil {
-
-		if exiterr, ok := err.(*exec.ExitError); ok {
-
-			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
-				return false, fmt.Errorf("exit code was %d", status.ExitStatus())
-			}
-		}
+	// error?
+	if ret != nil {
+		return false, ret
 	}
 
 	return true, nil
@@ -120,10 +104,46 @@ func (g *UserModule) Execute(args map[string]interface{}) (bool, error) {
 func (g *UserModule) userExists(login string) bool {
 
 	_, err := user.Lookup(login)
-	if err == nil {
-		return true
+
+	return err == nil
+}
+
+// createUser creates a local user.
+func (g *UserModule) createUser(args map[string]interface{}) error {
+
+	login := StringParam(args, "login")
+
+	// Optional arguments
+	// TODO: Does the shell have sane characters?
+	shell := StringParam(args, "shell")
+
+	// Setup default shell, if nothing was specified.
+	if shell == "" {
+		shell = "/bin/bash"
 	}
-	return false
+
+	// Create the user
+	cmdArgs := []string{"useradd", "-s", shell, login}
+	g.verbose(fmt.Sprintf("Running %v", cmdArgs))
+
+	cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
+
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	// Wait for completion
+	if err := cmd.Wait(); err != nil {
+
+		if exiterr, ok := err.(*exec.ExitError); ok {
+
+			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
+				return fmt.Errorf("exit code was %d", status.ExitStatus())
+			}
+		}
+	}
+
+	return nil
 }
 
 // removeUser removes the local user
