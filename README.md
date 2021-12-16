@@ -20,6 +20,7 @@
    * [link](#link)
    * [package](#package)
    * [shell](#shell)
+   * [user](#user)
 * [Example Rules](#example-rules)
 * [Future Plans](#future-plans)
   * [See also](#see-also)
@@ -487,6 +488,22 @@ shell { name => "I touch your file.",
 `command` is the only mandatory parameter.
 
 
+
+
+## `user`
+
+The user module allows you to add or remove local Unix users to your system.
+
+Example:
+
+```
+user { login => "steve",
+       state => "present" }
+```
+
+* `login` is a mandatory parameter.
+* `shell` is an optional parameter to use for the users' shell.
+* `state` should be one of `absent` or `present`, depending upon whether you want to add or remove the user.
 
 
 
