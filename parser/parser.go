@@ -32,6 +32,12 @@ type Parser struct {
 	// l is the handle to our lexer
 	l *lexer.Lexer
 
+	// curToken holds the current token from our lexer.
+	curToken token.Token
+
+	// peekToken holds the next token which will come from the lexer.
+	peekToken token.Token
+
 	// e is the handle to our environment
 	e *environment.Environment
 
@@ -45,6 +51,9 @@ func New(input string) *Parser {
 	p.l = lexer.New(input)
 	p.e = environment.New()
 	p.included = make(map[string]bool)
+
+	p.nextToken()
+
 	return p
 }
 
@@ -124,7 +133,7 @@ func (p *Parser) Parse() ([]rules.Rule, error) {
 	for {
 
 		// Get the next token.
-		tok := p.l.NextToken()
+		tok := p.nextToken()
 
 		// Error-checking
 		if tok.Type == token.ILLEGAL {
@@ -155,7 +164,7 @@ func (p *Parser) Parse() ([]rules.Rule, error) {
 		if tok.Literal == "include" {
 
 			// Get the thing we should include.
-			t := p.l.NextToken()
+			t := p.nextToken()
 
 			// We allow strings/backticks to be used
 			if t.Type != token.STRING && t.Type != token.BACKTICK {
@@ -176,7 +185,7 @@ func (p *Parser) Parse() ([]rules.Rule, error) {
 			// Inclusions might be conditional, so look to
 			// see if the next token is "unless" or "if"
 			//
-			nxt := p.l.NextToken()
+			nxt := ""
 
 			//
 			// Conditionals we support.
@@ -184,7 +193,11 @@ func (p *Parser) Parse() ([]rules.Rule, error) {
 			var cond []*conditionals.ConditionCall
 
 			// Error-checking.
-			if nxt.Literal == "if" || nxt.Literal == "unless" {
+			if p.peekTokenIs("if") || p.peekTokenIs("unless") {
+
+				// skip the token - after saving it
+				nxt = p.peekToken.Literal
+				p.nextToken()
 
 				//
 				//
@@ -254,7 +267,7 @@ func (p *Parser) Parse() ([]rules.Rule, error) {
 			for _, ent := range rules {
 
 				if len(cond) > 0 {
-					ent.Params["include_"+nxt.Literal] = cond[0]
+					ent.Params["include_"+nxt] = cond[0]
 				}
 				found = append(found, ent)
 			}
@@ -280,16 +293,16 @@ func (p *Parser) Parse() ([]rules.Rule, error) {
 func (p *Parser) parseVariable() error {
 
 	// name
-	name := p.l.NextToken()
+	name := p.nextToken()
 
 	// =
-	t := p.l.NextToken()
+	t := p.nextToken()
 	if t.Type != token.ASSIGN {
 		return fmt.Errorf("expected '=', got %v", t)
 	}
 
 	// value
-	val := p.l.NextToken()
+	val := p.nextToken()
 
 	// Error-checking.
 	if val.Type == token.ILLEGAL || val.Type == token.EOF {
@@ -365,10 +378,10 @@ func (p *Parser) parseBlock(ty string) (rules.Rule, error) {
 	r.Type = ty
 
 	// We should find either "triggered" or "{".
-	t := p.l.NextToken()
+	t := p.nextToken()
 	if t.Literal == "triggered" {
 		r.Triggered = true
-		t = p.l.NextToken()
+		t = p.nextToken()
 	}
 	if t.Type != token.LBRACE {
 		return r, fmt.Errorf("expected '{', got %v", t)
@@ -377,7 +390,7 @@ func (p *Parser) parseBlock(ty string) (rules.Rule, error) {
 	// Now loop until we find the end of the block, which is "}".
 	for {
 
-		t = p.l.NextToken()
+		t = p.nextToken()
 
 		// error checking
 		if t.Type == token.ILLEGAL {
@@ -412,7 +425,7 @@ func (p *Parser) parseBlock(ty string) (rules.Rule, error) {
 		//
 		//   "if|unless|blah" =>  FOO ( arg1, arg2 .. )
 		//
-		next := p.l.NextToken()
+		next := p.nextToken()
 		if next.Literal != token.LASSIGN {
 			return r, fmt.Errorf("expected => after conditional %s, got %v", name, next)
 		}
@@ -492,7 +505,7 @@ func (p *Parser) parseFunctionCall() (string, []string, error) {
 	//
 	// The function-call "exists", "equal", etc
 	//
-	tType := p.l.NextToken()
+	tType := p.nextToken()
 	if tType.Type != token.IDENT {
 		return name, args, fmt.Errorf("expected identifier name after conditional %s, got %v", tType, tType)
 	}
@@ -501,7 +514,7 @@ func (p *Parser) parseFunctionCall() (string, []string, error) {
 	//
 	// Skip the opening bracket
 	//
-	open := p.l.NextToken()
+	open := p.nextToken()
 	if open.Type != token.LPAREN {
 		return name, args, fmt.Errorf("expected ( after conditional name %s, got %v", open, open)
 	}
@@ -509,7 +522,7 @@ func (p *Parser) parseFunctionCall() (string, []string, error) {
 	//
 	// Collect the arguments, until we get a close-bracket
 	//
-	t := p.l.NextToken()
+	t := p.nextToken()
 	for t.Literal != ")" && t.Type != token.EOF {
 
 		//
@@ -528,7 +541,7 @@ func (p *Parser) parseFunctionCall() (string, []string, error) {
 			}
 			args = append(args, value)
 		}
-		t = p.l.NextToken()
+		t = p.nextToken()
 	}
 
 	if t.Type == token.EOF {
@@ -545,7 +558,7 @@ func (p *Parser) readValue(name string) (interface{}, error) {
 
 	var a []string
 
-	t := p.l.NextToken()
+	t := p.nextToken()
 
 	// error checking
 	if t.Type == token.ILLEGAL {
@@ -567,7 +580,7 @@ func (p *Parser) readValue(name string) (interface{}, error) {
 	}
 
 	for {
-		t := p.l.NextToken()
+		t := p.nextToken()
 
 		// error checking
 		if t.Type == token.ILLEGAL {
@@ -589,4 +602,17 @@ func (p *Parser) readValue(name string) (interface{}, error) {
 			return a, nil
 		}
 	}
+}
+
+// nextToken moves to our next token from the lexer.
+func (p *Parser) nextToken() token.Token {
+	p.curToken = p.peekToken
+	p.peekToken = p.l.NextToken()
+
+	return p.curToken
+}
+
+// peekTokenIs tests if the next token has the given value.
+func (p *Parser) peekTokenIs(t string) bool {
+	return p.peekToken.Literal == t
 }
