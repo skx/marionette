@@ -173,6 +173,35 @@ func (p *Parser) Parse() ([]rules.Rule, error) {
 			}
 
 			//
+			// Inclusions might be conditional, so look to
+			// see if the next token is "unless" or "if"
+			//
+			nxt := p.l.NextToken()
+
+			//
+			// Conditionals we support.
+			//
+			var cond []*conditionals.ConditionCall
+
+			// Error-checking.
+			if nxt.Literal == "if" || nxt.Literal == "unless" {
+
+				//
+				//
+				// Get the name/arguments of the function call we
+				// expect to come next.
+				//
+				fname, args, error := p.parseFunctionCall()
+
+				if error != nil {
+					return found, error
+				}
+
+				cond = append(cond, &conditionals.ConditionCall{Name: fname, Args: args})
+
+			}
+
+			//
 			// Have we already included this file?
 			//
 			// If so then we'll ignore the second attempt.
@@ -220,7 +249,15 @@ func (p *Parser) Parse() ([]rules.Rule, error) {
 			// Append the results of what we received
 			// to what we've already done in the main-file.
 			//
-			found = append(found, rules...)
+			// Adding in the conditional if we needed to
+			//
+			for _, ent := range rules {
+
+				if len(cond) > 0 {
+					ent.Params["include_"+nxt.Literal] = cond[0]
+				}
+				found = append(found, ent)
+			}
 
 			continue
 		}

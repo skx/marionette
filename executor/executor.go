@@ -253,25 +253,29 @@ func (e *Executor) executeSingleRule(rule rules.Rule) error {
 	//
 	// Are there conditionals present?
 	//
-	if rule.Params["if"] != nil {
-		res, err := e.runConditional(rule.Params["if"])
-		if err != nil {
-			return err
-		}
-		if !res {
-			e.verbose(fmt.Sprintf("\tSkipping rule condition was not true: %s", rule.Params["if"]))
-			return nil
+	for _, key := range []string{"if", "include_if"} {
+		if rule.Params[key] != nil {
+			res, err := e.runConditional(rule.Params[key])
+			if err != nil {
+				return err
+			}
+			if !res {
+				e.verbose(fmt.Sprintf("\tSkipping rule condition was not true: %s", rule.Params[key]))
+				return nil
+			}
 		}
 	}
 
-	if rule.Params["unless"] != nil {
-		res, err := e.runConditional(rule.Params["unless"])
-		if err != nil {
-			return err
-		}
-		if res {
-			e.verbose(fmt.Sprintf("\tSkipping rule condition was true: %s", rule.Params["unless"]))
-			return nil
+	for _, key := range []string{"unless", "include_unless"} {
+		if rule.Params[key] != nil {
+			res, err := e.runConditional(rule.Params[key])
+			if err != nil {
+				return err
+			}
+			if res {
+				e.verbose(fmt.Sprintf("\tSkipping rule condition was true: %s", rule.Params[key]))
+				return nil
+			}
 		}
 	}
 
