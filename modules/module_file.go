@@ -207,26 +207,7 @@ func (f *FileModule) FetchURL(url string, dst string) (bool, error) {
 		return false, err
 	}
 
-	// File doesn't exist - copy it
-	if !file.Exists(dst) {
-		err = file.Copy(tmpfile.Name(), dst)
-		return true, err
-	}
-
-	// OK file does exist.  Compare contents
-	identical, err := file.Identical(tmpfile.Name(), dst)
-	if err != nil {
-		return false, err
-	}
-
-	// hashes are identical?  No change
-	if identical {
-		return false, nil
-	}
-
-	// otherwise change
-	err = file.Copy(tmpfile.Name(), dst)
-	return true, err
+	return f.CopyFile(tmpfile.Name(), dst)
 }
 
 // CreateFile writes the given content to the named file.
@@ -246,26 +227,7 @@ func (f *FileModule) CreateFile(dst string, content string) (bool, error) {
 		return false, err
 	}
 
-	// File doesn't exist - copy it
-	if !file.Exists(dst) {
-		err = file.Copy(tmpfile.Name(), dst)
-		return true, err
-	}
-
-	// Are the two files identical?
-	identical, err := file.Identical(tmpfile.Name(), dst)
-	if err != nil {
-		return false, err
-	}
-
-	// hashes are identical?  No change
-	if identical {
-		return false, nil
-	}
-
-	// otherwise change
-	err = file.Copy(tmpfile.Name(), dst)
-	return true, err
+	return f.CopyFile(tmpfile.Name(), dst)
 }
 
 // init is used to dynamically register our module.
