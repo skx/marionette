@@ -34,7 +34,7 @@ func runFile(filename string, cfg *config.Config) error {
 	}
 
 	// Now we'll create an executor with the rules
-	ex := executor.New(rules)
+	ex := executor.New(env, rules)
 
 	// Set the configuration options.
 	ex.SetConfig(cfg)

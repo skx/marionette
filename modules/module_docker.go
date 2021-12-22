@@ -11,6 +11,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/skx/marionette/config"
+	"github.com/skx/marionette/environment"
 )
 
 // DockerModule stores our state
@@ -128,7 +129,7 @@ func (dm *DockerModule) installImage(img string) error {
 }
 
 // Execute is part of the module-api, and is invoked to run a rule.
-func (dm *DockerModule) Execute(args map[string]interface{}) (bool, error) {
+func (dm *DockerModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
 
 	// We might have multiple images to fetch
 	var images []string
