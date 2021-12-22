@@ -55,7 +55,7 @@ func TestShell(t *testing.T) {
 	// Arguments
 	args := make(map[string]interface{})
 
-	// Rn with no arguments to see an error
+	// Run with no arguments to see an error
 	changed, err := sQuiet.Execute(env, args)
 	if changed {
 		t.Fatalf("unexpected change")
