@@ -18,7 +18,7 @@ func TestSimpleRule(t *testing.T) {
 	//
 	// Create a temporary file, which we'll populate
 	//
-	tmpfile, err := ioutil.TempFile("", "example")
+	tmpfile, err := ioutil.TempFile("", "marionette-")
 	if err != nil {
 		t.Fatalf("create a temporary file failed")
 	}

@@ -48,7 +48,7 @@ func TestEditAppend(t *testing.T) {
 	env := environment.New()
 
 	// create a temporary file
-	tmpfile, err := ioutil.TempFile("", "example")
+	tmpfile, err := ioutil.TempFile("", "marionette-")
 	if err != nil {
 		t.Fatalf("create a temporary file failed")
 	}
@@ -131,7 +131,7 @@ func TestEditRemove(t *testing.T) {
 	env := environment.New()
 
 	// create a temporary file
-	tmpfile, err := ioutil.TempFile("", "example")
+	tmpfile, err := ioutil.TempFile("", "marionette-")
 	if err != nil {
 		t.Fatalf("create a temporary file failed")
 	}

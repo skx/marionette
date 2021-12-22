@@ -162,7 +162,7 @@ func (e *EditModule) RemoveLines(path string, pattern string) (bool, error) {
 	defer in.Close()
 
 	// Open a temporary file
-	tmpfile, err := ioutil.TempFile("", "example")
+	tmpfile, err := ioutil.TempFile("", "marionette-")
 	if err != nil {
 		return false, err
 	}

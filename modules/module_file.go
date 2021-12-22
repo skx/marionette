@@ -188,7 +188,7 @@ func (f *FileModule) CopyFile(src string, dst string) (bool, error) {
 func (f *FileModule) FetchURL(url string, dst string) (bool, error) {
 
 	// Download to temporary file
-	tmpfile, err := ioutil.TempFile("", "example")
+	tmpfile, err := ioutil.TempFile("", "marionette-")
 	if err != nil {
 		return false, nil
 	}
@@ -215,7 +215,7 @@ func (f *FileModule) FetchURL(url string, dst string) (bool, error) {
 func (f *FileModule) CreateFile(dst string, content string) (bool, error) {
 
 	// Create a temporary file
-	tmpfile, err := ioutil.TempFile("", "example")
+	tmpfile, err := ioutil.TempFile("", "marionette-")
 	if err != nil {
 		return false, nil
 	}

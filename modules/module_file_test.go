@@ -48,7 +48,7 @@ func TestAbsent(t *testing.T) {
 	env := environment.New()
 
 	// Create a temporary file
-	tmpfile, err := ioutil.TempFile("", "example")
+	tmpfile, err := ioutil.TempFile("", "marionette-")
 	if err != nil {
 		t.Fatalf("create a temporary file failed")
 	}
