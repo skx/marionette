@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"text/template"
 
 	"github.com/skx/marionette/config"
 	"github.com/skx/marionette/environment"
@@ -17,6 +18,9 @@ type FileModule struct {
 
 	// cfg contains our configuration object.
 	cfg *config.Config
+
+	// env contains the environment.
+	env *environment.Environment
 }
 
 // Check is part of the module-api, and checks arguments.
@@ -38,6 +42,8 @@ func (f *FileModule) Check(args map[string]interface{}) error {
 
 // Execute is part of the module-api, and is invoked to run a rule.
 func (f *FileModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
+
+	f.env = env
 
 	var ret bool
 	var err error
@@ -140,6 +146,13 @@ func (f *FileModule) populateFile(target string, args map[string]interface{}) (b
 		return ret, err
 	}
 
+	// If we have a template file, render it.
+	template := StringParam(args, "template")
+	if template != "" {
+		ret, err = f.CopyTemplateFile(template, target)
+		return ret, err
+	}
+
 	// If we have a content to set, then use it.
 	content := StringParam(args, "content")
 	if content != "" {
@@ -154,7 +167,7 @@ func (f *FileModule) populateFile(target string, args map[string]interface{}) (b
 		return ret, err
 	}
 
-	return ret, fmt.Errorf("neither 'content', 'source', or 'source_url' were specified")
+	return ret, fmt.Errorf("neither 'content', 'source', 'source_url', or 'template' were specified")
 }
 
 // CopyFile copies the source file to the destination, returning if we changed
@@ -181,6 +194,32 @@ func (f *FileModule) CopyFile(src string, dst string) (bool, error) {
 	// Since they differ we refresh and that's a change
 	err = file.Copy(src, dst)
 	return true, err
+}
+
+// CopyTemplateFile copies the template file to the destination, rendering the
+// template and returning if we changed the contents.
+func (f *FileModule) CopyTemplateFile(src string, dst string) (bool, error) {
+
+	// Create a temporary file to write the rendered template to
+	tmpfile, err := ioutil.TempFile("", "marionette-")
+	if err != nil {
+		return false, nil
+	}
+	defer os.Remove(tmpfile.Name())
+
+	// Parse the template file
+	tpl, err := template.ParseFiles(src)
+	if err != nil {
+		return false, err
+	}
+
+	// Render the template, writing to the temp file
+	err = tpl.Execute(tmpfile, f.env.Variables())
+	if err != nil {
+		return false, err
+	}
+
+	return f.CopyFile(tmpfile.Name(), dst)
 }
 
 // FetchURL retrieves the contents of the remote URL and saves them to
