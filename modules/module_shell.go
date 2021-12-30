@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/skx/marionette/config"
+	"github.com/skx/marionette/environment"
 )
 
 // ShellModule stores our state
@@ -35,7 +36,7 @@ func (f *ShellModule) Check(args map[string]interface{}) error {
 }
 
 // Execute is part of the module-api, and is invoked to run a rule.
-func (f *ShellModule) Execute(args map[string]interface{}) (bool, error) {
+func (f *ShellModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
 
 	// Get the command
 	str := StringParam(args, "command")

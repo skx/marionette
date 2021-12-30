@@ -3,6 +3,8 @@ package modules
 import (
 	"strings"
 	"testing"
+
+	"github.com/skx/marionette/environment"
 )
 
 func TestFailCheck(t *testing.T) {
@@ -42,10 +44,12 @@ func TestFail(t *testing.T) {
 
 	f := &FailModule{}
 
+	env := environment.New()
+
 	// Setup params
 	args := make(map[string]interface{})
 
-	changed, err := f.Execute(args)
+	changed, err := f.Execute(env, args)
 	if err == nil {
 		t.Fatalf("expected error, got none")
 	}
@@ -59,7 +63,7 @@ func TestFail(t *testing.T) {
 	// Setup a message
 	args["message"] = "I have no cake"
 
-	changed, err = f.Execute(args)
+	changed, err = f.Execute(env, args)
 	if err == nil {
 		t.Fatalf("expected error, got none")
 	}

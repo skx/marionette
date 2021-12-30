@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	mcfg "github.com/skx/marionette/config"
+	"github.com/skx/marionette/environment"
 	"github.com/skx/marionette/file"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
@@ -50,7 +51,7 @@ func (g *GitModule) verbose(msg string) {
 }
 
 // Execute is part of the module-api, and is invoked to run a rule.
-func (g *GitModule) Execute(args map[string]interface{}) (bool, error) {
+func (g *GitModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
 
 	// Repository location - we've already confirmed these are valid
 	// in our check function.

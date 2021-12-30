@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/skx/marionette/config"
+	"github.com/skx/marionette/environment"
 	"github.com/skx/marionette/file"
 )
 
@@ -33,7 +34,7 @@ func (f *DirectoryModule) Check(args map[string]interface{}) error {
 }
 
 // Execute is part of the module-api, and is invoked to run a rule.
-func (f *DirectoryModule) Execute(args map[string]interface{}) (bool, error) {
+func (f *DirectoryModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
 
 	// Default to not having changed
 	changed := false

@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/skx/marionette/config"
+	"github.com/skx/marionette/environment"
 	"github.com/skx/marionette/file"
 )
 
@@ -36,7 +37,7 @@ func (f *FileModule) Check(args map[string]interface{}) error {
 }
 
 // Execute is part of the module-api, and is invoked to run a rule.
-func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
+func (f *FileModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
 
 	var ret bool
 	var err error

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/skx/marionette/environment"
 	"github.com/skx/marionette/file"
 )
 
@@ -44,6 +45,8 @@ func TestCheck(t *testing.T) {
 
 func TestAbsent(t *testing.T) {
 
+	env := environment.New()
+
 	// Create a temporary file
 	tmpfile, err := ioutil.TempFile("", "example")
 	if err != nil {
@@ -64,7 +67,7 @@ func TestAbsent(t *testing.T) {
 
 	// Run the module
 	f := &FileModule{}
-	changed, err := f.Execute(args)
+	changed, err := f.Execute(env, args)
 
 	if err != nil {
 		t.Fatalf("unexpected error")
@@ -80,7 +83,7 @@ func TestAbsent(t *testing.T) {
 
 	// Run the module again to confirm "no change" when asked to remove a file
 	// that does not exist.
-	changed, err = f.Execute(args)
+	changed, err = f.Execute(env, args)
 
 	if err != nil {
 		t.Fatalf("unexpected error")

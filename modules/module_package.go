@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/skx/marionette/config"
+	"github.com/skx/marionette/environment"
 	"github.com/skx/marionette/modules/system"
 )
 
@@ -74,7 +75,7 @@ func (pm *PackageModule) getPackages(args map[string]interface{}) []string {
 }
 
 // Execute is part of the module-api, and is invoked to run a rule.
-func (pm *PackageModule) Execute(args map[string]interface{}) (bool, error) {
+func (pm *PackageModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
 
 	// Did we make a change, by installing/removing a package?
 	changed := false
