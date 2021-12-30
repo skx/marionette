@@ -385,11 +385,12 @@ file {  name     => "write file",
 
 `target` is a mandatory parameter, and specifies the file to be operated upon.
 
-There are three ways a file can be created:
+There are four ways a file can be created:
 
 * `content` - Specify the content inline.
 * `source_url` - The file contents are fetched from a remote URL.
 * `source` - Content is copied from the existing path.
+* `template` - Content is produced by rendering a template from a path.
 
 Other valid parameters are:
 
@@ -400,6 +401,8 @@ Other valid parameters are:
   * `state => "absent"` remove it.
   * `state => "present"` create it (this is the default).
 
+Where `template` is used, the template file is rendered using the
+[`text/template`](https://pkg.go.dev/text/template) Go package
 
 
 ## `git`

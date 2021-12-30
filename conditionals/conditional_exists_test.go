@@ -36,7 +36,7 @@ func TestExistsArgs(t *testing.T) {
 func TestExists(t *testing.T) {
 
 	// Create a file, and ensure it exists
-	tmpfile, err := ioutil.TempFile("", "example")
+	tmpfile, err := ioutil.TempFile("", "marionette-")
 	if err != nil {
 		t.Fatalf("create a temporary file failed")
 	}

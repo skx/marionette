@@ -10,7 +10,7 @@ import (
 func TestExists(t *testing.T) {
 
 	// Create a file, and ensure it exists
-	tmpfile, err := ioutil.TempFile("", "example")
+	tmpfile, err := ioutil.TempFile("", "marionette-")
 	if err != nil {
 		t.Fatalf("create a temporary file failed")
 	}
@@ -46,7 +46,7 @@ func TestHash(t *testing.T) {
 	for _, test := range tests {
 
 		// Create a file with the given content
-		tmpfile, err := ioutil.TempFile("", "example")
+		tmpfile, err := ioutil.TempFile("", "marionette-")
 		if err != nil {
 			t.Fatalf("create a temporary file failed")
 		}
@@ -81,12 +81,12 @@ func TestHash(t *testing.T) {
 func TestIdentical(t *testing.T) {
 
 	// create a pair of files
-	a, err := ioutil.TempFile("", "example")
+	a, err := ioutil.TempFile("", "marionette-")
 	if err != nil {
 		t.Fatalf("create a temporary file failed")
 	}
 	var b *os.File
-	b, err = ioutil.TempFile("", "example")
+	b, err = ioutil.TempFile("", "marionette-")
 	if err != nil {
 		t.Fatalf("create a temporary file failed")
 	}
@@ -136,12 +136,12 @@ func TestIdentical(t *testing.T) {
 func TestCopy(t *testing.T) {
 
 	// create a pair of files
-	a, err := ioutil.TempFile("", "example")
+	a, err := ioutil.TempFile("", "marionette-")
 	if err != nil {
 		t.Fatalf("create a temporary file failed")
 	}
 	var b *os.File
-	b, err = ioutil.TempFile("", "example")
+	b, err = ioutil.TempFile("", "marionette-")
 	if err != nil {
 		t.Fatalf("create a temporary file failed")
 	}

@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"text/template"
 
 	"github.com/skx/marionette/config"
 	"github.com/skx/marionette/environment"
@@ -17,6 +18,9 @@ type FileModule struct {
 
 	// cfg contains our configuration object.
 	cfg *config.Config
+
+	// env contains the environment.
+	env *environment.Environment
 }
 
 // Check is part of the module-api, and checks arguments.
@@ -38,6 +42,8 @@ func (f *FileModule) Check(args map[string]interface{}) error {
 
 // Execute is part of the module-api, and is invoked to run a rule.
 func (f *FileModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
+
+	f.env = env
 
 	var ret bool
 	var err error
@@ -140,6 +146,13 @@ func (f *FileModule) populateFile(target string, args map[string]interface{}) (b
 		return ret, err
 	}
 
+	// If we have a template file, render it.
+	template := StringParam(args, "template")
+	if template != "" {
+		ret, err = f.CopyTemplateFile(template, target)
+		return ret, err
+	}
+
 	// If we have a content to set, then use it.
 	content := StringParam(args, "content")
 	if content != "" {
@@ -154,7 +167,7 @@ func (f *FileModule) populateFile(target string, args map[string]interface{}) (b
 		return ret, err
 	}
 
-	return ret, fmt.Errorf("neither 'content', 'source', or 'source_url' were specified")
+	return ret, fmt.Errorf("neither 'content', 'source', 'source_url', or 'template' were specified")
 }
 
 // CopyFile copies the source file to the destination, returning if we changed
@@ -183,12 +196,38 @@ func (f *FileModule) CopyFile(src string, dst string) (bool, error) {
 	return true, err
 }
 
+// CopyTemplateFile copies the template file to the destination, rendering the
+// template and returning if we changed the contents.
+func (f *FileModule) CopyTemplateFile(src string, dst string) (bool, error) {
+
+	// Create a temporary file to write the rendered template to
+	tmpfile, err := ioutil.TempFile("", "marionette-")
+	if err != nil {
+		return false, nil
+	}
+	defer os.Remove(tmpfile.Name())
+
+	// Parse the template file
+	tpl, err := template.ParseFiles(src)
+	if err != nil {
+		return false, err
+	}
+
+	// Render the template, writing to the temp file
+	err = tpl.Execute(tmpfile, f.env.Variables())
+	if err != nil {
+		return false, err
+	}
+
+	return f.CopyFile(tmpfile.Name(), dst)
+}
+
 // FetchURL retrieves the contents of the remote URL and saves them to
 // the given file.  If the contents are identical no change is reported.
 func (f *FileModule) FetchURL(url string, dst string) (bool, error) {
 
 	// Download to temporary file
-	tmpfile, err := ioutil.TempFile("", "example")
+	tmpfile, err := ioutil.TempFile("", "marionette-")
 	if err != nil {
 		return false, nil
 	}
@@ -207,26 +246,7 @@ func (f *FileModule) FetchURL(url string, dst string) (bool, error) {
 		return false, err
 	}
 
-	// File doesn't exist - copy it
-	if !file.Exists(dst) {
-		err = file.Copy(tmpfile.Name(), dst)
-		return true, err
-	}
-
-	// OK file does exist.  Compare contents
-	identical, err := file.Identical(tmpfile.Name(), dst)
-	if err != nil {
-		return false, err
-	}
-
-	// hashes are identical?  No change
-	if identical {
-		return false, nil
-	}
-
-	// otherwise change
-	err = file.Copy(tmpfile.Name(), dst)
-	return true, err
+	return f.CopyFile(tmpfile.Name(), dst)
 }
 
 // CreateFile writes the given content to the named file.
@@ -234,7 +254,7 @@ func (f *FileModule) FetchURL(url string, dst string) (bool, error) {
 func (f *FileModule) CreateFile(dst string, content string) (bool, error) {
 
 	// Create a temporary file
-	tmpfile, err := ioutil.TempFile("", "example")
+	tmpfile, err := ioutil.TempFile("", "marionette-")
 	if err != nil {
 		return false, nil
 	}
@@ -246,26 +266,7 @@ func (f *FileModule) CreateFile(dst string, content string) (bool, error) {
 		return false, err
 	}
 
-	// File doesn't exist - copy it
-	if !file.Exists(dst) {
-		err = file.Copy(tmpfile.Name(), dst)
-		return true, err
-	}
-
-	// Are the two files identical?
-	identical, err := file.Identical(tmpfile.Name(), dst)
-	if err != nil {
-		return false, err
-	}
-
-	// hashes are identical?  No change
-	if identical {
-		return false, nil
-	}
-
-	// otherwise change
-	err = file.Copy(tmpfile.Name(), dst)
-	return true, err
+	return f.CopyFile(tmpfile.Name(), dst)
 }
 
 // init is used to dynamically register our module.
