@@ -271,6 +271,7 @@ The following variables are available by default:
 | Name          | Value                                                 |
 |---------------|-------------------------------------------------------|
 | `${ARCH}`     | The system architecture (as taken from `sys.GOARCH`). |
+| `${HOMEDIR}`  | The home directory of the user running marionette.    |
 | `${HOSTNAME}` | The hostname of the local system.                     |
 | `${OS}`       | The operating system name (as taken from `sys.GOOS`). |
 | `${USERNAME}` | The username of user running marionette.              |
