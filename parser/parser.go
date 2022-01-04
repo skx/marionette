@@ -145,6 +145,11 @@ func (p *Parser) Parse() (ast.Program, error) {
 			continue
 		}
 
+		// Peek at the next token and see if we're at the EOF
+		if p.peekTokenIs(token.EOF) {
+			return program, nil
+		}
+
 		// Otherwise it should be a block, which we need to parse
 		// now.
 		var tmp *ast.Rule

@@ -270,7 +270,6 @@ func (e *Executor) Execute() error {
 
 			// And mark this as executed too.
 			seen[i] = true
-			return nil
 		default:
 			return fmt.Errorf("unknown node type! %t", r)
 		}
