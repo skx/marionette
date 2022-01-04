@@ -332,9 +332,10 @@ func (e *Executor) execute_Include(inc *ast.Include) error {
 
 	}
 
-	//
+	// Expand any variables in the string.
+	inc.Source = os.Expand(inc.Source, e.mapper)
+
 	// Now run the inclusion
-	//
 	data, err := ioutil.ReadFile(inc.Source)
 	if err != nil {
 		return fmt.Errorf("failed to read include-source %s: %s", inc.Source, err)

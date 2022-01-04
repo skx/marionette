@@ -12,9 +12,20 @@ import (
 
 // Node represents a node.
 type Node interface {
+}
 
-	// String returns this object as a string.
-	String() string
+// Assign represents a variable assignment.
+type Assign struct {
+	// Node is our parent node.
+	Node
+
+	// Key is the name of the variable.
+	Key string
+
+	// Value is the value of our variable.
+	//
+	// This is a token so that we can execute commands, via backticks.
+	Value token.Token
 }
 
 // Include represents a file inclusion.
@@ -24,15 +35,13 @@ type Include struct {
 	// Node is our parent node.
 	Node
 
-	// Source holds the source to include
+	// Source holds the source to include.
 	Source string
 
-	// ConditionType holds "if" or "unless" if this inclusion
-	// is conditional
+	// ConditionType holds "if" or "unless" if this inclusion is conditional
 	ConditionType string
 
-	// ConditionRule holds a conditional-rule to match if the
-	// ConditionType value is not empty.
+	// ConditionRule holds a conditional-rule to match, if ConditionType is non-empty.
 	ConditionRule *conditionals.ConditionCall
 }
 
@@ -55,20 +64,6 @@ type Rule struct {
 
 	// Parameters contains the params supplied by the user.
 	Params map[string]interface{}
-}
-
-// Assign represents a variable assignment.
-//
-// TODO This is not (yet) used.
-type Assign struct {
-	// Node is our parent node.
-	Node
-
-	// Key is the name of the variable
-	Key string
-
-	// Value is the value of our variable
-	Value token.Token
 }
 
 // Program contains a program
