@@ -9,7 +9,6 @@ import (
 	"github.com/skx/marionette/conditionals"
 	"github.com/skx/marionette/config"
 	"github.com/skx/marionette/environment"
-	"github.com/skx/marionette/rules"
 )
 
 // TestSimpleRule tests that running a simple rule succeeds

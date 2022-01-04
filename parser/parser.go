@@ -50,9 +50,9 @@ func New(input string) *Parser {
 	return p
 }
 
-// Process parses our input, returning the AST which we will walk
+// Parse parses our input, returning the AST which we will walk
 // for the evaluation.
-func (p *Parser) Process() (ast.Program, error) {
+func (p *Parser) Parse() (ast.Program, error) {
 
 	// The program we return, and any error
 	var program ast.Program

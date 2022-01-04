@@ -345,7 +345,7 @@ func (e *Executor) execute_Include(inc *ast.Include) error {
 	p := parser.New(string(data))
 
 	// Parse the rules
-	out, err := p.Process()
+	out, err := p.Parse()
 	if err != nil {
 		return err
 	}
