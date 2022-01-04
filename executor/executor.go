@@ -356,10 +356,11 @@ func (e *Executor) execute_Include(inc *ast.Include) error {
 	// Set the configuration options.
 	ex.SetConfig(e.cfg)
 
-	// Propogate all the environmental variables
+	// Propagate all the environmental variables
 	for k, v := range e.env.Variables() {
 		ex.env.Set(k, v)
 	}
+
 	// Check for broken dependencies
 	err = ex.Check()
 	if err != nil {
