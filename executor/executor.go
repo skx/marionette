@@ -7,12 +7,16 @@ package executor
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
+	"strings"
 
 	"github.com/skx/marionette/ast"
 	"github.com/skx/marionette/conditionals"
 	"github.com/skx/marionette/config"
 	"github.com/skx/marionette/environment"
 	"github.com/skx/marionette/modules"
+	"github.com/skx/marionette/token"
 )
 
 // Executor holds our internal state.
@@ -268,7 +272,29 @@ func (e *Executor) Execute() error {
 	return nil
 }
 
+// execute_Assign executes an assignment
 func (e *Executor) execute_Assign(assign *ast.Assign) error {
+
+	key := assign.Key
+	val := assign.Value
+	ret := ""
+	var err error
+
+	e.verbose(fmt.Sprintf("Setting variable %s -> %s", key, val))
+
+	switch val.Type {
+	case token.STRING:
+		ret = val.Literal
+	case token.BACKTICK:
+		ret, err = e.expand(val)
+		if err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("unhandled type in execute_Assign %t", val)
+	}
+
+	e.env.Set(key, ret)
 	return nil
 }
 func (e *Executor) execute_Include(inc *ast.Include) error {
@@ -388,12 +414,115 @@ func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (
 			rule.Type, rule.Name, err.Error())
 	}
 
+	// Expand all params
+	params := make(map[string]interface{})
+
+	for k, v := range rule.Params {
+
+		// param is a string?  expand it
+		str, ok := v.(string)
+		if ok {
+			params[k] = os.Expand(str, e.mapper)
+			continue
+		}
+
+		// param is a string array?  expand them
+		strs, ok2 := v.([]string)
+		if ok2 {
+			var tmp []string
+			var t string
+
+			for _, x := range strs {
+				t = os.Expand(x, e.mapper)
+				tmp = append(tmp, t)
+			}
+			params[k] = tmp
+			continue
+		}
+	}
+
 	// Run the change
-	changed, err := helper.Execute(e.env, rule.Params)
+	changed, err := helper.Execute(e.env, params)
 	if err != nil {
 		return false, fmt.Errorf("error running %s-module rule '%s' %s",
 			rule.Type, rule.Name, err.Error())
 	}
 
 	return changed, nil
+}
+
+// expand processes a token returned from the parser, returning
+// the appropriate value.
+//
+// The expansion really means two things:
+//
+// 1. If the string contains variables ${foo} replace them.
+//
+// 2. If the token is a backtick operation then run the command
+//    and return the value.
+//
+func (e *Executor) expand(tok token.Token) (string, error) {
+
+	// Get the argument, and expand variables
+	value := tok.Literal
+	value = os.Expand(value, e.mapper)
+
+	// If this is a backtick we replace the value
+	// with the result of running the command.
+	if tok.Type == token.BACKTICK {
+
+		tmp, err := e.runCommand(value)
+		if err != nil {
+			return "", fmt.Errorf("error running %s: %s", value, err)
+		}
+
+		value = tmp
+	}
+
+	// Return the value we've found.
+	return value, nil
+}
+
+// mapper is a helper to expand variables.
+//
+// ${foo} will be converted to the contents of the variable named foo
+// which was created with `let foo = "bar"`, or failing that the contents
+// of the environmental variable named `foo`.
+//
+func (e *Executor) mapper(val string) string {
+
+	// Lookup a variable which exists?
+	res, ok := e.env.Get(val)
+	if ok {
+		return res
+	}
+
+	// Lookup an environmental variable?
+	return os.Getenv(val)
+}
+
+// runCommand returns the output of the specified command
+func (e *Executor) runCommand(command string) (string, error) {
+
+	// Are we running under a fuzzer?  If so disable this
+	if os.Getenv("FUZZ") == "FUZZ" {
+		return command, nil
+	}
+
+	// Build up the thing to run, using a shell so that
+	// we can handle pipes/redirection.
+	toRun := []string{"/bin/bash", "-c", command}
+
+	// Run the command
+	cmd := exec.Command(toRun[0], toRun[1:]...)
+
+	// Get the output
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("error running command '%s' %s", command, err.Error())
+	}
+
+	// Strip trailing newline.
+	ret := strings.TrimSuffix(string(output), "\n")
+	return ret, nil
 }
