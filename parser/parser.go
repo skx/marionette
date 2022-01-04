@@ -10,20 +10,28 @@
 //  We support the inclusion of other files, and command
 // expansion via backticks, but we're otherwise pretty
 // minimal.
+//
+// TODO
+//
+//  1. Parse into a series of assign/include/rules.
+//
+//  2. Do not expand backticks.
+//
+//  3. Ignore include files.
+//
 package parser
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/skx/marionette/ast"
 	"github.com/skx/marionette/conditionals"
 	"github.com/skx/marionette/environment"
 	"github.com/skx/marionette/lexer"
-	"github.com/skx/marionette/rules"
 	"github.com/skx/marionette/token"
 )
 
@@ -40,9 +48,6 @@ type Parser struct {
 
 	// e is the handle to our environment
 	e *environment.Environment
-
-	// Files we've included
-	included map[string]bool
 }
 
 // New creates a new parser from the given input.
@@ -50,7 +55,6 @@ func New(input string) *Parser {
 	p := &Parser{}
 	p.l = lexer.New(input)
 	p.e = environment.New()
-	p.included = make(map[string]bool)
 
 	p.nextToken()
 
@@ -70,6 +74,8 @@ func NewWithEnvironment(input string, env *environment.Environment) *Parser {
 // ${foo} will be converted to the contents of the variable named foo
 // which was created with `let foo = "bar"`, or failing that the contents
 // of the environmental variable named `foo`.
+//
+// TODO: Remove this.  The evaluator should do expansion.
 func (p *Parser) mapper(val string) string {
 
 	// Lookup a variable which exists?
@@ -92,6 +98,7 @@ func (p *Parser) mapper(val string) string {
 // 2. If the token is a backtick operation then run the command
 //    and return the value.
 //
+// TODO: This should be removed.  The evaluator should handle this.
 func (p *Parser) expand(tok token.Token) (string, error) {
 
 	// Get the argument, and expand variables
@@ -114,49 +121,65 @@ func (p *Parser) expand(tok token.Token) (string, error) {
 	return value, nil
 }
 
-// mark the given files as having already been included
-func (p *Parser) includedAlready(seen map[string]bool) {
-	for k := range seen {
-		p.included[k] = true
-	}
-}
+// Process parses our input, returning the AST which we will walk
+// for the evaluation.
+func (p *Parser) Process() (ast.Program, error) {
 
-// Parse parses our input, returning an array of rules found,
-// and any error which was encountered upon the way.
-func (p *Parser) Parse() ([]rules.Rule, error) {
-
-	// The rules we return
-	var found []rules.Rule
+	// The program we return, and any error
+	var program ast.Program
 	var err error
 
 	// Parse forever
 	for {
-
-		// Get the next token.
+		// Get the next token
 		tok := p.nextToken()
 
 		// Error-checking
 		if tok.Type == token.ILLEGAL {
-			return nil, fmt.Errorf("illegal token: %v", tok)
+			return program, fmt.Errorf("illegal token: %v", tok)
 		}
 		if tok.Type == token.EOF {
 			break
 		}
 
-		// OK we expect an identifier.
-		if tok.Type != token.IDENT {
-			return nil, fmt.Errorf("unexpected input, expected identifier")
-		}
+		// Now parse the various tokens
 
 		// Is this an assignment?
 		if tok.Literal == "let" {
 
-			// If so parse it.
-			err = p.parseVariable()
-			if err != nil {
-				return found, err
+			// name
+			name := p.nextToken()
+
+			// =
+			t := p.nextToken()
+			if t.Type != token.ASSIGN {
+				return program, fmt.Errorf("expected '=', got %v", t)
 			}
 
+			// value
+			val := p.nextToken()
+
+			// Error-checking.
+			if val.Type == token.ILLEGAL || val.Type == token.EOF {
+				return program, fmt.Errorf("unterminated assignment")
+			}
+
+			// assignment only handles strings/command-ouptut
+			if val.Type != token.STRING && val.Type != token.BACKTICK {
+				return program, fmt.Errorf("unexpected value for variable assignment; expected string or backtick, got %v", val)
+			}
+
+			// Expand variables in the string, if present, and process
+			// the command if it uses a backtick.
+			value := ""
+			value, err = p.expand(val)
+			if err != nil {
+				return program, err
+			}
+
+			// Add the node to our program, and continue
+			program.Recipe = append(program.Recipe,
+				&ast.Assign{Key: name.Literal, Value: value})
 			continue
 		}
 
@@ -168,166 +191,35 @@ func (p *Parser) Parse() ([]rules.Rule, error) {
 
 			// We allow strings/backticks to be used
 			if t.Type != token.STRING && t.Type != token.BACKTICK {
-				return found, fmt.Errorf("only strings/backticks supported for include statements; got %v", t)
+				return program, fmt.Errorf("only strings/backticks supported for include statements; got %v", t)
 			}
 
-			//
-			// Expand variables in the argument, and
-			// run the appropriate command if the token
-			// is a backtick.
-			//
-			path, er := p.expand(t)
-			if er != nil {
-				return found, er
-			}
-
-			//
-			// Inclusions might be conditional, so look to
-			// see if the next token is "unless" or "if"
-			//
-			nxt := ""
-
-			//
-			// Conditionals we support.
-			//
-			var cond []*conditionals.ConditionCall
-
-			// Error-checking.
-			if p.peekTokenIs("if") || p.peekTokenIs("unless") {
-
-				// skip the token - after saving it
-				nxt = p.peekToken.Literal
-				p.nextToken()
-
-				//
-				//
-				// Get the name/arguments of the function call we
-				// expect to come next.
-				//
-				fname, args, error := p.parseFunctionCall()
-
-				if error != nil {
-					return found, error
-				}
-
-				cond = append(cond, &conditionals.ConditionCall{Name: fname, Args: args})
-
-			}
-
-			//
-			// Have we already included this file?
-			//
-			// If so then we'll ignore the second attempt.
-			//
-			if p.included[path] {
-				continue
-			}
-
-			//
-			// Mark the file as having been included
-			//
-			p.included[path] = true
-
-			//
-			// Read the file we're supposed to process.
-			//
-			data, er := ioutil.ReadFile(path)
-			if er != nil {
-				return found, er
-			}
-
-			//
-			// Create a new parser instance, making sure
-			// that it uses the same environment we're using.
-			//
-			tmp := NewWithEnvironment(string(data), p.e)
-
-			//
-			// Also make sure we propagate the files
-			// we've already seen.
-			//
-			// This will ensure that recursive includes do
-			// not cause us problems.
-			tmp.includedAlready(p.included)
-
-			//
-			// Now parse the new input.
-			//
-			rules, er := tmp.Parse()
-			if er != nil {
-				return found, er
-			}
-
-			//
-			// Append the results of what we received
-			// to what we've already done in the main-file.
-			//
-			// Adding in the conditional if we needed to
-			//
-			for _, ent := range rules {
-
-				if len(cond) > 0 {
-					ent.Params["include_"+nxt] = cond[0]
-				}
-				found = append(found, ent)
-			}
-
+			// Add our rule onto the program, and continue
+			program.Recipe = append(program.Recipe,
+				&ast.Include{Source: t.Literal})
 			continue
 		}
 
-		// Otherwise it must be a block statement.
-		var r rules.Rule
+		// Otherwise it should be a block
+		var tmp *ast.Rule
 
-		r, err = p.parseBlock(tok.Literal)
+		tmp, err = p.parseBlock(tok.Literal)
 		if err != nil {
-			return nil, err
+			return program, err
 		}
 
-		found = append(found, r)
+		// Add our rule onto the program, and continue
+		program.Recipe = append(program.Recipe, tmp)
+		continue
 	}
 
-	return found, err
-}
-
-// parseVariable parses a variable assignment, storing it in our map.
-func (p *Parser) parseVariable() error {
-
-	// name
-	name := p.nextToken()
-
-	// =
-	t := p.nextToken()
-	if t.Type != token.ASSIGN {
-		return fmt.Errorf("expected '=', got %v", t)
-	}
-
-	// value
-	val := p.nextToken()
-
-	// Error-checking.
-	if val.Type == token.ILLEGAL || val.Type == token.EOF {
-		return fmt.Errorf("unterminated assignment")
-	}
-
-	// assignment only handles strings/command-ouptut
-	if val.Type != token.STRING && val.Type != token.BACKTICK {
-		return fmt.Errorf("unexpected value for variable assignment; expected string or backtick, got %v", val)
-	}
-
-	// Expand variables in the string, if present, and process
-	// the command if it uses a backtick.
-	value, err := p.expand(val)
-	if err != nil {
-		return err
-	}
-
-	// Set the value in the environment
-	p.e.Set(name.Literal, value)
-
-	return nil
+	// No error
+	return program, nil
 }
 
 // runCommand returns the output of the specified command
+//
+// TODO: This should be removed.
 func (p *Parser) runCommand(command string) (string, error) {
 
 	// Are we running under a fuzzer?  If so disable this
@@ -370,9 +262,9 @@ func (p *Parser) runCommand(command string) (string, error) {
 // The two keys `if` and `unless` have unquoted expressions
 // as arguments.
 //
-func (p *Parser) parseBlock(ty string) (rules.Rule, error) {
+func (p *Parser) parseBlock(ty string) (*ast.Rule, error) {
 
-	var r rules.Rule
+	r := &ast.Rule{}
 	r.Name = ""
 	r.Params = make(map[string]interface{})
 	r.Type = ty

@@ -7,9 +7,9 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/skx/marionette/ast"
 	"github.com/skx/marionette/config"
 	"github.com/skx/marionette/environment"
-	"github.com/skx/marionette/executor"
 	"github.com/skx/marionette/parser"
 )
 
@@ -28,28 +28,51 @@ func runFile(filename string, cfg *config.Config) error {
 	p := parser.NewWithEnvironment(string(data), env)
 
 	// Parse the rules
-	rules, err := p.Parse()
+	out, err := p.Process()
 	if err != nil {
 		return err
 	}
 
-	// Now we'll create an executor with the rules
-	ex := executor.New(rules)
+	//
+	// At this point we have a list of AST-nodes.
+	//
+	// We should process them, in order, however we're going to
+	// just dump them to the console for the moment.
+	//
+	for _, node := range out.Recipe {
 
-	// Set the configuration options.
-	ex.SetConfig(cfg)
+		switch node.(type) {
 
-	// Check for broken dependencies
-	err = ex.Check()
-	if err != nil {
-		return err
+		case *ast.Assign:
+			set := node.(*ast.Assign)
+			fmt.Printf("Assignment: %s -> %s\n", set.Key, set.Value)
+		case *ast.Include:
+			inc := node.(*ast.Include)
+			fmt.Printf("Include: %s\n", inc.Source)
+		case *ast.Rule:
+			rul := node.(*ast.Rule)
+			fmt.Printf("RULE: %s ..\n", rul.Type)
+		default:
+			return fmt.Errorf("unknown node type! %t", node)
+		}
 	}
+	// // Now we'll create an executor with the rules
+	// ex := executor.New(rules)
 
-	// Now execute!
-	err = ex.Execute()
-	if err != nil {
-		return err
-	}
+	// // Set the configuration options.
+	// ex.SetConfig(cfg)
+
+	// // Check for broken dependencies
+	// err = ex.Check()
+	// if err != nil {
+	// 	return err
+	// }
+
+	// // Now execute!
+	// err = ex.Execute()
+	// if err != nil {
+	// 	return err
+	// }
 
 	return nil
 }
