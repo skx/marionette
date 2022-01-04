@@ -7,6 +7,7 @@ package executor
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	"github.com/skx/marionette/config"
 	"github.com/skx/marionette/environment"
 	"github.com/skx/marionette/modules"
+	"github.com/skx/marionette/parser"
 	"github.com/skx/marionette/token"
 )
 
@@ -297,7 +299,78 @@ func (e *Executor) execute_Assign(assign *ast.Assign) error {
 	e.env.Set(key, ret)
 	return nil
 }
+
+// execute_Include will handle a file inclusion.
 func (e *Executor) execute_Include(inc *ast.Include) error {
+
+	// OK is this conditionally included?
+	if inc.ConditionType != "" {
+
+		cond := inc.ConditionType
+
+		if cond == "if" {
+			res, err := e.runConditional(inc.ConditionRule)
+			if err != nil {
+				return err
+			}
+			if !res {
+				e.verbose(fmt.Sprintf("\tSkipping inclusion of %s condition was not true: %s", inc.Source, inc.ConditionRule))
+				return nil
+			}
+		}
+
+		if cond == "unless" {
+			res, err := e.runConditional(inc.ConditionRule)
+			if err != nil {
+				return err
+			}
+			if res {
+				e.verbose(fmt.Sprintf("\tSkipping inclusion of %s condition was not false: %s", inc.Source, inc.ConditionRule))
+				return nil
+			}
+		}
+
+	}
+
+	//
+	// Now run the inclusion
+	//
+	data, err := ioutil.ReadFile(inc.Source)
+	if err != nil {
+		return fmt.Errorf("failed to read include-source %s: %s", inc.Source, err)
+	}
+
+	// Create a new parser with our file content.
+	p := parser.New(string(data))
+
+	// Parse the rules
+	out, err := p.Process()
+	if err != nil {
+		return err
+	}
+
+	// Create the new executor
+	ex := New(out.Recipe)
+
+	// Set the configuration options.
+	ex.SetConfig(e.cfg)
+
+	// Propogate all the environmental variables
+	for k, v := range e.env.Variables() {
+		ex.env.Set(k, v)
+	}
+	// Check for broken dependencies
+	err = ex.Check()
+	if err != nil {
+		return err
+	}
+
+	// Now execute!
+	err = ex.Execute()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
