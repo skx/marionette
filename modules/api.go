@@ -3,6 +3,10 @@
 // each accept an arbitrary set of parameters which are module-specific.
 package modules
 
+import (
+	"github.com/skx/marionette/environment"
+)
+
 // ModuleAPI is the interface to which all of our modules must conform.
 //
 // There are only two methods, one to check if the supplied parameters
@@ -20,7 +24,7 @@ type ModuleAPI interface {
 	//
 	// The return value is true if the module made a change
 	// and false otherwise.
-	Execute(map[string]interface{}) (bool, error)
+	Execute(*environment.Environment, map[string]interface{}) (bool, error)
 }
 
 // StringParam returns the named parameter, as a string, from the map.

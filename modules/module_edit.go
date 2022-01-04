@@ -8,6 +8,7 @@ import (
 	"regexp"
 
 	"github.com/skx/marionette/config"
+	"github.com/skx/marionette/environment"
 	"github.com/skx/marionette/file"
 )
 
@@ -36,7 +37,7 @@ func (e *EditModule) Check(args map[string]interface{}) error {
 }
 
 // Execute is part of the module-api, and is invoked to run a rule.
-func (e *EditModule) Execute(args map[string]interface{}) (bool, error) {
+func (e *EditModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
 
 	var ret bool
 
@@ -161,7 +162,7 @@ func (e *EditModule) RemoveLines(path string, pattern string) (bool, error) {
 	defer in.Close()
 
 	// Open a temporary file
-	tmpfile, err := ioutil.TempFile("", "example")
+	tmpfile, err := ioutil.TempFile("", "marionette-")
 	if err != nil {
 		return false, err
 	}

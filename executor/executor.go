@@ -10,6 +10,7 @@ import (
 
 	"github.com/skx/marionette/conditionals"
 	"github.com/skx/marionette/config"
+	"github.com/skx/marionette/environment"
 	"github.com/skx/marionette/modules"
 	"github.com/skx/marionette/rules"
 )
@@ -30,13 +31,16 @@ type Executor struct {
 
 	// cfg holds our configuration options.
 	cfg *config.Config
+
+	// env holds the environment.
+	env *environment.Environment
 }
 
 // New creates a new executor, using a series of rules which should have
 // been discovered by the parser.
-func New(r []rules.Rule) *Executor {
+func New(env *environment.Environment, r []rules.Rule) *Executor {
 
-	e := &Executor{Rules: r}
+	e := &Executor{Rules: r, env: env}
 
 	//
 	// Default configuration
@@ -334,7 +338,7 @@ func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule rules.Rule) 
 	}
 
 	// Run the change
-	changed, err := helper.Execute(rule.Params)
+	changed, err := helper.Execute(e.env, rule.Params)
 	if err != nil {
 		return false, fmt.Errorf("error running %s-module rule '%s' %s",
 			rule.Type, rule.Name, err.Error())

@@ -38,13 +38,15 @@ func New() *Environment {
 		tmp.vars["HOSTNAME"] = host
 	}
 
-	// Default username as empty
+	// Default username and homedir as empty
 	tmp.vars["USERNAME"] = ""
+	tmp.vars["HOMEDIR"] = ""
 
-	// Get the real username, and set it if no errors
+	// Get the real username and homedir, and set it if no errors
 	user, err := user.Current()
 	if err == nil {
 		tmp.vars["USERNAME"] = user.Username
+		tmp.vars["HOMEDIR"] = user.HomeDir
 	}
 
 	return tmp

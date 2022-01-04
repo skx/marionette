@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/skx/marionette/config"
+	"github.com/skx/marionette/environment"
 	"github.com/skx/marionette/file"
 )
 
@@ -31,7 +32,7 @@ func (f *LinkModule) Check(args map[string]interface{}) error {
 }
 
 // Execute is part of the module-api, and is invoked to run a rule.
-func (f *LinkModule) Execute(args map[string]interface{}) (bool, error) {
+func (f *LinkModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
 
 	// Get the target
 	target := StringParam(args, "target")

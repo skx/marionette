@@ -55,8 +55,9 @@ func runFile(filename string, cfg *config.Config) error {
 		default:
 			return fmt.Errorf("unknown node type! %t", node)
 		}
-	}
-	// // Now we'll create an executor with the rules
+  }
+   
+  // // Now we'll create an executor with the rules
 	// ex := executor.New(rules)
 
 	// // Set the configuration options.

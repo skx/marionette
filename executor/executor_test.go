@@ -8,6 +8,7 @@ import (
 
 	"github.com/skx/marionette/conditionals"
 	"github.com/skx/marionette/config"
+	"github.com/skx/marionette/environment"
 	"github.com/skx/marionette/rules"
 )
 
@@ -17,7 +18,7 @@ func TestSimpleRule(t *testing.T) {
 	//
 	// Create a temporary file, which we'll populate
 	//
-	tmpfile, err := ioutil.TempFile("", "example")
+	tmpfile, err := ioutil.TempFile("", "marionette-")
 	if err != nil {
 		t.Fatalf("create a temporary file failed")
 	}
@@ -35,6 +36,8 @@ func TestSimpleRule(t *testing.T) {
 	params["target"] = tmpfile.Name()
 	params["content"] = expected
 
+	env := environment.New()
+
 	//
 	// Create a simple rule
 	//
@@ -46,7 +49,7 @@ func TestSimpleRule(t *testing.T) {
 	//
 	// Create the executor
 	//
-	ex := New(r)
+	ex := New(env, r)
 	ex.SetConfig(&config.Config{Verbose: true})
 
 	err = ex.Check()
@@ -81,6 +84,8 @@ func TestCheckFail(t *testing.T) {
 	//
 	params := make(map[string]interface{})
 
+	env := environment.New()
+
 	//
 	// Create a simple rule
 	//
@@ -91,7 +96,7 @@ func TestCheckFail(t *testing.T) {
 	//
 	// Create the executor
 	//
-	ex := New(r)
+	ex := New(env, r)
 	ex.SetConfig(&config.Config{Verbose: true})
 
 	err := ex.Check()
@@ -117,6 +122,8 @@ func TestRepeatedNames(t *testing.T) {
 	//
 	params := make(map[string]interface{})
 
+	env := environment.New()
+
 	//
 	// Create a pair of rules with identical names.
 	//
@@ -133,7 +140,7 @@ func TestRepeatedNames(t *testing.T) {
 	//
 	// Create the executor
 	//
-	ex := New(r)
+	ex := New(env, r)
 	ex.SetConfig(&config.Config{Verbose: true})
 
 	err := ex.Check()
@@ -155,6 +162,8 @@ func TestBrokenDependencies(t *testing.T) {
 	// -> missing rule
 	params["require"] = "foo"
 
+	env := environment.New()
+
 	//
 	// Create a rule with a single dependency
 	//
@@ -174,7 +183,7 @@ func TestBrokenDependencies(t *testing.T) {
 	//
 	// Create the executor
 	//
-	ex := New(r1)
+	ex := New(env, r1)
 	ex.SetConfig(&config.Config{Verbose: true})
 
 	err := ex.Check()
@@ -188,7 +197,7 @@ func TestBrokenDependencies(t *testing.T) {
 	//
 	// Create the executor, again
 	//
-	ex = New(r2)
+	ex = New(env, r2)
 	ex.SetConfig(&config.Config{Verbose: true})
 
 	err = ex.Check()
@@ -211,6 +220,8 @@ func TestIf(t *testing.T) {
 	params["if"] = &conditionals.ConditionCall{Name: "equals",
 		Args: []string{"foo", "bar"}}
 
+	env := environment.New()
+
 	//
 	// Create our rule.
 	//
@@ -222,7 +233,7 @@ func TestIf(t *testing.T) {
 	//
 	// Create the executor
 	//
-	ex := New(r1)
+	ex := New(env, r1)
 	ex.SetConfig(&config.Config{Verbose: true})
 
 	err := ex.Check()
@@ -239,7 +250,7 @@ func TestIf(t *testing.T) {
 	//
 	params["if"] = "foo"
 	r1[0].Params = params
-	ex = New(r1)
+	ex = New(env, r1)
 	err = ex.Execute()
 	if err == nil {
 		t.Errorf("expected error running rules, got none")
@@ -254,7 +265,7 @@ func TestIf(t *testing.T) {
 	params["if"] = &conditionals.ConditionCall{Name: "agrees",
 		Args: []string{"foo", "bar"}}
 	r1[0].Params = params
-	ex = New(r1)
+	ex = New(env, r1)
 	err = ex.Execute()
 	if err == nil {
 		t.Errorf("expected error running rules, got none")
@@ -268,6 +279,8 @@ func TestIf(t *testing.T) {
 // TestTriggered uses a rule which is "triggered", and thus shouldn't be
 // executed normally.
 func TestTriggered(t *testing.T) {
+
+	env := environment.New()
 
 	//
 	// Create our rule.
@@ -290,7 +303,7 @@ func TestTriggered(t *testing.T) {
 	//
 	// Create the executor
 	//
-	ex := New(r1)
+	ex := New(env, r1)
 	ex.SetConfig(&config.Config{Verbose: true})
 
 	err := ex.Check()
@@ -315,6 +328,8 @@ func TestUnless(t *testing.T) {
 	params["unless"] = &conditionals.ConditionCall{Name: "equals",
 		Args: []string{"bar", "bar"}}
 
+	env := environment.New()
+
 	//
 	// Create our rule.
 	//
@@ -326,7 +341,7 @@ func TestUnless(t *testing.T) {
 	//
 	// Create the executor
 	//
-	ex := New(r1)
+	ex := New(env, r1)
 	ex.SetConfig(&config.Config{Verbose: true})
 
 	err := ex.Check()
@@ -343,7 +358,7 @@ func TestUnless(t *testing.T) {
 	//
 	params["unless"] = "foo"
 	r1[0].Params = params
-	ex = New(r1)
+	ex = New(env, r1)
 	err = ex.Execute()
 	if err == nil {
 		t.Errorf("expected error running rules, got none")
@@ -358,7 +373,7 @@ func TestUnless(t *testing.T) {
 	params["unless"] = &conditionals.ConditionCall{Name: "agrees",
 		Args: []string{"foo", "bar"}}
 	r1[0].Params = params
-	ex = New(r1)
+	ex = New(env, r1)
 	err = ex.Execute()
 	if err == nil {
 		t.Errorf("expected error running rules, got none")

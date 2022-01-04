@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/skx/marionette/config"
+	"github.com/skx/marionette/environment"
 )
 
 // FailModule stores our state.
@@ -33,7 +34,7 @@ func (f *FailModule) Check(args map[string]interface{}) error {
 }
 
 // Execute is part of the module-api, and is invoked to run a rule.
-func (f *FailModule) Execute(args map[string]interface{}) (bool, error) {
+func (f *FailModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
 
 	// Get the message
 	str := StringParam(args, "message")
