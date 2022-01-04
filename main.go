@@ -9,6 +9,7 @@ import (
 
 	"github.com/skx/marionette/ast"
 	"github.com/skx/marionette/config"
+	"github.com/skx/marionette/executor"
 	"github.com/skx/marionette/parser"
 )
 
@@ -53,23 +54,23 @@ func runFile(filename string, cfg *config.Config) error {
 		}
 	}
 
-	// // Now we'll create an executor with the rules
-	// ex := executor.New(rules)
+	// Now we'll create an executor with the program
+	ex := executor.New(out.Recipe)
 
-	// // Set the configuration options.
-	// ex.SetConfig(cfg)
+	// Set the configuration options.
+	ex.SetConfig(cfg)
 
-	// // Check for broken dependencies
-	// err = ex.Check()
-	// if err != nil {
-	// 	return err
-	// }
+	// Check for broken dependencies
+	err = ex.Check()
+	if err != nil {
+		return err
+	}
 
-	// // Now execute!
-	// err = ex.Execute()
-	// if err != nil {
-	// 	return err
-	// }
+	// Now execute!
+	err = ex.Execute()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

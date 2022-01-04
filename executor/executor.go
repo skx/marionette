@@ -8,18 +8,18 @@ package executor
 import (
 	"fmt"
 
+	"github.com/skx/marionette/ast"
 	"github.com/skx/marionette/conditionals"
 	"github.com/skx/marionette/config"
 	"github.com/skx/marionette/environment"
 	"github.com/skx/marionette/modules"
-	"github.com/skx/marionette/rules"
 )
 
 // Executor holds our internal state.
 type Executor struct {
 
-	// Rules are the things we'll execute.
-	Rules []rules.Rule
+	// Program is the series of AST-nodes we'll interpret.
+	Program []ast.Node
 
 	// Index is a mapping between rule-name and index.
 	//
@@ -36,11 +36,17 @@ type Executor struct {
 	env *environment.Environment
 }
 
-// New creates a new executor, using a series of rules which should have
-// been discovered by the parser.
-func New(env *environment.Environment, r []rules.Rule) *Executor {
+// New creates a new executor, using the array of AST nodes we should
+// execute, which was produced by the parser.
+func New(program []ast.Node) *Executor {
 
-	e := &Executor{Rules: r, env: env}
+	//
+	// Setup our state
+	//
+	e := &Executor{
+		env:     environment.New(),
+		Program: program,
+	}
 
 	//
 	// Default configuration
@@ -65,7 +71,7 @@ func (e *Executor) SetConfig(cfg *config.Config) {
 // Get the rules a rule depends upon, via the given key.
 //
 // This is used to find any `require` or `notify` rules.
-func (e *Executor) deps(rule rules.Rule, key string) []string {
+func (e *Executor) deps(rule *ast.Rule, key string) []string {
 
 	var res []string
 
@@ -117,27 +123,42 @@ func (e *Executor) Check() error {
 	//
 	e.index = make(map[string]int)
 
-	for i, r := range e.Rules {
+	//
+	// Walk over all the rules we've got
+	//
+	for i, r := range e.Program {
 
-		_, ok := e.index[r.Name]
-		if ok {
-			return fmt.Errorf("rule names must be unique; we've already seen '%s'", r.Name)
+		// Skip nodes which are not ast.Rules
+		rule, ok := r.(*ast.Rule)
+		if !ok {
+			continue
 		}
 
-		e.index[r.Name] = i
+		_, ok2 := e.index[rule.Name]
+		if ok2 {
+			return fmt.Errorf("rule names must be unique; we've already seen '%s'", rule.Name)
+		}
+
+		e.index[rule.Name] = i
 	}
 
 	//
 	// For every rule.
 	//
-	for _, r := range e.Rules {
+	for _, r := range e.Program {
+
+		// Skip nodes which are not ast.Rules
+		rule, ok := r.(*ast.Rule)
+		if !ok {
+			continue
+		}
 
 		//
 		// Get the dependencies of that rule, and the things
 		// it will notify in the event it is triggered.
 		//
-		deps := e.deps(r, "require")
-		notify := e.deps(r, "notify")
+		deps := e.deps(rule, "require")
+		notify := e.deps(rule, "notify")
 
 		// Join the pair of rules
 		var all []string
@@ -155,7 +176,7 @@ func (e *Executor) Check() error {
 			// Does the requirement exist?
 			_, found := e.index[dep]
 			if !found {
-				return fmt.Errorf("rule '%s' has reference to '%s' which doesn't exist", r.Params["name"], dep)
+				return fmt.Errorf("rule '%s' has reference to '%s' which doesn't exist", rule.Params["name"], dep)
 			}
 		}
 	}
@@ -170,11 +191,17 @@ func (e *Executor) Execute() error {
 	seen := make(map[int]bool)
 
 	// For each rule ..
-	for i, r := range e.Rules {
+	for i, r := range e.Program {
+
+		// Skip nodes which are not ast.Rules
+		rule, ok := r.(*ast.Rule)
+		if !ok {
+			continue
+		}
 
 		// Don't run rules that are only present to
 		// be notified by a trigger.
-		if r.Triggered {
+		if rule.Triggered {
 			continue
 		}
 
@@ -184,7 +211,7 @@ func (e *Executor) Execute() error {
 		}
 
 		// Get the rule dependencies.
-		deps := e.deps(r, "require")
+		deps := e.deps(rule, "require")
 
 		// Process each one
 		for i, dep := range deps {
@@ -195,7 +222,7 @@ func (e *Executor) Execute() error {
 			}
 
 			// get the actual rule, by index
-			dr := e.Rules[e.index[dep]]
+			dr := e.Program[e.index[dep]].(*ast.Rule)
 
 			// Don't run rules that are only present to
 			// be notified by a trigger.
@@ -213,7 +240,7 @@ func (e *Executor) Execute() error {
 		}
 
 		// Now the rule itself
-		err := e.executeSingleRule(r)
+		err := e.executeSingleRule(rule)
 		if err != nil {
 			return err
 		}
@@ -249,7 +276,7 @@ func (e *Executor) runConditional(cond interface{}) (bool, error) {
 }
 
 // executeSingleRule creates the appropriate module, and runs the single rule.
-func (e *Executor) executeSingleRule(rule rules.Rule) error {
+func (e *Executor) executeSingleRule(rule *ast.Rule) error {
 
 	// Show what we're doing
 	e.verbose(fmt.Sprintf("Running %s-module rule: %s", rule.Type, rule.Name))
@@ -263,7 +290,7 @@ func (e *Executor) executeSingleRule(rule rules.Rule) error {
 			return err
 		}
 		if !res {
-			e.verbose(fmt.Sprintf("\tSkipping rule condition was not true: %s", rule.Params[key]))
+			e.verbose(fmt.Sprintf("\tSkipping rule condition was not true: %s", rule.Params["if"]))
 			return nil
 		}
 	}
@@ -274,7 +301,7 @@ func (e *Executor) executeSingleRule(rule rules.Rule) error {
 			return err
 		}
 		if res {
-			e.verbose(fmt.Sprintf("\tSkipping rule condition was true: %s", rule.Params[key]))
+			e.verbose(fmt.Sprintf("\tSkipping rule condition was true: %s", rule.Params["unless"]))
 			return nil
 		}
 	}
@@ -309,7 +336,7 @@ func (e *Executor) executeSingleRule(rule rules.Rule) error {
 		for _, child := range notify {
 
 			// get the actual rule, by index
-			dr := e.Rules[e.index[child]]
+			dr := e.Program[e.index[child]].(*ast.Rule)
 
 			// report upon it if we're being verbose
 			e.verbose(fmt.Sprintf("\t\tNotifying rule: %s", dr.Name))
@@ -328,7 +355,7 @@ func (e *Executor) executeSingleRule(rule rules.Rule) error {
 
 // runInternalModule executes the given rule with the loaded internal
 // module.
-func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule rules.Rule) (bool, error) {
+func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (bool, error) {
 
 	// Check the arguments
 	err := helper.Check(rule.Params)
