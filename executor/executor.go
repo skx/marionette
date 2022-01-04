@@ -3,6 +3,8 @@
 // This means processing the rules, one by one, but also ensuring
 // dependencies are handled.
 //
+// Variable assignments, and include-file inclusion, occur at
+// run-time too, so they are handled here.
 package executor
 
 import (
@@ -211,11 +213,13 @@ func (e *Executor) Execute() error {
 			if err != nil {
 				return err
 			}
+
 		case *ast.Include:
 			err := e.execute_Include(r.(*ast.Include))
 			if err != nil {
 				return err
 			}
+
 		case *ast.Rule:
 			rule := r.(*ast.Rule)
 			// Don't run rules that are only present to
@@ -356,7 +360,7 @@ func (e *Executor) execute_Include(inc *ast.Include) error {
 	// Set the configuration options.
 	ex.SetConfig(e.cfg)
 
-	// Propagate all the environmental variables
+	// Propagate all the variables which we have in-scope.
 	for k, v := range e.env.Variables() {
 		ex.env.Set(k, v)
 	}

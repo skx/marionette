@@ -1,6 +1,5 @@
-// Package environment is used to store and retrieve variables.
-//
-// There is one environment which is shared by the driver and the parser.
+// Package environment is used to store and retrieve variables
+// by our run-time Executor.
 package environment
 
 import (
@@ -18,9 +17,9 @@ type Environment struct {
 
 // New returns a new Environment object.
 //
-// The new environment receives some default variable/values, which currently
-// include the architecture of the host system and the operating-system upon
-// which we're running.
+// The new environment receives some default variable/values,
+// which currently include the architecture of the host system,
+// the operating-system upon which we're running, & etc.
 func New() *Environment {
 	// Create a new environment
 	tmp := &Environment{vars: make(map[string]string)}
@@ -60,18 +59,19 @@ func (e *Environment) Set(key string, val string) {
 	e.vars[key] = val
 }
 
-// Get retrieves the named value from the environment, along with a boolean
-// value to indicate whether the retrieval was successful.
+// Get retrieves the named value from the environment, along
+// with a boolean value to indicate whether the retrieval was
+// successful.
 func (e *Environment) Get(key string) (string, bool) {
 	val, ok := e.vars[key]
 	return val, ok
 }
 
-// Variables returns all of variables which have been set, as well as their
-// values.
+// Variables returns all of variables which have been set, as
+// well as their values.
 //
-// This is only used for the parser test-cases, but that doesn't mean it
-// won't be more generally useful..
+// This is used such that include-files inherit the variables
+// which were already in-scope at the point the inclusion happens.
 func (e *Environment) Variables() map[string]string {
 	return e.vars
 }

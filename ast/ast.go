@@ -1,8 +1,10 @@
-// Package AST contains a simple AST for our input values.
+// Package AST contains a simple AST for our scripts.
 //
-// The intention is that the parser will process a list of rules, and
-// will generate a Program which will be executed.  The program will
-// consist of an arbitrary number of assignments, inclusions, and rules.
+// The intention is that the parser will process a list of
+// rules, and will generate a Program which will be executed.
+//
+// The program will consist of an arbitrary number of
+// assignments, inclusions, and rules.
 package ast
 
 import (
@@ -24,18 +26,19 @@ type Assign struct {
 
 	// Value is the value of our variable.
 	//
-	// This is a token so that we can execute commands, via backticks.
+	// This is a token so that we can execute commands,
+	// via backticks.
 	Value token.Token
 }
 
 // Include represents a file inclusion.
 //
-// This is produced by the parser when an include statement is seen.
+// This is produced by the parser by include statements.
 type Include struct {
 	// Node is our parent node.
 	Node
 
-	// Source holds the source to include.
+	// Source holds the location to include.
 	Source string
 
 	// ConditionType holds "if" or "unless" if this inclusion is conditional
@@ -69,7 +72,7 @@ type Rule struct {
 // Program contains a program
 type Program struct {
 
-	// Recipe contains the list of rule/assignment/include statements
-	// we're going to process.
+	// Recipe contains the list of rule/assignment/include
+	// statements we're going to process.
 	Recipe []Node
 }
