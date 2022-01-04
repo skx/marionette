@@ -5,6 +5,10 @@
 // consist of an arbitrary number of assignments, inclusions, and rules.
 package ast
 
+import (
+	"github.com/skx/marionette/token"
+)
+
 // Node represents a node.
 type Node interface {
 
@@ -55,7 +59,7 @@ type Assign struct {
 	Key string
 
 	// Value is the value of our variable
-	Value string
+	Value token.Token
 }
 
 // Program contains a program

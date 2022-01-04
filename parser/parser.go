@@ -11,26 +11,14 @@
 // expansion via backticks, but we're otherwise pretty
 // minimal.
 //
-// TODO
-//
-//  1. Parse into a series of assign/include/rules.
-//
-//  2. Do not expand backticks.
-//
-//  3. Ignore include files.
-//
 package parser
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
-	"strings"
 
 	"github.com/google/uuid"
 	"github.com/skx/marionette/ast"
 	"github.com/skx/marionette/conditionals"
-	"github.com/skx/marionette/environment"
 	"github.com/skx/marionette/lexer"
 	"github.com/skx/marionette/token"
 )
@@ -44,81 +32,22 @@ type Parser struct {
 	curToken token.Token
 
 	// peekToken holds the next token which will come from the lexer.
+	//
+	// We need lookahead for parsing (conditional) inclusion.
 	peekToken token.Token
-
-	// e is the handle to our environment
-	e *environment.Environment
 }
 
 // New creates a new parser from the given input.
 func New(input string) *Parser {
+
+	// Create our object, and lexer
 	p := &Parser{}
 	p.l = lexer.New(input)
-	p.e = environment.New()
 
+	// Ensure we're ready to process tokens.
 	p.nextToken()
 
 	return p
-}
-
-// NewWithEnvironment creates a new parser, along with a defined
-// environment.
-func NewWithEnvironment(input string, env *environment.Environment) *Parser {
-	p := New(input)
-	p.e = env
-	return p
-}
-
-// mapper is a helper to expand variables.
-//
-// ${foo} will be converted to the contents of the variable named foo
-// which was created with `let foo = "bar"`, or failing that the contents
-// of the environmental variable named `foo`.
-//
-// TODO: Remove this.  The evaluator should do expansion.
-func (p *Parser) mapper(val string) string {
-
-	// Lookup a variable which exists?
-	res, ok := p.e.Get(val)
-	if ok {
-		return res
-	}
-
-	// Lookup an environmental variable?
-	return os.Getenv(val)
-}
-
-// expand processes a token returned from the parser, returning
-// the appropriate value.
-//
-// The expansion really means two things:
-//
-// 1. If the string contains variables ${foo} replace them.
-//
-// 2. If the token is a backtick operation then run the command
-//    and return the value.
-//
-// TODO: This should be removed.  The evaluator should handle this.
-func (p *Parser) expand(tok token.Token) (string, error) {
-
-	// Get the argument, and expand variables
-	value := tok.Literal
-	value = os.Expand(value, p.mapper)
-
-	// If this is a backtick we replace the value
-	// with the result of running the command.
-	if tok.Type == token.BACKTICK {
-
-		tmp, err := p.runCommand(value)
-		if err != nil {
-			return "", fmt.Errorf("error running %s: %s", value, err.Error())
-		}
-
-		value = tmp
-	}
-
-	// Return the value we've found.
-	return value, nil
 }
 
 // Process parses our input, returning the AST which we will walk
@@ -169,17 +98,9 @@ func (p *Parser) Process() (ast.Program, error) {
 				return program, fmt.Errorf("unexpected value for variable assignment; expected string or backtick, got %v", val)
 			}
 
-			// Expand variables in the string, if present, and process
-			// the command if it uses a backtick.
-			value := ""
-			value, err = p.expand(val)
-			if err != nil {
-				return program, err
-			}
-
 			// Add the node to our program, and continue
 			program.Recipe = append(program.Recipe,
-				&ast.Assign{Key: name.Literal, Value: value})
+				&ast.Assign{Key: name.Literal, Value: val})
 			continue
 		}
 
@@ -200,9 +121,9 @@ func (p *Parser) Process() (ast.Program, error) {
 			continue
 		}
 
-		// Otherwise it should be a block
+		// Otherwise it should be a block, which we need to parse
+		// now.
 		var tmp *ast.Rule
-
 		tmp, err = p.parseBlock(tok.Literal)
 		if err != nil {
 			return program, err
@@ -215,34 +136,6 @@ func (p *Parser) Process() (ast.Program, error) {
 
 	// No error
 	return program, nil
-}
-
-// runCommand returns the output of the specified command
-//
-// TODO: This should be removed.
-func (p *Parser) runCommand(command string) (string, error) {
-
-	// Are we running under a fuzzer?  If so disable this
-	if os.Getenv("FUZZ") == "FUZZ" {
-		return command, nil
-	}
-
-	// Build up the thing to run, using a shell so that
-	// we can handle pipes/redirection.
-	toRun := []string{"/bin/bash", "-c", command}
-
-	// Run the command
-	cmd := exec.Command(toRun[0], toRun[1:]...)
-
-	// Get the output
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("error running command '%s' %s", command, err.Error())
-	}
-
-	// Strip trailing newline.
-	ret := strings.TrimSuffix(string(output), "\n")
-	return ret, nil
 }
 
 // parseBlock parses the contents of modules' block.
@@ -422,16 +315,7 @@ func (p *Parser) parseFunctionCall() (string, []string, error) {
 		//
 		if t.Type != token.COMMA {
 
-			//
-			// Expand any variable in the
-			// string, and if it is a backtick
-			// run the command.
-			//
-			value, err := p.expand(t)
-			if err != nil {
-				return name, args, err
-			}
-			args = append(args, value)
+			args = append(args, t.Literal)
 		}
 		t = p.nextToken()
 	}
@@ -460,10 +344,9 @@ func (p *Parser) readValue(name string) (interface{}, error) {
 		return nil, fmt.Errorf("found end of file processing block %s", name)
 	}
 
-	// string or backticks get expanded
+	// string or backticks
 	if t.Type == token.STRING || t.Type == token.BACKTICK {
-		value, err := p.expand(t)
-		return value, err
+		return t.Literal, nil
 	}
 
 	// array?
@@ -487,7 +370,7 @@ func (p *Parser) readValue(name string) (interface{}, error) {
 		}
 
 		if t.Type == token.STRING {
-			a = append(a, os.Expand(t.Literal, p.mapper))
+			a = append(a, t.Literal)
 		}
 
 		if t.Type == token.RSQUARE {

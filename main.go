@@ -9,7 +9,6 @@ import (
 
 	"github.com/skx/marionette/ast"
 	"github.com/skx/marionette/config"
-	"github.com/skx/marionette/environment"
 	"github.com/skx/marionette/parser"
 )
 
@@ -21,11 +20,8 @@ func runFile(filename string, cfg *config.Config) error {
 		return err
 	}
 
-	// Create a new execution environment
-	env := environment.New()
-
-	// Create a new parser, ensuring it uses the new environment.
-	p := parser.NewWithEnvironment(string(data), env)
+	// Create a new parser with our file content.
+	p := parser.New(string(data))
 
 	// Parse the rules
 	out, err := p.Process()
@@ -55,9 +51,9 @@ func runFile(filename string, cfg *config.Config) error {
 		default:
 			return fmt.Errorf("unknown node type! %t", node)
 		}
-  }
-   
-  // // Now we'll create an executor with the rules
+	}
+
+	// // Now we'll create an executor with the rules
 	// ex := executor.New(rules)
 
 	// // Set the configuration options.
