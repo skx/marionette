@@ -111,13 +111,37 @@ func (p *Parser) Process() (ast.Program, error) {
 			t := p.nextToken()
 
 			// We allow strings/backticks to be used
-			if t.Type != token.STRING && t.Type != token.BACKTICK {
-				return program, fmt.Errorf("only strings/backticks supported for include statements; got %v", t)
+			if t.Type != token.STRING {
+				return program, fmt.Errorf("only strings are supported for include statements; got %v", t)
+			}
+
+			// The include-command
+			inc := &ast.Include{Source: t.Literal}
+
+			// Look at the next token and see if it is a
+			// conditional inclusion
+			if p.peekTokenIs("if") || p.peekTokenIs("unless") {
+
+				// skip the token - after saving it
+				nxt := p.peekToken.Literal
+				p.nextToken()
+
+				// Get the name/arguments of the function call
+				// we expect to come next.
+				fname, args, error := p.parseFunctionCall()
+
+				// error? then return that
+				if error != nil {
+					return program, error
+				}
+
+				// Otherwise save the condition.
+				inc.ConditionType = nxt
+				inc.ConditionRule = &conditionals.ConditionCall{Name: fname, Args: args}
 			}
 
 			// Add our rule onto the program, and continue
-			program.Recipe = append(program.Recipe,
-				&ast.Include{Source: t.Literal})
+			program.Recipe = append(program.Recipe, inc)
 			continue
 		}
 

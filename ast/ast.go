@@ -6,6 +6,7 @@
 package ast
 
 import (
+	"github.com/skx/marionette/conditionals"
 	"github.com/skx/marionette/token"
 )
 
@@ -23,8 +24,16 @@ type Include struct {
 	// Node is our parent node.
 	Node
 
-	// Source holds the the source to include
+	// Source holds the source to include
 	Source string
+
+	// ConditionType holds "if" or "unless" if this inclusion
+	// is conditional
+	ConditionType string
+
+	// ConditionRule holds a conditional-rule to match if the
+	// ConditionType value is not empty.
+	ConditionRule *conditionals.ConditionCall
 }
 
 // Rule represents a parsed rule.

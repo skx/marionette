@@ -15,6 +15,12 @@
 let foo = "bar"
 
 #
+# Include a file, conditionally
+#
+include "foo.bar" if exists("/usr/bin/apt-get")
+include "bar.foo" unless false(true)
+
+#
 # Variables can also be defined to contain the output of commands.
 #
 # NOTE: Any trailing newline will be removed.
