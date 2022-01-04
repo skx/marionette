@@ -278,7 +278,6 @@ func (p *Parser) parseBlock(ty string) (*ast.Rule, error) {
 	}
 
 	r.Name = p.getName(r.Params)
-
 	return r, nil
 }
 

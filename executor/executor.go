@@ -44,26 +44,22 @@ func New(program []ast.Node) *Executor {
 	// Setup our state
 	//
 	e := &Executor{
+		cfg:     &config.Config{},
 		env:     environment.New(),
 		Program: program,
 	}
 
-	//
-	// Default configuration
-	//
-	e.cfg = &config.Config{}
-
 	return e
 }
 
-// verbose will output a message if running verbosely
+// verbose will output a message only if running verbosely.
 func (e *Executor) verbose(msg string) {
 	if e.cfg.Verbose {
 		fmt.Printf("%s\n", msg)
 	}
 }
 
-// SetConfig updates the executor with a configuration object.
+// SetConfig updates the executor with the specified configuration object.
 func (e *Executor) SetConfig(cfg *config.Config) {
 	e.cfg = cfg
 }
@@ -124,26 +120,34 @@ func (e *Executor) Check() error {
 	e.index = make(map[string]int)
 
 	//
-	// Walk over all the rules we've got
+	// Walk over all the nodes we've got
 	//
 	for i, r := range e.Program {
 
+		//
 		// Skip nodes which are not ast.Rules
+		//
 		rule, ok := r.(*ast.Rule)
 		if !ok {
 			continue
 		}
 
+		//
+		// Find the index of the name, to ensure it is unique.
+		//
 		_, ok2 := e.index[rule.Name]
 		if ok2 {
 			return fmt.Errorf("rule names must be unique; we've already seen '%s'", rule.Name)
 		}
 
+		//
+		// Save the index away
+		//
 		e.index[rule.Name] = i
 	}
 
 	//
-	// For every rule.
+	// For every node in our program.
 	//
 	for _, r := range e.Program {
 
@@ -176,7 +180,7 @@ func (e *Executor) Check() error {
 			// Does the requirement exist?
 			_, found := e.index[dep]
 			if !found {
-				return fmt.Errorf("rule '%s' has reference to '%s' which doesn't exist", rule.Params["name"], dep)
+				return fmt.Errorf("rule '%s' has reference to '%s' which doesn't exist", rule.Name, dep)
 			}
 		}
 	}
@@ -190,64 +194,84 @@ func (e *Executor) Execute() error {
 	// Keep track of which rules we've executed
 	seen := make(map[int]bool)
 
-	// For each rule ..
+	// For each node in our program
 	for i, r := range e.Program {
 
-		// Skip nodes which are not ast.Rules
-		rule, ok := r.(*ast.Rule)
-		if !ok {
-			continue
-		}
+		// Test the type to see what we should do.
+		switch r.(type) {
 
-		// Don't run rules that are only present to
-		// be notified by a trigger.
-		if rule.Triggered {
-			continue
-		}
-
-		// Have we executed this rule already?
-		if seen[i] {
-			continue
-		}
-
-		// Get the rule dependencies.
-		deps := e.deps(rule, "require")
-
-		// Process each one
-		for i, dep := range deps {
+		case *ast.Assign:
+			err := e.execute_Assign(r.(*ast.Assign))
+			if err != nil {
+				return err
+			}
+		case *ast.Include:
+			err := e.execute_Include(r.(*ast.Include))
+			if err != nil {
+				return err
+			}
+		case *ast.Rule:
+			rule := r.(*ast.Rule)
+			// Don't run rules that are only present to
+			// be notified by a trigger.
+			if rule.Triggered {
+				continue
+			}
 
 			// Have we executed this rule already?
 			if seen[i] {
 				continue
 			}
 
-			// get the actual rule, by index
-			dr := e.Program[e.index[dep]].(*ast.Rule)
+			// Get the rule dependencies.
+			deps := e.deps(rule, "require")
 
-			// Don't run rules that are only present to
-			// be notified by a trigger.
-			if dr.Triggered {
-				continue
+			// Process each one
+			for i, dep := range deps {
+
+				// Have we executed this rule already?
+				if seen[i] {
+					continue
+				}
+
+				// get the actual rule, by index
+				dr := e.Program[e.index[dep]].(*ast.Rule)
+
+				// Don't run rules that are only present to
+				// be notified by a trigger.
+				if dr.Triggered {
+					continue
+				}
+
+				err := e.executeSingleRule(dr)
+				if err != nil {
+					return err
+				}
+
+				// Now we've executed the rule.
+				seen[i] = true
 			}
 
-			err := e.executeSingleRule(dr)
+			// Now the rule itself
+			err := e.executeSingleRule(rule)
 			if err != nil {
 				return err
 			}
 
-			// Now we've executed the rule.
+			// And mark this as executed too.
 			seen[i] = true
+			return nil
+		default:
+			return fmt.Errorf("unknown node type! %t", r)
 		}
-
-		// Now the rule itself
-		err := e.executeSingleRule(rule)
-		if err != nil {
-			return err
-		}
-
-		// And mark this as executed too.
-		seen[i] = true
 	}
+	return nil
+}
+
+func (e *Executor) execute_Assign(assign *ast.Assign) error {
+	return nil
+}
+func (e *Executor) execute_Include(inc *ast.Include) error {
 	return nil
 }
 
