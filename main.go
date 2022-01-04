@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/skx/marionette/ast"
 	"github.com/skx/marionette/config"
 	"github.com/skx/marionette/executor"
 	"github.com/skx/marionette/parser"
@@ -28,30 +27,6 @@ func runFile(filename string, cfg *config.Config) error {
 	out, err := p.Process()
 	if err != nil {
 		return err
-	}
-
-	//
-	// At this point we have a list of AST-nodes.
-	//
-	// We should process them, in order, however we're going to
-	// just dump them to the console for the moment.
-	//
-	for _, node := range out.Recipe {
-
-		switch node.(type) {
-
-		case *ast.Assign:
-			set := node.(*ast.Assign)
-			fmt.Printf("Assignment: %s -> %s\n", set.Key, set.Value)
-		case *ast.Include:
-			inc := node.(*ast.Include)
-			fmt.Printf("Include: %s\n", inc.Source)
-		case *ast.Rule:
-			rul := node.(*ast.Rule)
-			fmt.Printf("RULE: %s ..\n", rul.Type)
-		default:
-			return fmt.Errorf("unknown node type! %t", node)
-		}
 	}
 
 	// Now we'll create an executor with the program
