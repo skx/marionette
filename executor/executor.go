@@ -78,6 +78,11 @@ func (e *Executor) SetConfig(cfg *config.Config) {
 	e.cfg = cfg
 }
 
+// MarkSeen marks the given file as having already been seen.
+func (e *Executor) MarkSeen(path string) {
+	e.included[path] = true
+}
+
 // Get the rules a rule depends upon, via the given key.
 //
 // This is used to find any `require` or `notify` rules.
@@ -364,7 +369,7 @@ func (e *Executor) executeInclude(inc *ast.Include) error {
 	}
 
 	// Mark it as included now.
-	e.included[inc.Source] = true
+	e.MarkSeen(inc.Source)
 
 	// Now run the inclusion
 	data, err := ioutil.ReadFile(inc.Source)

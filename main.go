@@ -35,6 +35,9 @@ func runFile(filename string, cfg *config.Config) error {
 	// Set the configuration options.
 	ex.SetConfig(cfg)
 
+	// Mark the file as having been processed.
+	ex.MarkSeen(filename)
+
 	// Check for broken dependencies
 	err = ex.Check()
 	if err != nil {
