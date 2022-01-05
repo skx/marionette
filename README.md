@@ -192,6 +192,8 @@ Here we see that we've used two functions `equal` and `exists`, these are both b
 
 The following list shows all the built-in functions that you may use (but only within the `if` or `unless` keys):
 
+* `contains(haystack, needle)`
+  * Returns true if the first string contains the second.
 * `exists( /some/file )`
   * Return true if the specified file/directory exists.
 * `equal( foo, bar )`
