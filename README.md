@@ -88,7 +88,9 @@ Here is a concrete example rule which executes a shell-command:
 
 ```
 # Run a command, unconditionally
-shell { command => "uptime > /tmp/uptime.txt" }
+shell {
+        command => "uptime > /tmp/uptime.txt"
+}
 
 ```
 
@@ -179,9 +181,11 @@ shell { name    => "Upgrade",
 For the reverse, running a rule unless something is true, we can use the `unless` key:
 
 ```
+let arch = `/usr/bin/arch`
+
 file { name   => "Create file",
        target => "/tmp/foo",
-       unless => equal( "x86_64", `/usr/bin/arch` ) }
+       unless => equal( "x86_64", "${arch}" ) }
 ```
 
 Here we see that we've used two functions `equal` and `exists`, these are both built-in functions which do what you'd expect.
@@ -217,7 +221,9 @@ More conditional primitives may be added if they appear to be necessary, or if u
 
 ### Command Execution
 
-Backticks can be used to execute commands, inline.  For example we might determine the system architecture like this:
+Backticks can be used to execute commands, when used in variable-assignments.
+
+For example we might determine the system architecture like this:
 
 ```
 let arch = `/usr/bin/arch`
@@ -230,7 +236,7 @@ Here `${arch}` expands to the output of the command, as you would expect, with a
 
 > **Note** `${ARCH}` is available by default, as noted in the [pre-declared variables](#pre-declared-variables) section.  This was just an example of command-execution.
 
-It is also possible to use backticks for any parameter value.  Here we'll write the current date to a file:
+Using commands inside parameter values does **not** work.  This will fail:
 
 ```
 file { name    => "set-todays-date",
@@ -238,13 +244,26 @@ file { name    => "set-todays-date",
        content => `/usr/bin/date` }
 ```
 
+However using a variable allows it to work the way you'd expect:
+
+```
+let today = `/bin/date`
+
+file { name    => "set-todays-date",
+       target  => "/tmp/today",
+       content => "${today}" }
+
+```
+
 The commands executed with the backticks have any embedded variables expanded _before_ they run, so this works as you'd expect:
 
 ```
-let fmt = "+%Y"
+let fmt   = "+%Y"
+let today = `/bin/date ${fmt}`
+
 file { name    => "set-todays-date",
        target  => "/tmp/today",
-       content => `/bin/date ${fmt}` }
+       content => "${today}" }
 ```
 
 ### Include Files
@@ -261,6 +280,15 @@ include "${prefix}/test.in"
 ```
 
 Dependency resolution will work across modules, as the rule-names use a single global namespace - that might change in the future if it causes surprises.  Variables defined in files which are included are also available outside their scope.
+
+To simplify your recipe writing including other files may be made conditional,
+just like our rules:
+
+```
+# main.in
+
+include "x86_64.rules" if equal( "${ARCH}","x86_64" )
+include "i386.rules"   if equal( "${ARCH}","i386" )
 
 
 
