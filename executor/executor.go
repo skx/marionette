@@ -209,13 +209,13 @@ func (e *Executor) Execute() error {
 		switch r.(type) {
 
 		case *ast.Assign:
-			err := e.execute_Assign(r.(*ast.Assign))
+			err := e.executeAssign(r.(*ast.Assign))
 			if err != nil {
 				return err
 			}
 
 		case *ast.Include:
-			err := e.execute_Include(r.(*ast.Include))
+			err := e.executeInclude(r.(*ast.Include))
 			if err != nil {
 				return err
 			}
@@ -277,8 +277,8 @@ func (e *Executor) Execute() error {
 	return nil
 }
 
-// execute_Assign executes an assignment
-func (e *Executor) execute_Assign(assign *ast.Assign) error {
+// executeAssign executes an assignment node, updating the environment.
+func (e *Executor) executeAssign(assign *ast.Assign) error {
 
 	key := assign.Key
 	val := assign.Value
@@ -303,8 +303,8 @@ func (e *Executor) execute_Assign(assign *ast.Assign) error {
 	return nil
 }
 
-// execute_Include will handle a file inclusion.
-func (e *Executor) execute_Include(inc *ast.Include) error {
+// executeInclude will handle a file inclusion node.
+func (e *Executor) executeInclude(inc *ast.Include) error {
 
 	// OK is this conditionally included?
 	if inc.ConditionType != "" {
