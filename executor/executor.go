@@ -209,18 +209,21 @@ func (e *Executor) Execute() error {
 		switch r := r.(type) {
 
 		case *ast.Assign:
+			// variable assignment
 			err := e.executeAssign(r)
 			if err != nil {
 				return err
 			}
 
 		case *ast.Include:
+			// include-file handling
 			err := e.executeInclude(r)
 			if err != nil {
 				return err
 			}
 
 		case *ast.Rule:
+			// rule execution
 
 			// Don't run rules that are only present to
 			// be notified by a trigger.
@@ -289,14 +292,14 @@ func (e *Executor) executeAssign(assign *ast.Assign) error {
 
 	switch val.Type {
 	case token.STRING:
-		ret = val.Literal
+		ret = os.Expand(val.Literal, e.mapper)
 	case token.BACKTICK:
 		ret, err = e.expand(val)
 		if err != nil {
 			return err
 		}
 	default:
-		return fmt.Errorf("unhandled type in execute_Assign %v", val)
+		return fmt.Errorf("unhandled type in executeAssign %v", val)
 	}
 
 	e.env.Set(key, ret)
@@ -398,9 +401,15 @@ func (e *Executor) runConditional(cond interface{}) (bool, error) {
 		return false, fmt.Errorf("conditional-function %s not available", test.Name)
 	}
 
+	// We want to ensure that we expand all arguments
+	args := []string{}
+
+	for _, arg := range test.Args {
+		args = append(args, os.Expand(arg, e.mapper))
+	}
+
 	// Call the function, and return whatever result it gives us.
-	res, err := helper(test.Args)
-	return res, err
+	return helper(args)
 }
 
 // executeSingleRule creates the appropriate module, and runs the single rule.
