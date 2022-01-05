@@ -9,15 +9,34 @@ import (
 )
 
 func FuzzParser(f *testing.F) {
-	f.Add([]byte(""))
-	f.Add([]byte("let foo=\"bar\""))
 
-	// Known errors
+	// empty string
+	f.Add([]byte(""))
+
+	// invalid entries
+	f.Add([]byte("let"))
+	f.Add([]byte("3="))
+
+	// assignments
+	f.Add([]byte("let foo=\"bar\""))
+	f.Add([]byte("let id=`/usr/bin/id -u`"))
+
+	// blocks
+	f.Add([]byte(`shell { command => "/usr/bin/uptime" } `))
+	f.Add([]byte(`shell { command => [ "/usr/bin/uptime", "/usr/bin/id" ] } `))
+
+	// Known errors are listed here.
+	//
+	// The purpose of fuzzing is to find panics, or unexpected errors.
+	//
+	// Some programs are obviously invalid though, so we don't want to
+	// report those known-bad things.
 	known := []string{
 		"expected",
 		"illegal token",
 		"end of file",
 		"unterminated assignment",
+		"not a string or an array",
 	}
 
 	f.Fuzz(func(t *testing.T, input []byte) {
@@ -29,6 +48,7 @@ func FuzzParser(f *testing.F) {
 		_, err := c.Parse()
 		if err != nil {
 
+			// We got an error.  Is it a known one?
 			for _, e := range known {
 
 				// This is a known error, we expect to get
@@ -36,8 +56,10 @@ func FuzzParser(f *testing.F) {
 					return
 				}
 			}
+
+			// New error!  Fuzzers are magic, and this is a good
+			// discovery :)
 			t.Errorf("Input gave bad error: %s %s\n", input, err)
 		}
-
 	})
 }
