@@ -296,7 +296,7 @@ func (e *Executor) execute_Assign(assign *ast.Assign) error {
 			return err
 		}
 	default:
-		return fmt.Errorf("unhandled type in execute_Assign %t", val)
+		return fmt.Errorf("unhandled type in execute_Assign %v", val)
 	}
 
 	e.env.Set(key, ret)
