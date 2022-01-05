@@ -37,6 +37,11 @@ type Executor struct {
 	// their index.
 	index map[string]int
 
+	// included keeps track of which files we've already included.
+	//
+	// We use this to avoid issues with recursive file inclusions
+	included map[string]bool
+
 	// cfg holds our configuration options.
 	cfg *config.Config
 
@@ -52,9 +57,10 @@ func New(program []ast.Node) *Executor {
 	// Setup our state
 	//
 	e := &Executor{
-		cfg:     &config.Config{},
-		env:     environment.New(),
-		Program: program,
+		cfg:      &config.Config{},
+		env:      environment.New(),
+		Program:  program,
+		included: make(map[string]bool),
 	}
 
 	return e
@@ -209,6 +215,9 @@ func (e *Executor) Execute() error {
 		switch r := r.(type) {
 
 		case *ast.Assign:
+
+			e.verbose(fmt.Sprintf("Processing assignment: %v\n", r))
+
 			// variable assignment
 			err := e.executeAssign(r)
 			if err != nil {
@@ -216,6 +225,9 @@ func (e *Executor) Execute() error {
 			}
 
 		case *ast.Include:
+
+			e.verbose(fmt.Sprintf("Processing inclusion: %v\n", r))
+
 			// include-file handling
 			err := e.executeInclude(r)
 			if err != nil {
@@ -224,6 +236,8 @@ func (e *Executor) Execute() error {
 
 		case *ast.Rule:
 			// rule execution
+
+			e.verbose(fmt.Sprintf("Processing rule: %v\n", r))
 
 			// Don't run rules that are only present to
 			// be notified by a trigger.
@@ -341,6 +355,17 @@ func (e *Executor) executeInclude(inc *ast.Include) error {
 	// Expand any variables in the string.
 	inc.Source = os.Expand(inc.Source, e.mapper)
 
+	// If we've already included this path, return
+	seen, ok := e.included[inc.Source]
+	if ok && seen {
+		e.verbose(fmt.Sprintf("Skipping include file %s - already seen\n",
+			inc.Source))
+		return nil
+	}
+
+	// Mark it as included now.
+	e.included[inc.Source] = true
+
 	// Now run the inclusion
 	data, err := ioutil.ReadFile(inc.Source)
 	if err != nil {
@@ -367,6 +392,11 @@ func (e *Executor) executeInclude(inc *ast.Include) error {
 		ex.env.Set(k, v)
 	}
 
+	// Propagate all the include-files that have been seen
+	for k, v := range e.included {
+		ex.included[k] = v
+	}
+
 	// Check for broken dependencies
 	err = ex.Check()
 	if err != nil {
@@ -377,6 +407,13 @@ func (e *Executor) executeInclude(inc *ast.Include) error {
 	err = ex.Execute()
 	if err != nil {
 		return err
+	}
+
+	// Once the child executor has finished we'll copy back
+	// the files that it has seen as included.
+	// Propagate all the include-files that have been seen
+	for k, v := range ex.included {
+		e.included[k] = v
 	}
 
 	return nil
