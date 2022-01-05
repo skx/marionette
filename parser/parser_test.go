@@ -12,11 +12,53 @@ import (
 	"github.com/skx/marionette/conditionals"
 )
 
+// TestAssignment performs basic assignment-statement testing
+func TestAssignment(t *testing.T) {
+
+	// Broken statements
+	broken := []string{
+		"let",
+		"let foo",
+		"let foo=",
+		"let foo=bar",
+		"let foo=1",
+	}
+
+	// Ensure each one fails
+	for _, test := range broken {
+
+		p := New(test)
+		_, err := p.Parse()
+
+		if err == nil {
+			t.Errorf("expected error parsing broken assign '%s' - got none", test)
+		}
+	}
+
+	// Now test valid assignments
+	valid := []string{
+		"let x = `/bin/true`",
+		"let a = \"boo\"",
+	}
+
+	// Ensure each one succeeds
+	for _, test := range valid {
+
+		p := New(test)
+		_, err := p.Parse()
+
+		if err != nil {
+			t.Errorf("unexpected error parsing assignment '%s': %s", test, err)
+		}
+	}
+}
+
 // TestBlock performs basic block-parsing.
 func TestBlock(t *testing.T) {
 
 	// Broken tests
-	broken := []string{`"foo`,
+	broken := []string{
+		`"foo`,
 		"foo",
 		`foo { name : "test" }`,
 		`foo { name = "steve"}`,
@@ -40,7 +82,7 @@ func TestBlock(t *testing.T) {
 		_, err := p.Parse()
 
 		if err == nil {
-			t.Errorf("expected error parsing broken assign '%s' - got none", test)
+			t.Errorf("expected error parsing broken block '%s' - got none", test)
 		}
 	}
 
@@ -67,7 +109,7 @@ func TestBlock(t *testing.T) {
 
 // TestConditionalErrors performs some sanity-checks that broken conditionals
 // result in expected errors.
-func TestConditinalErrors(t *testing.T) {
+func TestConditionalErrors(t *testing.T) {
 
 	type TestCase struct {
 		Input string
@@ -141,5 +183,48 @@ func TestConditional(t *testing.T) {
 	formatted := res.String()
 	if formatted != "equal(foo,foo)" {
 		t.Errorf("failed to stringify valid comparison")
+	}
+}
+
+// TestInclude performs basic testing of our include-file handling
+func TestInclude(t *testing.T) {
+
+	// Broken statements
+	broken := []string{
+		"include",
+		"include `/bin/ls`",
+		"include \"test.inc\" unless false(/bin/ls",
+		"include \"test.inc\" unless false(/bin/ls,",
+		"include \"test.inc\" if true(/bin/ls,",
+		"include \"test.inc\" if true(/bin/ls",
+	}
+
+	// Ensure each one fails
+	for _, test := range broken {
+
+		p := New(test)
+		_, err := p.Parse()
+
+		if err == nil {
+			t.Errorf("expected error parsing broken include '%s' - got none", test)
+		}
+	}
+
+	// Now test valid includes
+	valid := []string{
+		"include \"test.inc\"",
+		"include \"test.inc\" unless false(/bin/ls)",
+		"include \"test.inc\" if true(/bin/ls)",
+	}
+
+	// Ensure each one succeeds
+	for _, test := range valid {
+
+		p := New(test)
+		_, err := p.Parse()
+
+		if err != nil {
+			t.Errorf("unexpected error parsing include '%s': %s", test, err)
+		}
 	}
 }
