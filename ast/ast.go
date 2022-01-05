@@ -1,4 +1,4 @@
-// Package AST contains a simple AST for our scripts.
+// Package ast contains a simple AST for our scripts.
 //
 // The intention is that the parser will process a list of
 // rules, and will generate a Program which will be executed.
