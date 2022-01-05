@@ -206,25 +206,25 @@ func (e *Executor) Execute() error {
 	for i, r := range e.Program {
 
 		// Test the type to see what we should do.
-		switch r.(type) {
+		switch r := r.(type) {
 
 		case *ast.Assign:
-			err := e.executeAssign(r.(*ast.Assign))
+			err := e.executeAssign(r)
 			if err != nil {
 				return err
 			}
 
 		case *ast.Include:
-			err := e.executeInclude(r.(*ast.Include))
+			err := e.executeInclude(r)
 			if err != nil {
 				return err
 			}
 
 		case *ast.Rule:
-			rule := r.(*ast.Rule)
+
 			// Don't run rules that are only present to
 			// be notified by a trigger.
-			if rule.Triggered {
+			if r.Triggered {
 				continue
 			}
 
@@ -234,7 +234,7 @@ func (e *Executor) Execute() error {
 			}
 
 			// Get the rule dependencies.
-			deps := e.deps(rule, "require")
+			deps := e.deps(r, "require")
 
 			// Process each one
 			for i, dep := range deps {
@@ -263,7 +263,7 @@ func (e *Executor) Execute() error {
 			}
 
 			// Now the rule itself
-			err := e.executeSingleRule(rule)
+			err := e.executeSingleRule(r)
 			if err != nil {
 				return err
 			}
