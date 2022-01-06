@@ -4,6 +4,7 @@ package modules
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/skx/marionette/environment"
 )
@@ -11,9 +12,7 @@ import (
 // Execute is part of the module-api, and is invoked to run a rule.
 func (g *UserModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
 
-	if g.cfg.Verbose {
-		fmt.Printf("'user' module is not implemented upon Windows\n")
-	}
+	log.Printf("[ERROR] the 'user' module is not implemented upon Windows")
 
-	return false, nil
+	return false, fmt.Errorf("the 'user' module is not implemented upon Windows")
 }
