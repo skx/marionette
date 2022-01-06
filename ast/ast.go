@@ -9,6 +9,7 @@ package ast
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/skx/marionette/conditionals"
 	"github.com/skx/marionette/token"
@@ -107,7 +108,34 @@ func (r *Rule) String() string {
 		return "<nil>"
 	}
 
-	return fmt.Sprintf("Rule %s{ name:%s}", r.Type, r.Name)
+	args := ""
+	for k, v := range r.Params {
+
+		// try to format the value
+		val := ""
+
+		str, ok := v.(string)
+		if ok {
+			val = fmt.Sprintf("\"%s\"", str)
+		}
+
+		array, ok2 := v.([]string)
+		if ok2 {
+			for _, s := range array {
+				val += fmt.Sprintf(", \"%s\"", s)
+			}
+			val = strings.TrimPrefix(val, ", ")
+			val = "[" + val + "]"
+		}
+
+		// now add on the value(s)
+		args += fmt.Sprintf(", %s->%s", k, val)
+	}
+
+	// trip prefix
+	args = strings.TrimPrefix(args, ", ")
+
+	return fmt.Sprintf("Rule %s{%s}", r.Type, args)
 }
 
 // Program contains a program
