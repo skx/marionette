@@ -10,6 +10,7 @@ package executor
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -64,13 +65,6 @@ func New(program []ast.Node) *Executor {
 	}
 
 	return e
-}
-
-// verbose will output a message only if running verbosely.
-func (e *Executor) verbose(msg string) {
-	if e.cfg.Verbose {
-		fmt.Printf("%s\n", msg)
-	}
 }
 
 // SetConfig updates the executor with the specified configuration object.
@@ -220,8 +214,7 @@ func (e *Executor) Execute() error {
 		switch r := r.(type) {
 
 		case *ast.Assign:
-
-			e.verbose(fmt.Sprintf("Processing assignment: %v\n", r))
+			log.Printf("[DEBUG] Processing assignment: %s", r)
 
 			// variable assignment
 			err := e.executeAssign(r)
@@ -231,7 +224,7 @@ func (e *Executor) Execute() error {
 
 		case *ast.Include:
 
-			e.verbose(fmt.Sprintf("Processing inclusion: %v\n", r))
+			log.Printf("[DEBUG] Processing inclusion: %v\n", r)
 
 			// include-file handling
 			err := e.executeInclude(r)
@@ -241,8 +234,7 @@ func (e *Executor) Execute() error {
 
 		case *ast.Rule:
 			// rule execution
-
-			e.verbose(fmt.Sprintf("Processing rule: %v\n", r))
+			log.Printf("[DEBUG] Processing rule: %s", r)
 
 			// Don't run rules that are only present to
 			// be notified by a trigger.
@@ -307,8 +299,6 @@ func (e *Executor) executeAssign(assign *ast.Assign) error {
 	ret := ""
 	var err error
 
-	e.verbose(fmt.Sprintf("Setting variable %s -> %s", key, val))
-
 	switch val.Type {
 	case token.STRING:
 		ret = os.Expand(val.Literal, e.mapper)
@@ -321,6 +311,10 @@ func (e *Executor) executeAssign(assign *ast.Assign) error {
 		return fmt.Errorf("unhandled type in executeAssign %v", val)
 	}
 
+	// Show what we're going to do.
+	log.Printf("[DEBUG] Set '%s' -> '%s'", key, ret)
+
+	// Set the value
 	e.env.Set(key, ret)
 	return nil
 }
@@ -339,7 +333,7 @@ func (e *Executor) executeInclude(inc *ast.Include) error {
 				return err
 			}
 			if !res {
-				e.verbose(fmt.Sprintf("\tSkipping inclusion of %s condition was not true: %s", inc.Source, inc.ConditionRule))
+				log.Printf("[INFO] Skipping inclusion of %s condition was not true: %s", inc.Source, inc.ConditionRule)
 				return nil
 			}
 		}
@@ -350,7 +344,7 @@ func (e *Executor) executeInclude(inc *ast.Include) error {
 				return err
 			}
 			if res {
-				e.verbose(fmt.Sprintf("\tSkipping inclusion of %s condition was not false: %s", inc.Source, inc.ConditionRule))
+				log.Printf("[INFO] Skipping inclusion of %s condition was not false: %s", inc.Source, inc.ConditionRule)
 				return nil
 			}
 		}
@@ -363,8 +357,7 @@ func (e *Executor) executeInclude(inc *ast.Include) error {
 	// If we've already included this path, return
 	seen, ok := e.included[inc.Source]
 	if ok && seen {
-		e.verbose(fmt.Sprintf("Skipping include file %s - already seen\n",
-			inc.Source))
+		log.Printf("[INFO] Skipping inclusion of %s - already seen", inc.Source)
 		return nil
 	}
 
@@ -458,7 +451,7 @@ func (e *Executor) runConditional(cond interface{}) (bool, error) {
 func (e *Executor) executeSingleRule(rule *ast.Rule) error {
 
 	// Show what we're doing
-	e.verbose(fmt.Sprintf("Running %s-module rule: %s", rule.Type, rule.Name))
+	log.Printf("[INFO] Running %s-module rule: %s", rule.Type, rule.Name)
 
 	//
 	// Are there conditionals present?
@@ -469,7 +462,7 @@ func (e *Executor) executeSingleRule(rule *ast.Rule) error {
 			return err
 		}
 		if !res {
-			e.verbose(fmt.Sprintf("\tSkipping rule condition was not true: %s", rule.Params["if"]))
+			log.Printf("[INFO] Skipping rule as condition was not true: %s", rule.Params["if"])
 			return nil
 		}
 	}
@@ -480,7 +473,7 @@ func (e *Executor) executeSingleRule(rule *ast.Rule) error {
 			return err
 		}
 		if res {
-			e.verbose(fmt.Sprintf("\tSkipping rule condition was true: %s", rule.Params["unless"]))
+			log.Printf("[INFO] Skipping rule condition was true: %s", rule.Params["unless"])
 			return nil
 		}
 	}
@@ -506,7 +499,7 @@ func (e *Executor) executeSingleRule(rule *ast.Rule) error {
 
 	if changed {
 
-		e.verbose("\tRule resulted in a change being made.")
+		log.Printf("[INFO] Rule resulted in a change being made.")
 
 		// Now call any rules that we should notify.
 		notify := e.deps(rule, "notify")
@@ -517,8 +510,8 @@ func (e *Executor) executeSingleRule(rule *ast.Rule) error {
 			// get the actual rule, by index
 			dr := e.Program[e.index[child]].(*ast.Rule)
 
-			// report upon it if we're being verbose
-			e.verbose(fmt.Sprintf("\t\tNotifying rule: %s", dr.Name))
+			// Show what we're going to do.
+			log.Printf("[INFO] Notifying rule: %s", dr.Name)
 
 			// Execute the rule.
 			err := e.executeSingleRule(dr)

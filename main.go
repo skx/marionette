@@ -5,8 +5,10 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 
+	"github.com/hashicorp/logutils"
 	"github.com/skx/marionette/config"
 	"github.com/skx/marionette/executor"
 	"github.com/skx/marionette/parser"
@@ -57,8 +59,31 @@ func runFile(filename string, cfg *config.Config) error {
 func main() {
 
 	// Parse our command-line flags.
-	verbose := flag.Bool("verbose", false, "Be verbose in execution")
+	debug := flag.Bool("debug", false, "Be very verbose in logging.")
+	verbose := flag.Bool("verbose", false, "Show logs when executing")
 	flag.Parse()
+
+	// By default we set the log-level to empty, but if we're
+	// running verbosely we'll show info.
+	nop := logutils.LogLevel("NOP")
+	dbg := logutils.LogLevel("DEBUG")
+	wrn := logutils.LogLevel("INFO")
+
+	lvl := nop
+	if *verbose {
+		lvl = wrn
+	}
+	if *debug {
+		lvl = dbg
+	}
+
+	// Setup the filter
+	filter := &logutils.LevelFilter{
+		Levels:   []logutils.LogLevel{"DEBUG", "INFO", "ERROR"},
+		MinLevel: lvl,
+		Writer:   os.Stderr,
+	}
+	log.SetOutput(filter)
 
 	// Create our configuration object
 	cfg := &config.Config{Verbose: *verbose}

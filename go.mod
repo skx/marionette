@@ -9,6 +9,7 @@ require (
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.7.4 // indirect
+	github.com/hashicorp/logutils v1.0.0 // indirect
 	github.com/kevinburke/ssh_config v1.1.0 // indirect
 	github.com/moby/term v0.0.0-20200611042045-63b9a826fb74 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
