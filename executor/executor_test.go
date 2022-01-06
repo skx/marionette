@@ -6,10 +6,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/skx/marionette/ast"
 	"github.com/skx/marionette/conditionals"
 	"github.com/skx/marionette/config"
-	"github.com/skx/marionette/environment"
-	"github.com/skx/marionette/rules"
 )
 
 // TestSimpleRule tests that running a simple rule succeeds
@@ -36,20 +35,20 @@ func TestSimpleRule(t *testing.T) {
 	params["target"] = tmpfile.Name()
 	params["content"] = expected
 
-	env := environment.New()
-
 	//
 	// Create a simple rule
 	//
-	r := []rules.Rule{{Type: "file",
-		Name:      "test",
-		Triggered: false,
-		Params:    params}}
+	r := []ast.Node{
+		&ast.Rule{Type: "file",
+			Name:      "test",
+			Triggered: false,
+			Params:    params},
+	}
 
 	//
 	// Create the executor
 	//
-	ex := New(env, r)
+	ex := New(r)
 	ex.SetConfig(&config.Config{Verbose: true})
 
 	err = ex.Check()
@@ -84,19 +83,21 @@ func TestCheckFail(t *testing.T) {
 	//
 	params := make(map[string]interface{})
 
-	env := environment.New()
-
 	//
 	// Create a simple rule
 	//
-	r := []rules.Rule{{Type: "file",
-		Name:   "test",
-		Params: params}}
+	r := []ast.Node{
+		&ast.Rule{
+			Type:   "file",
+			Name:   "test",
+			Params: params,
+		},
+	}
 
 	//
 	// Create the executor
 	//
-	ex := New(env, r)
+	ex := New(r)
 	ex.SetConfig(&config.Config{Verbose: true})
 
 	err := ex.Check()
@@ -122,25 +123,24 @@ func TestRepeatedNames(t *testing.T) {
 	//
 	params := make(map[string]interface{})
 
-	env := environment.New()
-
 	//
 	// Create a pair of rules with identical names.
 	//
-	r := []rules.Rule{
-		{Type: "file",
+	r := []ast.Node{
+		&ast.Rule{Type: "file",
 			Name:      "test",
 			Triggered: false,
 			Params:    params},
-		{Type: "file",
+		&ast.Rule{Type: "file",
 			Name:      "test",
 			Triggered: false,
-			Params:    params}}
+			Params:    params},
+	}
 
 	//
 	// Create the executor
 	//
-	ex := New(env, r)
+	ex := New(r)
 	ex.SetConfig(&config.Config{Verbose: true})
 
 	err := ex.Check()
@@ -162,28 +162,30 @@ func TestBrokenDependencies(t *testing.T) {
 	// -> missing rule
 	params["require"] = "foo"
 
-	env := environment.New()
-
 	//
 	// Create a rule with a single dependency
 	//
-	r1 := []rules.Rule{{Type: "file",
-		Name:      "test",
-		Triggered: false,
-		Params:    params}}
+	r1 := []ast.Node{
+		&ast.Rule{Type: "file",
+			Name:      "test",
+			Triggered: false,
+			Params:    params},
+	}
 
 	//
 	// Create a rule with a pair of dependencies
 	params["require"] = []string{"foo", "bar"}
-	r2 := []rules.Rule{{Type: "file",
-		Name:      "test",
-		Triggered: false,
-		Params:    params}}
+	r2 := []ast.Node{
+		&ast.Rule{Type: "file",
+			Name:      "test",
+			Triggered: false,
+			Params:    params},
+	}
 
 	//
 	// Create the executor
 	//
-	ex := New(env, r1)
+	ex := New(r1)
 	ex.SetConfig(&config.Config{Verbose: true})
 
 	err := ex.Check()
@@ -197,7 +199,7 @@ func TestBrokenDependencies(t *testing.T) {
 	//
 	// Create the executor, again
 	//
-	ex = New(env, r2)
+	ex = New(r2)
 	ex.SetConfig(&config.Config{Verbose: true})
 
 	err = ex.Check()
@@ -220,20 +222,22 @@ func TestIf(t *testing.T) {
 	params["if"] = &conditionals.ConditionCall{Name: "equals",
 		Args: []string{"foo", "bar"}}
 
-	env := environment.New()
-
 	//
 	// Create our rule.
 	//
-	r1 := []rules.Rule{{Type: "file",
-		Name:      "test",
-		Triggered: false,
-		Params:    params}}
+	r1 := []ast.Node{
+		&ast.Rule{
+			Type:      "file",
+			Name:      "test",
+			Triggered: false,
+			Params:    params,
+		},
+	}
 
 	//
 	// Create the executor
 	//
-	ex := New(env, r1)
+	ex := New(r1)
 	ex.SetConfig(&config.Config{Verbose: true})
 
 	err := ex.Check()
@@ -249,8 +253,12 @@ func TestIf(t *testing.T) {
 	// Now we try to run with the wrong type for our conditional
 	//
 	params["if"] = "foo"
-	r1[0].Params = params
-	ex = New(env, r1)
+
+	// change params
+	tmp := r1[0].(*ast.Rule)
+	tmp.Params = params
+
+	ex = New(r1)
 	err = ex.Execute()
 	if err == nil {
 		t.Errorf("expected error running rules, got none")
@@ -264,8 +272,12 @@ func TestIf(t *testing.T) {
 	//
 	params["if"] = &conditionals.ConditionCall{Name: "agrees",
 		Args: []string{"foo", "bar"}}
-	r1[0].Params = params
-	ex = New(env, r1)
+
+	// change params
+	tmpt := r1[0].(*ast.Rule)
+	tmpt.Params = params
+
+	ex = New(r1)
 	err = ex.Execute()
 	if err == nil {
 		t.Errorf("expected error running rules, got none")
@@ -280,21 +292,18 @@ func TestIf(t *testing.T) {
 // executed normally.
 func TestTriggered(t *testing.T) {
 
-	env := environment.New()
-
 	//
 	// Create our rule.
 	//
-	r1 := []rules.Rule{
-
-		{Type: "file",
+	r1 := []ast.Node{
+		&ast.Rule{Type: "file",
 			Name:      "bob",
 			Triggered: false,
 			Params: map[string]interface{}{"require": "test",
 				"if": &conditionals.ConditionCall{Name: "equal",
 					Args: []string{"foo", "bar"}}},
 		},
-		{Type: "file",
+		&ast.Rule{Type: "file",
 			Name:      "test",
 			Triggered: true,
 			Params:    map[string]interface{}{"require": 3, "target": "/tmp/foo", "ensure": "present", "content": "foo"}},
@@ -303,7 +312,7 @@ func TestTriggered(t *testing.T) {
 	//
 	// Create the executor
 	//
-	ex := New(env, r1)
+	ex := New(r1)
 	ex.SetConfig(&config.Config{Verbose: true})
 
 	err := ex.Check()
@@ -328,20 +337,22 @@ func TestUnless(t *testing.T) {
 	params["unless"] = &conditionals.ConditionCall{Name: "equals",
 		Args: []string{"bar", "bar"}}
 
-	env := environment.New()
-
 	//
 	// Create our rule.
 	//
-	r1 := []rules.Rule{{Type: "file",
-		Name:      "test",
-		Triggered: false,
-		Params:    params}}
+	r1 := []ast.Node{
+		&ast.Rule{
+			Type:      "file",
+			Name:      "test",
+			Triggered: false,
+			Params:    params,
+		},
+	}
 
 	//
 	// Create the executor
 	//
-	ex := New(env, r1)
+	ex := New(r1)
 	ex.SetConfig(&config.Config{Verbose: true})
 
 	err := ex.Check()
@@ -357,8 +368,12 @@ func TestUnless(t *testing.T) {
 	// Now we try to run with the wrong type for our conditional
 	//
 	params["unless"] = "foo"
-	r1[0].Params = params
-	ex = New(env, r1)
+
+	// change params
+	tmp := r1[0].(*ast.Rule)
+	tmp.Params = params
+
+	ex = New(r1)
 	err = ex.Execute()
 	if err == nil {
 		t.Errorf("expected error running rules, got none")
@@ -372,8 +387,12 @@ func TestUnless(t *testing.T) {
 	//
 	params["unless"] = &conditionals.ConditionCall{Name: "agrees",
 		Args: []string{"foo", "bar"}}
-	r1[0].Params = params
-	ex = New(env, r1)
+
+	// change params
+	tmpt := r1[0].(*ast.Rule)
+	tmpt.Params = params
+
+	ex = New(r1)
 	err = ex.Execute()
 	if err == nil {
 		t.Errorf("expected error running rules, got none")

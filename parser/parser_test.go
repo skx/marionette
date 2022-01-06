@@ -5,76 +5,50 @@
 package parser
 
 import (
-	"io/ioutil"
-	"os"
 	"strings"
 	"testing"
 
+	"github.com/skx/marionette/ast"
 	"github.com/skx/marionette/conditionals"
 )
 
-// TestAssign tests we can assign variables
-func TestAssign(t *testing.T) {
+// TestAssignment performs basic assignment-statement testing
+func TestAssignment(t *testing.T) {
 
-	// Broken tests
-	broken := []string{"moi",
+	// Broken statements
+	broken := []string{
 		"let",
-		"let f",
-		"let f =",
-		"let f => ff ",
-		"let m = )",
-		"let m = `fkldjfdf/sdfsd/fsd/fds/fsdf/sf`",
+		"let foo",
+		"let foo=",
+		"let foo=bar",
+		"let foo=1",
 	}
 
+	// Ensure each one fails
 	for _, test := range broken {
 
-		// Create a new parser
 		p := New(test)
-
-		// Count the number of variables which exist in an
-		// empty parser
-		vars := p.e.Variables()
-		vlen := len(vars)
-
-		// Parse the input
 		_, err := p.Parse()
+
 		if err == nil {
 			t.Errorf("expected error parsing broken assign '%s' - got none", test)
 		}
-
-		// Count the variables which are set,
-		// there should be no increase.
-		v := p.e.Variables()
-		if len(v) != vlen {
-			t.Errorf("unexpected variables present")
-		}
 	}
 
-	// valid tests
-	valid := []string{`let a = "foo"`,
-		"let a = `/bin/ls`",
+	// Now test valid assignments
+	valid := []string{
+		"let x = `/bin/true`",
+		"let a = \"boo\"",
 	}
 
+	// Ensure each one succeeds
 	for _, test := range valid {
 
-		// Create the parser
 		p := New(test)
-
-		// Count the number of variables which exist in an
-		// empty parser
-		vars := p.e.Variables()
-		vlen := len(vars)
-
-		// Parse
 		_, err := p.Parse()
-		if err != nil {
-			t.Errorf("unexpected error parsing '%s' %s", test, err.Error())
-		}
 
-		// Now we should have one more variable.
-		v := p.e.Variables()
-		if len(v) != (vlen + 1) {
-			t.Errorf("variable not present")
+		if err != nil {
+			t.Errorf("unexpected error parsing assignment '%s': %s", test, err)
 		}
 	}
 }
@@ -83,7 +57,8 @@ func TestAssign(t *testing.T) {
 func TestBlock(t *testing.T) {
 
 	// Broken tests
-	broken := []string{`"foo`,
+	broken := []string{
+		`"foo`,
 		"foo",
 		`foo { name : "test" }`,
 		`foo { name = "steve"}`,
@@ -107,7 +82,7 @@ func TestBlock(t *testing.T) {
 		_, err := p.Parse()
 
 		if err == nil {
-			t.Errorf("expected error parsing broken assign '%s' - got none", test)
+			t.Errorf("expected error parsing broken block '%s' - got none", test)
 		}
 	}
 
@@ -126,7 +101,7 @@ func TestBlock(t *testing.T) {
 			t.Errorf("unexpected error parsing '%s' %s", test, err.Error())
 		}
 
-		if len(rules) != 1 {
+		if len(rules.Recipe) != 1 {
 			t.Errorf("expected a single rule")
 		}
 	}
@@ -134,7 +109,7 @@ func TestBlock(t *testing.T) {
 
 // TestConditionalErrors performs some sanity-checks that broken conditionals
 // result in expected errors.
-func TestConditinalErrors(t *testing.T) {
+func TestConditionalErrors(t *testing.T) {
 
 	type TestCase struct {
 		Input string
@@ -146,9 +121,6 @@ func TestConditinalErrors(t *testing.T) {
 		{Input: `shell { name => "OK",
                                  command => "echo Comparison Worked!",
                                  if =>        }`,
-			Error: "expected identifier"},
-
-		{Input: ` => `,
 			Error: "expected identifier"},
 
 		{Input: `shell { name => "OK",
@@ -164,8 +136,6 @@ func TestConditinalErrors(t *testing.T) {
                                  command => "echo Comparison Worked!",
                                  unless => foo foo`,
 			Error: "expected ( after conditional"},
-		{Input: "shell { command => \"echo OK\", if => equals( \"test\", `/missing/file/here`,     ) }",
-			Error: "error running command"},
 	}
 
 	for _, test := range broken {
@@ -200,11 +170,12 @@ func TestConditional(t *testing.T) {
 	}
 
 	// We should have one result
-	if len(out) != 1 {
+	if len(out.Recipe) != 1 {
 		t.Errorf("unexpected number of results")
 	}
 
-	res, ok := out[0].Params["if"].(*conditionals.ConditionCall)
+	rule := out.Recipe[0].(*ast.Rule)
+	res, ok := rule.Params["if"].(*conditionals.ConditionCall)
 	if !ok {
 		t.Errorf("we didn't parse a conditional")
 	}
@@ -215,155 +186,45 @@ func TestConditional(t *testing.T) {
 	}
 }
 
-// TestInclude handles some simple include-file things.
+// TestInclude performs basic testing of our include-file handling
 func TestInclude(t *testing.T) {
 
-	// Invalid tests
-	invalid := []string{
-		"include ",
-		"include {",
-		"include (",
+	// Broken statements
+	broken := []string{
+		"include",
+		"include `/bin/ls`",
+		"include \"test.inc\" unless false(/bin/ls",
+		"include \"test.inc\" unless false(/bin/ls,",
+		"include \"test.inc\" if true(/bin/ls,",
+		"include \"test.inc\" if true(/bin/ls",
 	}
 
-	for _, txt := range invalid {
-		p := New(txt)
+	// Ensure each one fails
+	for _, test := range broken {
+
+		p := New(test)
 		_, err := p.Parse()
 
 		if err == nil {
-			t.Errorf("expected error parsing '%s', got none", txt)
-		}
-		if !strings.Contains(err.Error(), "supported for include statements") {
-			t.Errorf("got error (expected) but wrong value (%s)", err.Error())
+			t.Errorf("expected error parsing broken include '%s' - got none", test)
 		}
 	}
 
-	//
-	// Attempt to include file that doesn't exist
-	//
-	txt := `include "/path/to/fil/not/found"`
-	p := New(txt)
-	_, err := p.Parse()
-	if err == nil {
-		t.Fatalf("including a file that wasn't found worked!")
+	// Now test valid includes
+	valid := []string{
+		"include \"test.inc\"",
+		"include \"test.inc\" unless false(/bin/ls)",
+		"include \"test.inc\" if true(/bin/ls)",
 	}
 
-	//
-	// Attempt to include file, via a broken backtick.
-	//
-	txt = "include `/path/to/fil/not/found`"
-	p = New(txt)
-	_, err = p.Parse()
-	if err == nil {
-		t.Fatalf("including a file that wasn't found worked!")
+	// Ensure each one succeeds
+	for _, test := range valid {
+
+		p := New(test)
+		_, err := p.Parse()
+
+		if err != nil {
+			t.Errorf("unexpected error parsing include '%s': %s", test, err)
+		}
 	}
-
-	//
-	// Now write out a temporary file
-	//
-	tmpfile, err := ioutil.TempFile("", "marionette-")
-	if err != nil {
-		t.Fatalf("create a temporary file failed")
-	}
-
-	defer os.Remove(tmpfile.Name())
-
-	// Write the input
-	_, err = tmpfile.Write([]byte("# This is a comment\n"))
-	if err != nil {
-		t.Fatalf("error writing temporary file")
-	}
-
-	//
-	// Parse the file that includes this
-	//
-	txt = `include "` + tmpfile.Name() + `"`
-	p = New(txt)
-	_, err = p.Parse()
-	if err != nil {
-		t.Fatalf("got error reading include file %s", err.Error())
-	}
-
-	//
-	// Second attempt, update our include file to include
-	// broken syntax
-	//
-	_, err = tmpfile.Write([]byte("let f => ff \n"))
-	if err != nil {
-		t.Fatalf("error writing temporary file")
-	}
-
-	//
-	// Parse the file that includes this
-	//
-	txt = `include "` + tmpfile.Name() + `"`
-	p = New(txt)
-	_, err = p.Parse()
-	if err == nil {
-		t.Fatalf("got error reading include file %s", err.Error())
-	}
-}
-
-// TestMapper handles mapper-invokation
-func TestMapper(t *testing.T) {
-
-	txt := `# Comment
-let foo = "bar"
-
-shell { command => "x" }
-`
-	p := New(txt)
-	_, err := p.Parse()
-	if err != nil {
-		t.Fatalf("unexpected error parsing file")
-	}
-
-	//
-	// Now we should have a variable "foo"
-	//
-	x := p.mapper("foo")
-	if x != "bar" {
-		t.Fatalf("${foo} had wrong value 'bar' != '%s'", x)
-	}
-
-	//
-	// Now getenv
-	//
-	if p.mapper("USER") != os.Getenv("USER") {
-		t.Fatalf("getenv failed")
-	}
-}
-
-// Test including a file multiple times doesn't cause problems
-func TestIncludeMultiple(t *testing.T) {
-
-	// Create a temporary file
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "include")
-	if err != nil {
-		t.Fatalf("Cannot create temporary file")
-	}
-	defer os.Remove(tmpFile.Name())
-
-	// Example writing to the file
-	text := []byte("# Comment")
-	if _, err = tmpFile.Write(text); err != nil {
-		t.Fatalf("failed to write to temporary file")
-	}
-
-	// Close the file
-	if err = tmpFile.Close(); err != nil {
-		t.Fatalf("error closing temporary file")
-	}
-
-	// Now try to include that a few times
-	txt := `# Comment
-include "XXX"
-include "XXX"
-`
-	txt = strings.ReplaceAll(txt, "XXX", tmpFile.Name())
-	p := New(txt)
-	_, err = p.Parse()
-	if err != nil {
-		t.Fatalf("unexpected error parsing file")
-	}
-
 }

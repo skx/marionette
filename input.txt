@@ -14,6 +14,7 @@
 #
 let foo = "bar"
 
+
 #
 # Variables can also be defined to contain the output of commands.
 #

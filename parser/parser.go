@@ -10,20 +10,16 @@
 //  We support the inclusion of other files, and command
 // expansion via backticks, but we're otherwise pretty
 // minimal.
+//
 package parser
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
-	"os/exec"
-	"strings"
 
 	"github.com/google/uuid"
+	"github.com/skx/marionette/ast"
 	"github.com/skx/marionette/conditionals"
-	"github.com/skx/marionette/environment"
 	"github.com/skx/marionette/lexer"
-	"github.com/skx/marionette/rules"
 	"github.com/skx/marionette/token"
 )
 
@@ -32,122 +28,79 @@ type Parser struct {
 	// l is the handle to our lexer
 	l *lexer.Lexer
 
-	// e is the handle to our environment
-	e *environment.Environment
+	// curToken holds the current token from our lexer.
+	curToken token.Token
 
-	// Files we've included
-	included map[string]bool
+	// peekToken holds the next token which will come from the lexer.
+	//
+	// We need lookahead for parsing (conditional) inclusion.
+	peekToken token.Token
 }
 
 // New creates a new parser from the given input.
 func New(input string) *Parser {
+
+	// Create our object, and lexer
 	p := &Parser{}
 	p.l = lexer.New(input)
-	p.e = environment.New()
-	p.included = make(map[string]bool)
+
+	// Ensure we're ready to process tokens.
+	p.nextToken()
+
 	return p
 }
 
-// NewWithEnvironment creates a new parser, along with a defined
-// environment.
-func NewWithEnvironment(input string, env *environment.Environment) *Parser {
-	p := New(input)
-	p.e = env
-	return p
-}
+// Parse parses our input, returning the AST which we will walk
+// for the evaluation.
+func (p *Parser) Parse() (ast.Program, error) {
 
-// mapper is a helper to expand variables.
-//
-// ${foo} will be converted to the contents of the variable named foo
-// which was created with `let foo = "bar"`, or failing that the contents
-// of the environmental variable named `foo`.
-func (p *Parser) mapper(val string) string {
-
-	// Lookup a variable which exists?
-	res, ok := p.e.Get(val)
-	if ok {
-		return res
-	}
-
-	// Lookup an environmental variable?
-	return os.Getenv(val)
-}
-
-// expand processes a token returned from the parser, returning
-// the appropriate value.
-//
-// The expansion really means two things:
-//
-// 1. If the string contains variables ${foo} replace them.
-//
-// 2. If the token is a backtick operation then run the command
-//    and return the value.
-//
-func (p *Parser) expand(tok token.Token) (string, error) {
-
-	// Get the argument, and expand variables
-	value := tok.Literal
-	value = os.Expand(value, p.mapper)
-
-	// If this is a backtick we replace the value
-	// with the result of running the command.
-	if tok.Type == token.BACKTICK {
-
-		tmp, err := p.runCommand(value)
-		if err != nil {
-			return "", fmt.Errorf("error running %s: %s", value, err.Error())
-		}
-
-		value = tmp
-	}
-
-	// Return the value we've found.
-	return value, nil
-}
-
-// mark the given files as having already been included
-func (p *Parser) includedAlready(seen map[string]bool) {
-	for k := range seen {
-		p.included[k] = true
-	}
-}
-
-// Parse parses our input, returning an array of rules found,
-// and any error which was encountered upon the way.
-func (p *Parser) Parse() ([]rules.Rule, error) {
-
-	// The rules we return
-	var found []rules.Rule
+	// The program we return, and any error
+	var program ast.Program
 	var err error
 
 	// Parse forever
 	for {
-
-		// Get the next token.
-		tok := p.l.NextToken()
+		// Get the next token
+		tok := p.nextToken()
 
 		// Error-checking
 		if tok.Type == token.ILLEGAL {
-			return nil, fmt.Errorf("illegal token: %v", tok)
+			return program, fmt.Errorf("illegal token: %v", tok)
 		}
 		if tok.Type == token.EOF {
 			break
 		}
 
-		// OK we expect an identifier.
-		if tok.Type != token.IDENT {
-			return nil, fmt.Errorf("unexpected input, expected identifier")
-		}
+		// Now parse the various tokens
 
 		// Is this an assignment?
 		if tok.Literal == "let" {
 
-			// If so parse it.
-			err = p.parseVariable()
-			if err != nil {
-				return found, err
+			// name
+			name := p.nextToken()
+
+			// =
+			t := p.nextToken()
+			if t.Type != token.ASSIGN {
+				return program, fmt.Errorf("expected '=', got %v", t)
 			}
 
+			// value
+			val := p.nextToken()
+
+			// Error-checking.
+			if val.Type == token.ILLEGAL || val.Type == token.EOF {
+				return program, fmt.Errorf("unterminated assignment")
+			}
+
+			// assignment only handles strings/command-ouptut
+			if val.Type != token.STRING && val.Type != token.BACKTICK {
+				return program, fmt.Errorf("unexpected value for variable assignment; expected string or backtick, got %v", val)
+			}
+
+			// Add the node to our program, and continue
+			program.Recipe = append(program.Recipe,
+				&ast.Assign{Key: name.Literal, Value: val})
 			continue
 		}
 
@@ -155,152 +108,58 @@ func (p *Parser) Parse() ([]rules.Rule, error) {
 		if tok.Literal == "include" {
 
 			// Get the thing we should include.
-			t := p.l.NextToken()
+			t := p.nextToken()
 
 			// We allow strings/backticks to be used
-			if t.Type != token.STRING && t.Type != token.BACKTICK {
-				return found, fmt.Errorf("only strings/backticks supported for include statements; got %v", t)
+			if t.Type != token.STRING {
+				return program, fmt.Errorf("only strings are supported for include statements; got %v", t)
 			}
 
-			//
-			// Expand variables in the argument, and
-			// run the appropriate command if the token
-			// is a backtick.
-			//
-			path, er := p.expand(t)
-			if er != nil {
-				return found, er
+			// The include-command
+			inc := &ast.Include{Source: t.Literal}
+
+			// Look at the next token and see if it is a
+			// conditional inclusion
+			if p.peekTokenIs("if") || p.peekTokenIs("unless") {
+
+				// skip the token - after saving it
+				nxt := p.peekToken.Literal
+				p.nextToken()
+
+				// Get the name/arguments of the function call
+				// we expect to come next.
+				fname, args, error := p.parseFunctionCall()
+
+				// error? then return that
+				if error != nil {
+					return program, error
+				}
+
+				// Otherwise save the condition.
+				inc.ConditionType = nxt
+				inc.ConditionRule = &conditionals.ConditionCall{Name: fname, Args: args}
 			}
 
-			//
-			// Have we already included this file?
-			//
-			// If so then we'll ignore the second attempt.
-			//
-			if p.included[path] {
-				continue
-			}
-
-			//
-			// Mark the file as having been included
-			//
-			p.included[path] = true
-
-			//
-			// Read the file we're supposed to process.
-			//
-			data, er := ioutil.ReadFile(path)
-			if er != nil {
-				return found, er
-			}
-
-			//
-			// Create a new parser instance, making sure
-			// that it uses the same environment we're using.
-			//
-			tmp := NewWithEnvironment(string(data), p.e)
-
-			//
-			// Also make sure we propagate the files
-			// we've already seen.
-			//
-			// This will ensure that recursive includes do
-			// not cause us problems.
-			tmp.includedAlready(p.included)
-
-			//
-			// Now parse the new input.
-			//
-			rules, er := tmp.Parse()
-			if er != nil {
-				return found, er
-			}
-
-			//
-			// Append the results of what we received
-			// to what we've already done in the main-file.
-			//
-			found = append(found, rules...)
-
+			// Add our rule onto the program, and continue
+			program.Recipe = append(program.Recipe, inc)
 			continue
 		}
 
-		// Otherwise it must be a block statement.
-		var r rules.Rule
-
-		r, err = p.parseBlock(tok.Literal)
+		// Otherwise it should be a block, which we need to parse
+		// now.
+		var tmp *ast.Rule
+		tmp, err = p.parseBlock(tok.Literal)
 		if err != nil {
-			return nil, err
+			return program, err
 		}
 
-		found = append(found, r)
+		// Add our rule onto the program, and continue
+		program.Recipe = append(program.Recipe, tmp)
+		continue
 	}
 
-	return found, err
-}
-
-// parseVariable parses a variable assignment, storing it in our map.
-func (p *Parser) parseVariable() error {
-
-	// name
-	name := p.l.NextToken()
-
-	// =
-	t := p.l.NextToken()
-	if t.Type != token.ASSIGN {
-		return fmt.Errorf("expected '=', got %v", t)
-	}
-
-	// value
-	val := p.l.NextToken()
-
-	// Error-checking.
-	if val.Type == token.ILLEGAL || val.Type == token.EOF {
-		return fmt.Errorf("unterminated assignment")
-	}
-
-	// assignment only handles strings/command-ouptut
-	if val.Type != token.STRING && val.Type != token.BACKTICK {
-		return fmt.Errorf("unexpected value for variable assignment; expected string or backtick, got %v", val)
-	}
-
-	// Expand variables in the string, if present, and process
-	// the command if it uses a backtick.
-	value, err := p.expand(val)
-	if err != nil {
-		return err
-	}
-
-	// Set the value in the environment
-	p.e.Set(name.Literal, value)
-
-	return nil
-}
-
-// runCommand returns the output of the specified command
-func (p *Parser) runCommand(command string) (string, error) {
-
-	// Are we running under a fuzzer?  If so disable this
-	if os.Getenv("FUZZ") == "FUZZ" {
-		return command, nil
-	}
-
-	// Build up the thing to run, using a shell so that
-	// we can handle pipes/redirection.
-	toRun := []string{"/bin/bash", "-c", command}
-
-	// Run the command
-	cmd := exec.Command(toRun[0], toRun[1:]...)
-
-	// Get the output
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("error running command '%s' %s", command, err.Error())
-	}
-
-	// Strip trailing newline.
-	ret := strings.TrimSuffix(string(output), "\n")
-	return ret, nil
+	// No error
+	return program, nil
 }
 
 // parseBlock parses the contents of modules' block.
@@ -320,18 +179,18 @@ func (p *Parser) runCommand(command string) (string, error) {
 // The two keys `if` and `unless` have unquoted expressions
 // as arguments.
 //
-func (p *Parser) parseBlock(ty string) (rules.Rule, error) {
+func (p *Parser) parseBlock(ty string) (*ast.Rule, error) {
 
-	var r rules.Rule
+	r := &ast.Rule{}
 	r.Name = ""
 	r.Params = make(map[string]interface{})
 	r.Type = ty
 
 	// We should find either "triggered" or "{".
-	t := p.l.NextToken()
+	t := p.nextToken()
 	if t.Literal == "triggered" {
 		r.Triggered = true
-		t = p.l.NextToken()
+		t = p.nextToken()
 	}
 	if t.Type != token.LBRACE {
 		return r, fmt.Errorf("expected '{', got %v", t)
@@ -340,7 +199,7 @@ func (p *Parser) parseBlock(ty string) (rules.Rule, error) {
 	// Now loop until we find the end of the block, which is "}".
 	for {
 
-		t = p.l.NextToken()
+		t = p.nextToken()
 
 		// error checking
 		if t.Type == token.ILLEGAL {
@@ -375,7 +234,7 @@ func (p *Parser) parseBlock(ty string) (rules.Rule, error) {
 		//
 		//   "if|unless|blah" =>  FOO ( arg1, arg2 .. )
 		//
-		next := p.l.NextToken()
+		next := p.nextToken()
 		if next.Literal != token.LASSIGN {
 			return r, fmt.Errorf("expected => after conditional %s, got %v", name, next)
 		}
@@ -419,7 +278,6 @@ func (p *Parser) parseBlock(ty string) (rules.Rule, error) {
 	}
 
 	r.Name = p.getName(r.Params)
-
 	return r, nil
 }
 
@@ -455,7 +313,7 @@ func (p *Parser) parseFunctionCall() (string, []string, error) {
 	//
 	// The function-call "exists", "equal", etc
 	//
-	tType := p.l.NextToken()
+	tType := p.nextToken()
 	if tType.Type != token.IDENT {
 		return name, args, fmt.Errorf("expected identifier name after conditional %s, got %v", tType, tType)
 	}
@@ -464,7 +322,7 @@ func (p *Parser) parseFunctionCall() (string, []string, error) {
 	//
 	// Skip the opening bracket
 	//
-	open := p.l.NextToken()
+	open := p.nextToken()
 	if open.Type != token.LPAREN {
 		return name, args, fmt.Errorf("expected ( after conditional name %s, got %v", open, open)
 	}
@@ -472,7 +330,7 @@ func (p *Parser) parseFunctionCall() (string, []string, error) {
 	//
 	// Collect the arguments, until we get a close-bracket
 	//
-	t := p.l.NextToken()
+	t := p.nextToken()
 	for t.Literal != ")" && t.Type != token.EOF {
 
 		//
@@ -480,18 +338,9 @@ func (p *Parser) parseFunctionCall() (string, []string, error) {
 		//
 		if t.Type != token.COMMA {
 
-			//
-			// Expand any variable in the
-			// string, and if it is a backtick
-			// run the command.
-			//
-			value, err := p.expand(t)
-			if err != nil {
-				return name, args, err
-			}
-			args = append(args, value)
+			args = append(args, t.Literal)
 		}
-		t = p.l.NextToken()
+		t = p.nextToken()
 	}
 
 	if t.Type == token.EOF {
@@ -508,7 +357,7 @@ func (p *Parser) readValue(name string) (interface{}, error) {
 
 	var a []string
 
-	t := p.l.NextToken()
+	t := p.nextToken()
 
 	// error checking
 	if t.Type == token.ILLEGAL {
@@ -518,10 +367,9 @@ func (p *Parser) readValue(name string) (interface{}, error) {
 		return nil, fmt.Errorf("found end of file processing block %s", name)
 	}
 
-	// string or backticks get expanded
+	// string or backticks
 	if t.Type == token.STRING || t.Type == token.BACKTICK {
-		value, err := p.expand(t)
-		return value, err
+		return t.Literal, nil
 	}
 
 	// array?
@@ -530,7 +378,7 @@ func (p *Parser) readValue(name string) (interface{}, error) {
 	}
 
 	for {
-		t := p.l.NextToken()
+		t := p.nextToken()
 
 		// error checking
 		if t.Type == token.ILLEGAL {
@@ -545,11 +393,24 @@ func (p *Parser) readValue(name string) (interface{}, error) {
 		}
 
 		if t.Type == token.STRING {
-			a = append(a, os.Expand(t.Literal, p.mapper))
+			a = append(a, t.Literal)
 		}
 
 		if t.Type == token.RSQUARE {
 			return a, nil
 		}
 	}
+}
+
+// nextToken moves to our next token from the lexer.
+func (p *Parser) nextToken() token.Token {
+	p.curToken = p.peekToken
+	p.peekToken = p.l.NextToken()
+
+	return p.curToken
+}
+
+// peekTokenIs tests if the next token has the given value.
+func (p *Parser) peekTokenIs(t string) bool {
+	return p.peekToken.Literal == t
 }

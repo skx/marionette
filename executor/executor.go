@@ -3,23 +3,31 @@
 // This means processing the rules, one by one, but also ensuring
 // dependencies are handled.
 //
+// Variable assignments, and include-file inclusion, occur at
+// run-time too, so they are handled here.
 package executor
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"os/exec"
+	"strings"
 
+	"github.com/skx/marionette/ast"
 	"github.com/skx/marionette/conditionals"
 	"github.com/skx/marionette/config"
 	"github.com/skx/marionette/environment"
 	"github.com/skx/marionette/modules"
-	"github.com/skx/marionette/rules"
+	"github.com/skx/marionette/parser"
+	"github.com/skx/marionette/token"
 )
 
 // Executor holds our internal state.
 type Executor struct {
 
-	// Rules are the things we'll execute.
-	Rules []rules.Rule
+	// Program is the series of AST-nodes we'll interpret.
+	Program []ast.Node
 
 	// Index is a mapping between rule-name and index.
 	//
@@ -29,6 +37,11 @@ type Executor struct {
 	// their index.
 	index map[string]int
 
+	// included keeps track of which files we've already included.
+	//
+	// We use this to avoid issues with recursive file inclusions
+	included map[string]bool
+
 	// cfg holds our configuration options.
 	cfg *config.Config
 
@@ -36,36 +49,44 @@ type Executor struct {
 	env *environment.Environment
 }
 
-// New creates a new executor, using a series of rules which should have
-// been discovered by the parser.
-func New(env *environment.Environment, r []rules.Rule) *Executor {
-
-	e := &Executor{Rules: r, env: env}
+// New creates a new executor, using the array of AST nodes we should
+// execute, which was produced by the parser.
+func New(program []ast.Node) *Executor {
 
 	//
-	// Default configuration
+	// Setup our state
 	//
-	e.cfg = &config.Config{}
+	e := &Executor{
+		cfg:      &config.Config{},
+		env:      environment.New(),
+		Program:  program,
+		included: make(map[string]bool),
+	}
 
 	return e
 }
 
-// verbose will output a message if running verbosely
+// verbose will output a message only if running verbosely.
 func (e *Executor) verbose(msg string) {
 	if e.cfg.Verbose {
 		fmt.Printf("%s\n", msg)
 	}
 }
 
-// SetConfig updates the executor with a configuration object.
+// SetConfig updates the executor with the specified configuration object.
 func (e *Executor) SetConfig(cfg *config.Config) {
 	e.cfg = cfg
+}
+
+// MarkSeen marks the given file as having already been seen.
+func (e *Executor) MarkSeen(path string) {
+	e.included[path] = true
 }
 
 // Get the rules a rule depends upon, via the given key.
 //
 // This is used to find any `require` or `notify` rules.
-func (e *Executor) deps(rule rules.Rule, key string) []string {
+func (e *Executor) deps(rule *ast.Rule, key string) []string {
 
 	var res []string
 
@@ -117,27 +138,50 @@ func (e *Executor) Check() error {
 	//
 	e.index = make(map[string]int)
 
-	for i, r := range e.Rules {
+	//
+	// Walk over all the nodes we've got
+	//
+	for i, r := range e.Program {
 
-		_, ok := e.index[r.Name]
-		if ok {
-			return fmt.Errorf("rule names must be unique; we've already seen '%s'", r.Name)
+		//
+		// Skip nodes which are not ast.Rules
+		//
+		rule, ok := r.(*ast.Rule)
+		if !ok {
+			continue
 		}
 
-		e.index[r.Name] = i
+		//
+		// Find the index of the name, to ensure it is unique.
+		//
+		_, ok2 := e.index[rule.Name]
+		if ok2 {
+			return fmt.Errorf("rule names must be unique; we've already seen '%s'", rule.Name)
+		}
+
+		//
+		// Save the index away
+		//
+		e.index[rule.Name] = i
 	}
 
 	//
-	// For every rule.
+	// For every node in our program.
 	//
-	for _, r := range e.Rules {
+	for _, r := range e.Program {
+
+		// Skip nodes which are not ast.Rules
+		rule, ok := r.(*ast.Rule)
+		if !ok {
+			continue
+		}
 
 		//
 		// Get the dependencies of that rule, and the things
 		// it will notify in the event it is triggered.
 		//
-		deps := e.deps(r, "require")
-		notify := e.deps(r, "notify")
+		deps := e.deps(rule, "require")
+		notify := e.deps(rule, "notify")
 
 		// Join the pair of rules
 		var all []string
@@ -155,7 +199,7 @@ func (e *Executor) Check() error {
 			// Does the requirement exist?
 			_, found := e.index[dep]
 			if !found {
-				return fmt.Errorf("rule '%s' has reference to '%s' which doesn't exist", r.Params["name"], dep)
+				return fmt.Errorf("rule '%s' has reference to '%s' which doesn't exist", rule.Name, dep)
 			}
 		}
 	}
@@ -169,58 +213,214 @@ func (e *Executor) Execute() error {
 	// Keep track of which rules we've executed
 	seen := make(map[int]bool)
 
-	// For each rule ..
-	for i, r := range e.Rules {
+	// For each node in our program
+	for i, r := range e.Program {
 
-		// Don't run rules that are only present to
-		// be notified by a trigger.
-		if r.Triggered {
-			continue
-		}
+		// Test the type to see what we should do.
+		switch r := r.(type) {
 
-		// Have we executed this rule already?
-		if seen[i] {
-			continue
-		}
+		case *ast.Assign:
 
-		// Get the rule dependencies.
-		deps := e.deps(r, "require")
+			e.verbose(fmt.Sprintf("Processing assignment: %v\n", r))
 
-		// Process each one
-		for i, dep := range deps {
+			// variable assignment
+			err := e.executeAssign(r)
+			if err != nil {
+				return err
+			}
+
+		case *ast.Include:
+
+			e.verbose(fmt.Sprintf("Processing inclusion: %v\n", r))
+
+			// include-file handling
+			err := e.executeInclude(r)
+			if err != nil {
+				return err
+			}
+
+		case *ast.Rule:
+			// rule execution
+
+			e.verbose(fmt.Sprintf("Processing rule: %v\n", r))
+
+			// Don't run rules that are only present to
+			// be notified by a trigger.
+			if r.Triggered {
+				continue
+			}
 
 			// Have we executed this rule already?
 			if seen[i] {
 				continue
 			}
 
-			// get the actual rule, by index
-			dr := e.Rules[e.index[dep]]
+			// Get the rule dependencies.
+			deps := e.deps(r, "require")
 
-			// Don't run rules that are only present to
-			// be notified by a trigger.
-			if dr.Triggered {
-				continue
+			// Process each one
+			for i, dep := range deps {
+
+				// Have we executed this rule already?
+				if seen[i] {
+					continue
+				}
+
+				// get the actual rule, by index
+				dr := e.Program[e.index[dep]].(*ast.Rule)
+
+				// Don't run rules that are only present to
+				// be notified by a trigger.
+				if dr.Triggered {
+					continue
+				}
+
+				err := e.executeSingleRule(dr)
+				if err != nil {
+					return err
+				}
+
+				// Now we've executed the rule.
+				seen[i] = true
 			}
 
-			err := e.executeSingleRule(dr)
+			// Now the rule itself
+			err := e.executeSingleRule(r)
 			if err != nil {
 				return err
 			}
 
-			// Now we've executed the rule.
+			// And mark this as executed too.
 			seen[i] = true
+		default:
+			return fmt.Errorf("unknown node type! %t", r)
 		}
+	}
+	return nil
+}
 
-		// Now the rule itself
-		err := e.executeSingleRule(r)
+// executeAssign executes an assignment node, updating the environment.
+func (e *Executor) executeAssign(assign *ast.Assign) error {
+
+	key := assign.Key
+	val := assign.Value
+	ret := ""
+	var err error
+
+	e.verbose(fmt.Sprintf("Setting variable %s -> %s", key, val))
+
+	switch val.Type {
+	case token.STRING:
+		ret = os.Expand(val.Literal, e.mapper)
+	case token.BACKTICK:
+		ret, err = e.expand(val)
 		if err != nil {
 			return err
 		}
-
-		// And mark this as executed too.
-		seen[i] = true
+	default:
+		return fmt.Errorf("unhandled type in executeAssign %v", val)
 	}
+
+	e.env.Set(key, ret)
+	return nil
+}
+
+// executeInclude will handle a file inclusion node.
+func (e *Executor) executeInclude(inc *ast.Include) error {
+
+	// OK is this conditionally included?
+	if inc.ConditionType != "" {
+
+		cond := inc.ConditionType
+
+		if cond == "if" {
+			res, err := e.runConditional(inc.ConditionRule)
+			if err != nil {
+				return err
+			}
+			if !res {
+				e.verbose(fmt.Sprintf("\tSkipping inclusion of %s condition was not true: %s", inc.Source, inc.ConditionRule))
+				return nil
+			}
+		}
+
+		if cond == "unless" {
+			res, err := e.runConditional(inc.ConditionRule)
+			if err != nil {
+				return err
+			}
+			if res {
+				e.verbose(fmt.Sprintf("\tSkipping inclusion of %s condition was not false: %s", inc.Source, inc.ConditionRule))
+				return nil
+			}
+		}
+
+	}
+
+	// Expand any variables in the string.
+	inc.Source = os.Expand(inc.Source, e.mapper)
+
+	// If we've already included this path, return
+	seen, ok := e.included[inc.Source]
+	if ok && seen {
+		e.verbose(fmt.Sprintf("Skipping include file %s - already seen\n",
+			inc.Source))
+		return nil
+	}
+
+	// Mark it as included now.
+	e.MarkSeen(inc.Source)
+
+	// Now run the inclusion
+	data, err := ioutil.ReadFile(inc.Source)
+	if err != nil {
+		return fmt.Errorf("failed to read include-source %s: %s", inc.Source, err)
+	}
+
+	// Create a new parser with our file content.
+	p := parser.New(string(data))
+
+	// Parse the rules
+	out, err := p.Parse()
+	if err != nil {
+		return err
+	}
+
+	// Create the new executor
+	ex := New(out.Recipe)
+
+	// Set the configuration options.
+	ex.SetConfig(e.cfg)
+
+	// Propagate all the variables which we have in-scope.
+	for k, v := range e.env.Variables() {
+		ex.env.Set(k, v)
+	}
+
+	// Propagate all the include-files that have been seen
+	for k, v := range e.included {
+		ex.included[k] = v
+	}
+
+	// Check for broken dependencies
+	err = ex.Check()
+	if err != nil {
+		return err
+	}
+
+	// Now execute!
+	err = ex.Execute()
+	if err != nil {
+		return err
+	}
+
+	// Once the child executor has finished we'll copy back
+	// the files that it has seen as included.
+	// Propagate all the include-files that have been seen
+	for k, v := range ex.included {
+		e.included[k] = v
+	}
+
 	return nil
 }
 
@@ -243,13 +443,19 @@ func (e *Executor) runConditional(cond interface{}) (bool, error) {
 		return false, fmt.Errorf("conditional-function %s not available", test.Name)
 	}
 
+	// We want to ensure that we expand all arguments
+	args := []string{}
+
+	for _, arg := range test.Args {
+		args = append(args, os.Expand(arg, e.mapper))
+	}
+
 	// Call the function, and return whatever result it gives us.
-	res, err := helper(test.Args)
-	return res, err
+	return helper(args)
 }
 
 // executeSingleRule creates the appropriate module, and runs the single rule.
-func (e *Executor) executeSingleRule(rule rules.Rule) error {
+func (e *Executor) executeSingleRule(rule *ast.Rule) error {
 
 	// Show what we're doing
 	e.verbose(fmt.Sprintf("Running %s-module rule: %s", rule.Type, rule.Name))
@@ -309,7 +515,7 @@ func (e *Executor) executeSingleRule(rule rules.Rule) error {
 		for _, child := range notify {
 
 			// get the actual rule, by index
-			dr := e.Rules[e.index[child]]
+			dr := e.Program[e.index[child]].(*ast.Rule)
 
 			// report upon it if we're being verbose
 			e.verbose(fmt.Sprintf("\t\tNotifying rule: %s", dr.Name))
@@ -328,7 +534,7 @@ func (e *Executor) executeSingleRule(rule rules.Rule) error {
 
 // runInternalModule executes the given rule with the loaded internal
 // module.
-func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule rules.Rule) (bool, error) {
+func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (bool, error) {
 
 	// Check the arguments
 	err := helper.Check(rule.Params)
@@ -337,12 +543,115 @@ func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule rules.Rule) 
 			rule.Type, rule.Name, err.Error())
 	}
 
+	// Expand all params
+	params := make(map[string]interface{})
+
+	for k, v := range rule.Params {
+
+		// param is a string?  expand it
+		str, ok := v.(string)
+		if ok {
+			params[k] = os.Expand(str, e.mapper)
+			continue
+		}
+
+		// param is a string array?  expand them
+		strs, ok2 := v.([]string)
+		if ok2 {
+			var tmp []string
+			var t string
+
+			for _, x := range strs {
+				t = os.Expand(x, e.mapper)
+				tmp = append(tmp, t)
+			}
+			params[k] = tmp
+			continue
+		}
+	}
+
 	// Run the change
-	changed, err := helper.Execute(e.env, rule.Params)
+	changed, err := helper.Execute(e.env, params)
 	if err != nil {
 		return false, fmt.Errorf("error running %s-module rule '%s' %s",
 			rule.Type, rule.Name, err.Error())
 	}
 
 	return changed, nil
+}
+
+// expand processes a token returned from the parser, returning
+// the appropriate value.
+//
+// The expansion really means two things:
+//
+// 1. If the string contains variables ${foo} replace them.
+//
+// 2. If the token is a backtick operation then run the command
+//    and return the value.
+//
+func (e *Executor) expand(tok token.Token) (string, error) {
+
+	// Get the argument, and expand variables
+	value := tok.Literal
+	value = os.Expand(value, e.mapper)
+
+	// If this is a backtick we replace the value
+	// with the result of running the command.
+	if tok.Type == token.BACKTICK {
+
+		tmp, err := e.runCommand(value)
+		if err != nil {
+			return "", fmt.Errorf("error running %s: %s", value, err)
+		}
+
+		value = tmp
+	}
+
+	// Return the value we've found.
+	return value, nil
+}
+
+// mapper is a helper to expand variables.
+//
+// ${foo} will be converted to the contents of the variable named foo
+// which was created with `let foo = "bar"`, or failing that the contents
+// of the environmental variable named `foo`.
+//
+func (e *Executor) mapper(val string) string {
+
+	// Lookup a variable which exists?
+	res, ok := e.env.Get(val)
+	if ok {
+		return res
+	}
+
+	// Lookup an environmental variable?
+	return os.Getenv(val)
+}
+
+// runCommand returns the output of the specified command
+func (e *Executor) runCommand(command string) (string, error) {
+
+	// Are we running under a fuzzer?  If so disable this
+	if os.Getenv("FUZZ") == "FUZZ" {
+		return command, nil
+	}
+
+	// Build up the thing to run, using a shell so that
+	// we can handle pipes/redirection.
+	toRun := []string{"/bin/bash", "-c", command}
+
+	// Run the command
+	cmd := exec.Command(toRun[0], toRun[1:]...)
+
+	// Get the output
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("error running command '%s' %s", command, err.Error())
+	}
+
+	// Strip trailing newline.
+	ret := strings.TrimSuffix(string(output), "\n")
+	return ret, nil
 }
