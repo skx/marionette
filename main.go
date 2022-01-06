@@ -86,7 +86,10 @@ func main() {
 	log.SetOutput(filter)
 
 	// Create our configuration object
-	cfg := &config.Config{Verbose: *verbose}
+	cfg := &config.Config{
+		Debug:   *debug,
+		Verbose: *verbose,
+	}
 
 	// Ensure we got at least one recipe to execute.
 	if len(flag.Args()) < 1 {

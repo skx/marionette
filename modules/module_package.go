@@ -4,6 +4,7 @@ package modules
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/skx/marionette/config"
 	"github.com/skx/marionette/environment"
@@ -18,13 +19,6 @@ type PackageModule struct {
 
 	// state when using a compatibility-module
 	state string
-}
-
-// verbose will show the message if the verbose flag is set
-func (pm *PackageModule) verbose(msg string) {
-	if pm.cfg.Verbose {
-		fmt.Printf("%s\n", msg)
-	}
 }
 
 // Check is part of the module-api, and checks arguments.
@@ -112,6 +106,8 @@ func (pm *PackageModule) Execute(env *environment.Environment, args map[string]i
 	// For each package install/uninstall
 	for _, name := range packages {
 
+		log.Printf("[DEBUG] Testing package %s", name)
+
 		// Is it installed?
 		inst, err := pkg.IsInstalled(name)
 		if err != nil {
@@ -120,9 +116,9 @@ func (pm *PackageModule) Execute(env *environment.Environment, args map[string]i
 
 		// Show the output
 		if inst {
-			pm.verbose(fmt.Sprintf("\tPackage %s is installed", name))
+			log.Printf("[DEBUG] Package installed: %s", name)
 		} else {
-			pm.verbose(fmt.Sprintf("\tPackage %s is not currently installed", name))
+			log.Printf("[DEBUG] Package not installed: %s", name)
 		}
 
 		if state == "installed" {

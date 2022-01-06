@@ -3,6 +3,7 @@ package modules
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -45,9 +46,7 @@ func (f *ShellModule) Execute(env *environment.Environment, args map[string]inte
 	}
 
 	// Show what we're doing.
-	if f.cfg.Verbose {
-		fmt.Printf("\tExecuting: %s\n", str)
-	}
+	log.Printf("[INFO] Executing: %s", str)
 
 	// Split on space to execute
 	var bits []string
@@ -66,7 +65,7 @@ func (f *ShellModule) Execute(env *environment.Environment, args map[string]inte
 	var execErr bytes.Buffer
 
 	// Show to the console if we should
-	if f.cfg.Verbose {
+	if f.cfg.Debug {
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout
 	} else {
