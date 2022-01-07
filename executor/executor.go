@@ -382,10 +382,23 @@ func (e *Executor) executeInclude(inc *ast.Include) error {
 	// Mark it as included now.
 	e.MarkSeen(inc.Source)
 
-	// Now run the inclusion
-	data, err := ioutil.ReadFile(inc.Source)
+	// And read/run it.
+	err := e.executeIncludeReal(inc.Source)
 	if err != nil {
 		return fmt.Errorf("failed to read include-source %s: %s", inc.Source, err)
+	}
+
+	return nil
+}
+
+// executeIncludeReal handles the mechanics of launching a sub-executor,
+// setting up the include-file history & etc.
+func (e *Executor) executeIncludeReal(source string) error {
+
+	// Now run the inclusion
+	data, err := ioutil.ReadFile(source)
+	if err != nil {
+		return fmt.Errorf("failed to read include-source %s: %s", source, err)
 	}
 
 	// Create a new parser with our file content.
@@ -409,7 +422,7 @@ func (e *Executor) executeInclude(inc *ast.Include) error {
 	}
 
 	// Set "magic" variables for the current include file.
-	err = ex.SetMagicIncludeVars(inc.Source)
+	err = ex.SetMagicIncludeVars(source)
 	if err != nil {
 		return err
 	}

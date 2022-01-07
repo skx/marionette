@@ -80,7 +80,8 @@ func (p *Parser) Parse() (ast.Program, error) {
 		if tok.Literal == "let" {
 
 			// Parse the assignment-statement
-			let, err := p.parseLet()
+			var let *ast.Assign
+			let, err = p.parseLet()
 			if err != nil {
 				return program, err
 			}
@@ -94,7 +95,8 @@ func (p *Parser) Parse() (ast.Program, error) {
 		if tok.Literal == "include" {
 
 			// Parse the include-statement
-			inc, err := p.parseInclude()
+			var inc *ast.Include
+			inc, err = p.parseInclude()
 			if err != nil {
 				return program, err
 			}
