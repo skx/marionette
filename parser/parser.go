@@ -79,68 +79,24 @@ func (p *Parser) Parse() (ast.Program, error) {
 		// Is this an assignment?
 		if tok.Literal == "let" {
 
-			// name
-			name := p.nextToken()
-
-			// =
-			t := p.nextToken()
-			if t.Type != token.ASSIGN {
-				return program, fmt.Errorf("expected '=', got %v", t)
+			// Parse the assignment-statement
+			let, err := p.parseLet()
+			if err != nil {
+				return program, err
 			}
 
-			// value
-			val := p.nextToken()
-
-			// Error-checking.
-			if val.Type == token.ILLEGAL || val.Type == token.EOF {
-				return program, fmt.Errorf("unterminated assignment")
-			}
-
-			// assignment only handles strings/command-ouptut
-			if val.Type != token.STRING && val.Type != token.BACKTICK {
-				return program, fmt.Errorf("unexpected value for variable assignment; expected string or backtick, got %v", val)
-			}
-
-			// Add the node to our program, and continue
-			program.Recipe = append(program.Recipe,
-				&ast.Assign{Key: name.Literal, Value: val})
+			// Add our rule onto the program, and continue
+			program.Recipe = append(program.Recipe, let)
 			continue
 		}
 
 		// Is this an include-file?
 		if tok.Literal == "include" {
 
-			// Get the thing we should include.
-			t := p.nextToken()
-
-			// We allow strings/backticks to be used
-			if t.Type != token.STRING {
-				return program, fmt.Errorf("only strings are supported for include statements; got %v", t)
-			}
-
-			// The include-command
-			inc := &ast.Include{Source: t.Literal}
-
-			// Look at the next token and see if it is a
-			// conditional inclusion
-			if p.peekTokenIs("if") || p.peekTokenIs("unless") {
-
-				// skip the token - after saving it
-				nxt := p.peekToken.Literal
-				p.nextToken()
-
-				// Get the name/arguments of the function call
-				// we expect to come next.
-				fname, args, error := p.parseFunctionCall()
-
-				// error? then return that
-				if error != nil {
-					return program, error
-				}
-
-				// Otherwise save the condition.
-				inc.ConditionType = nxt
-				inc.ConditionRule = &conditionals.ConditionCall{Name: fname, Args: args}
+			// Parse the include-statement
+			inc, err := p.parseInclude()
+			if err != nil {
+				return program, err
 			}
 
 			// Add our rule onto the program, and continue
@@ -163,6 +119,84 @@ func (p *Parser) Parse() (ast.Program, error) {
 
 	// No error
 	return program, nil
+}
+
+// parseLet parses an assignment statement
+func (p *Parser) parseLet() (*ast.Assign, error) {
+
+	// The statement we'll return
+	let := &ast.Assign{}
+
+	// name
+	name := p.nextToken()
+
+	// =
+	t := p.nextToken()
+	if t.Type != token.ASSIGN {
+		return let, fmt.Errorf("expected '=', got %v", t)
+	}
+
+	// value
+	val := p.nextToken()
+
+	// Error-checking.
+	if val.Type == token.ILLEGAL || val.Type == token.EOF {
+		return let, fmt.Errorf("unterminated assignment")
+	}
+
+	// assignment only handles strings/command-ouptut
+	if val.Type != token.STRING && val.Type != token.BACKTICK {
+		return let, fmt.Errorf("unexpected value for variable assignment; expected string or backtick, got %v", val)
+	}
+
+	// Add the node to our program, and continue
+	let.Key = name.Literal
+	let.Value = val
+
+	return let, nil
+}
+
+// parseInclude parses an include-statement
+func (p *Parser) parseInclude() (*ast.Include, error) {
+
+	// The include statement we'll return
+	inc := &ast.Include{}
+
+	// Get the thing we should include.
+	t := p.nextToken()
+
+	// We allow strings/backticks to be used
+	if t.Type != token.STRING {
+		return inc, fmt.Errorf("only strings are supported for include statements; got %v", t)
+	}
+
+	// The include-command
+	inc.Source = t.Literal
+
+	// Look at the next token and see if it is a
+	// conditional inclusion
+	if p.peekTokenIs("if") || p.peekTokenIs("unless") {
+
+		// skip the token - after saving it
+		nxt := p.peekToken.Literal
+		p.nextToken()
+
+		// Get the name/arguments of the function call
+		// we expect to come next.
+		fname, args, error := p.parseFunctionCall()
+
+		// error? then return that
+		if error != nil {
+			return inc, error
+		}
+
+		// Otherwise save the condition.
+		inc.ConditionType = nxt
+		inc.ConditionRule = &conditionals.ConditionCall{Name: fname, Args: args}
+	}
+
+	return inc, nil
+
 }
 
 // parseBlock parses the contents of modules' block.
