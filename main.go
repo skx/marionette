@@ -69,15 +69,21 @@ func main() {
 	verbose := flag.Bool("verbose", false, "Show logs when executing")
 	flag.Parse()
 
-	// By default we set the log-level to empty, but if we're
+	// By default we set the log-level to "USER", which will
+	// allow the user-generated messages from our log-module
+	// to be visible.
+	//
+	// If we're running with -verbose we'll show "INFO", and
+	// if we're called with -debug we'll show DEBUG
 	// running verbosely we'll show info.
-	nop := logutils.LogLevel("NOP")
 	dbg := logutils.LogLevel("DEBUG")
-	wrn := logutils.LogLevel("INFO")
+	inf := logutils.LogLevel("INFO")
+	usr := logutils.LogLevel("USER")
 
-	lvl := nop
+	// default to user
+	lvl := usr
 	if *verbose {
-		lvl = wrn
+		lvl = inf
 	}
 	if *debug {
 		lvl = dbg
@@ -85,7 +91,7 @@ func main() {
 
 	// Setup the filter
 	filter := &logutils.LevelFilter{
-		Levels:   []logutils.LogLevel{"DEBUG", "INFO", "ERROR"},
+		Levels:   []logutils.LogLevel{"DEBUG", "INFO", "USER", "ERROR"},
 		MinLevel: lvl,
 		Writer:   os.Stderr,
 	}
