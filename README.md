@@ -291,7 +291,7 @@ just like our rules:
 
 include "x86_64.rules" if equal( "${ARCH}","x86_64" )
 include "i386.rules"   if equal( "${ARCH}","i386" )
-
+```
 
 
 ### Pre-Declared Variables
