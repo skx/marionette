@@ -628,11 +628,6 @@ func (e *Executor) mapper(val string) string {
 // runCommand returns the output of the specified command
 func (e *Executor) runCommand(command string) (string, error) {
 
-	// Are we running under a fuzzer?  If so disable this
-	if os.Getenv("FUZZ") == "FUZZ" {
-		return command, nil
-	}
-
 	// Build up the thing to run, using a shell so that
 	// we can handle pipes/redirection.
 	toRun := []string{"/bin/bash", "-c", command}
