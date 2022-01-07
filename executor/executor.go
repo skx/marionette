@@ -13,6 +13,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/skx/marionette/ast"
@@ -75,6 +76,23 @@ func (e *Executor) SetConfig(cfg *config.Config) {
 // MarkSeen marks the given file as having already been seen.
 func (e *Executor) MarkSeen(path string) {
 	e.included[path] = true
+}
+
+// SetMagicIncludeVars sets magic environment variables.
+func (e *Executor) SetMagicIncludeVars(path string) error {
+	abspath, err := filepath.Abs(path)
+	if err != nil {
+		return err
+	}
+
+	e.env.Set("INCLUDE_FILE", abspath)
+	log.Printf("[DEBUG] Set include path variable INCLUDE_FILE -> %s\n", abspath)
+
+	dirpath := filepath.Dir(abspath)
+	e.env.Set("INCLUDE_DIR", dirpath)
+	log.Printf("[DEBUG] Set include path variable INCLUDE_DIR -> %s\n", dirpath)
+
+	return nil
 }
 
 // Get the rules a rule depends upon, via the given key.
@@ -388,6 +406,12 @@ func (e *Executor) executeInclude(inc *ast.Include) error {
 	// Propagate all the variables which we have in-scope.
 	for k, v := range e.env.Variables() {
 		ex.env.Set(k, v)
+	}
+
+	// Set "magic" variables for the current include file.
+	err = ex.SetMagicIncludeVars(inc.Source)
+	if err != nil {
+		return err
 	}
 
 	// Propagate all the include-files that have been seen
