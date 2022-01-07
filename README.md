@@ -54,7 +54,7 @@ In the future it is possible that more modules will be added, but this will requ
 Binaries for several systems are available upon our [download page](https://github.com/skx/marionette/releases).  If you prefer to use something more recent you can install directly from the repository via:
 
 ```
-go get github.com/skx/marionette
+go install github.com/skx/marionette@latest
 ```
 
 The main application can then be launched with the path to a set of rules, which it will then try to apply:
@@ -63,8 +63,14 @@ The main application can then be launched with the path to a set of rules, which
 marionette [flags] ./rules.txt ./rules2.txt ... ./rulesN.txt
 ```
 
-Currently `-verbose` is the only command-line flag provided, however that might change in the future.
+Currently there are two supported flags:
 
+* `-verbose`
+  * Show extra details when executing the supplied rules-file(s).
+* `-debug`
+  * Show many low-level details when executing the supplied rules-file(s).
+
+Typically a user would run with `-verbose`, and a developer might examine the output produced when `-debug` is specified.
 
 
 
