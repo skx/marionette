@@ -18,6 +18,7 @@
    * [file](#file)
    * [git](#git)
    * [link](#link)
+   * [log](#log)
    * [package](#package)
    * [shell](#shell)
    * [user](#user)
@@ -389,9 +390,9 @@ fail {
 }
 ```
 
-The only parameter supported/used is the `message` value:
+The only valid parameter is `message`, which must be a single string.
 
-* `message` - The message to print before terminating the script.
+See also [log](#log), which will log a message but then continue execution.
 
 
 
@@ -477,6 +478,22 @@ Valid parameters are:
 
 * `target` is a mandatory parameter, and specifies the location of the symlink to create.
 * `source` is a mandatory parameter, and specifies the item the symlink should point to.
+
+
+
+## `log`
+
+The `log` module allows you to output a message, but continue execution.
+
+Example usage:
+
+```
+log { message => "I'm ${USER} running on ${HOSTNAME}" }
+```
+
+The only valid parameter is `message`, which must be a single string.
+
+See also [fail](#fail), which will log a message but then terminate execution.
 
 
 
