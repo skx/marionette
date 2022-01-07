@@ -519,6 +519,8 @@ func (e *Executor) executeSingleRule(rule *ast.Rule) error {
 				return err
 			}
 		}
+	} else {
+		log.Printf("[INFO] Rule resulted in no change being made.")
 	}
 
 	// All done
