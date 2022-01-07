@@ -62,13 +62,6 @@ func (g *UserModule) Check(args map[string]interface{}) error {
 	return fmt.Errorf("state must be one of 'absent' or 'present'")
 }
 
-// verbose will show the message if the verbose flag is set
-func (g *UserModule) verbose(msg string) {
-	if g.cfg.Verbose {
-		fmt.Printf("%s\n", msg)
-	}
-}
-
 // init is used to dynamically register our module.
 func init() {
 	Register("user", func(cfg *mcfg.Config) ModuleAPI {

@@ -3,6 +3,7 @@
 package environment
 
 import (
+	"log"
 	"os"
 	"os/user"
 	"runtime"
@@ -46,6 +47,11 @@ func New() *Environment {
 	if err == nil {
 		tmp.vars["USERNAME"] = user.Username
 		tmp.vars["HOMEDIR"] = user.HomeDir
+	}
+
+	// Log our default variables
+	for key, val := range tmp.vars {
+		log.Printf("[DEBUG] Set default variable %s -> %s\n", key, val)
 	}
 
 	return tmp

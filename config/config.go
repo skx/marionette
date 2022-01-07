@@ -8,8 +8,11 @@ package config
 // made available to all of our plugins.
 type Config struct {
 
-	// Verbose is the only configuration option at the moment,
-	// and controls whether we should be quiet, or noisy, when
-	// processing our rule-files.
+	// Debug is used to let our plugins know that the marionette
+	// CLI was started with the `-debug` flag present.
+	Debug bool
+
+	// Verbose is used to let our plugins know that the marionette
+	// CLI was started with the `-verbose` flag present.
 	Verbose bool
 }

@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"os"
 
 	"github.com/docker/docker/api/types"
@@ -117,7 +118,7 @@ func (dm *DockerModule) installImage(img string) error {
 	// TODO: Clean this up
 	defer out.Close()
 
-	if dm.cfg.Verbose {
+	if dm.cfg.Debug {
 		_, err := io.Copy(os.Stdout, out)
 		if err != nil {
 			return err
@@ -164,9 +165,8 @@ func (dm *DockerModule) Execute(env *environment.Environment, args map[string]in
 		// Not installed; fetch.
 		if !present || (force == "yes") {
 
-			if dm.cfg.Verbose {
-				fmt.Printf("\tPulling docker image %s\n", img)
-			}
+			// Show what we're doing
+			log.Printf("[INFO] Pulling docker image %s\n", img)
 
 			err := dm.installImage(img)
 			if err != nil {

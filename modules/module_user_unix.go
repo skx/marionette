@@ -4,6 +4,7 @@ package modules
 
 import (
 	"fmt"
+	"log"
 	"os/exec"
 	"os/user"
 	"syscall"
@@ -77,7 +78,9 @@ func (g *UserModule) createUser(args map[string]interface{}) error {
 
 	// The user-creation command
 	cmdArgs := []string{"useradd", "--shell", shell, login}
-	g.verbose(fmt.Sprintf("Running %v", cmdArgs))
+
+	// Show what we're doing
+	log.Printf("[DEBUG] Running %s", cmdArgs)
 
 	// Run it
 	cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
@@ -104,7 +107,9 @@ func (g *UserModule) removeUser(login string) error {
 
 	// The user-removal command
 	cmdArgs := []string{"userdel", login}
-	g.verbose(fmt.Sprintf("Running %v", cmdArgs))
+
+	// Show what we're doing
+	log.Printf("[DEBUG] Running %s", cmdArgs)
 
 	// Run it
 	cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)

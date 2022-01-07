@@ -25,6 +25,10 @@ func FuzzParser(f *testing.F) {
 	f.Add([]byte(`shell { command => "/usr/bin/uptime" } `))
 	f.Add([]byte(`shell { command => [ "/usr/bin/uptime", "/usr/bin/id" ] } `))
 
+	// block with conditions
+	f.Add([]byte(`shell { command => "uptime", if => equal(\"one\",\"two\"); } `))
+	f.Add([]byte(`shell { command => "uptime", unless => false(\"/bin/true\"); } `))
+
 	// Known errors are listed here.
 	//
 	// The purpose of fuzzing is to find panics, or unexpected errors.

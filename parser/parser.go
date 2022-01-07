@@ -1,16 +1,19 @@
 // Package parser contains a parser for our input language.
 //
-// We consume tokens from the lexer, and attempt to process
-// them into either:
+// We consume tokens from the lexer, and return a "Program".
 //
-//  1. A series of rules.
+// The program consists of different types of things that we
+// support at runtime:
 //
-//  2. A series of variable assignments.
+//  1. A rule to process with one of our modules.
 //
-//  We support the inclusion of other files, and command
-// expansion via backticks, but we're otherwise pretty
-// minimal.
+//  2. Variable assignments.
 //
+//  3. File inclusions.
+//
+// Expansion of variables, handling of include-files, and command
+// execution for the case of variable assignments, will all happen
+// at run-time not within this parser.
 package parser
 
 import (
@@ -277,6 +280,8 @@ func (p *Parser) parseBlock(ty string) (*ast.Rule, error) {
 		r.Params[name] = value
 	}
 
+	// If there was no name setup for the rule then we
+	// generate one.
 	r.Name = p.getName(r.Params)
 	return r, nil
 }

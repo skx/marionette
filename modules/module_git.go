@@ -2,6 +2,7 @@ package modules
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 
@@ -43,13 +44,6 @@ func (g *GitModule) Check(args map[string]interface{}) error {
 	return nil
 }
 
-// verbose will show the message if the verbose flag is set
-func (g *GitModule) verbose(msg string) {
-	if g.cfg.Verbose {
-		fmt.Printf("%s\n", msg)
-	}
-}
-
 // Execute is part of the module-api, and is invoked to run a rule.
 func (g *GitModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
 
@@ -68,7 +62,8 @@ func (g *GitModule) Execute(env *environment.Environment, args map[string]interf
 	tmp := filepath.Join(path, ".git")
 	if !file.Exists(tmp) {
 
-		g.verbose("\tRepository not present at destination; cloning")
+		// Show what we're doing.
+		log.Printf("[DEBUG] %s not present, cloning %s", tmp, repo)
 
 		// Clone since it is missing.
 		_, err := git.PlainClone(path, false, &git.CloneOptions{
@@ -144,10 +139,7 @@ func (g *GitModule) Execute(env *environment.Environment, args map[string]interf
 
 	// If the hashes differ we've updated, and thus changed
 	if ref2.Hash() != ref.Hash() {
-		g.verbose("\tRepository updated.")
 		changed = true
-	} else {
-		g.verbose("\tNo changes to local repository.\n")
 	}
 
 	return changed, err
