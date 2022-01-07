@@ -61,6 +61,9 @@ func TestLogArguments(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected an error with no message.")
 	}
+	if c {
+		t.Fatalf("expected no-change in error-condition")
+	}
 
 	//
 	// Try to execute - valid argument
