@@ -40,14 +40,13 @@ func (a *Assign) String() string {
 	if a == nil {
 		return "<nil>"
 	}
-	t := "string"
+	t := "unknown"
+
 	switch a.Value.Type {
 	case token.BACKTICK:
 		t = "backtick"
 	case token.STRING:
 		t = "string"
-	default:
-		t = "unknown"
 	}
 	return (fmt.Sprintf("Assign{Key:%s Value:%s Type:%s}", a.Key, a.Value.Literal, t))
 }
