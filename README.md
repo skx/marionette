@@ -307,11 +307,14 @@ The following variables are available by default:
 | `${OS}`       | The operating system name (as taken from `sys.GOOS`). |
 | `${USERNAME}` | The username of user running marionette.              |
 
-There are additionally two "magic" variables available which will update based on the current file being processed.
+There are additionally two "magic" variables available which will always have values based upon the current rule-file being processed, whether that is a file specified upon the command-line, or as a result of an `include` statement:
 
 | Name              | Value                                                            |
+|-------------------|------------------------------------------------------------------|
 | `${INCLUDE_DIR}`  | The absolute directory path of the current file being processed. |
 | `${INCLUDE_FILE}` | The absolute path of the current file being processed.           |
+
+
 
 # Module Types
 
