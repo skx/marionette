@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/skx/marionette/ast"
-	"github.com/skx/marionette/conditionals"
 )
 
 // TestAssignment performs basic assignment-statement testing
@@ -175,12 +174,14 @@ func TestConditional(t *testing.T) {
 	}
 
 	rule := out.Recipe[0].(*ast.Rule)
-	res, ok := rule.Params["if"].(*conditionals.ConditionCall)
-	if !ok {
+
+	// Did we get the right type of condition?
+	if rule.ConditionType != "if" {
 		t.Errorf("we didn't parse a conditional")
 	}
 
-	formatted := res.String()
+	// Does it look like the right test?
+	formatted := rule.ConditionRule.String()
 	if formatted != "equal(foo,foo)" {
 		t.Errorf("failed to stringify valid comparison")
 	}
