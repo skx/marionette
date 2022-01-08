@@ -33,6 +33,12 @@ func (f *DirectoryModule) Check(args map[string]interface{}) error {
 // Execute is part of the module-api, and is invoked to run a rule.
 func (f *DirectoryModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
 
+	// Ensure we have one or more targets to process
+	_, ok := args["target"]
+	if !ok {
+		return false, fmt.Errorf("missing 'target' parameter")
+	}
+
 	// Get the argument
 	arg, _ := args["target"]
 
