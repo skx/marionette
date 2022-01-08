@@ -1,0 +1,62 @@
+#
+# This recipe deploys a number of docker containers which can be used
+# to log temperature received from a 433Mhz transmitter via a USB
+# SDR-dongle.
+#
+# (Specifics don't matter here, but it is something I use to graph
+# the temperature/humidity on my balcony, and within my sauna!)
+#
+# We start by creating a new directory to store state "~/temperature",
+# then we copy a docker-compose.yml file into that directory.
+#
+# Once the docker-compose file has been deployed we could then
+# be ready to launch it - but to demonstrate our functionality
+# we go ahead and manually pull the appropriate containers.
+#
+#
+
+
+directory {
+            target => "${HOME}/temperature",
+            state  => "present",
+            name   => "temperature:directory",
+}
+
+#
+# Write the docker-compose.yml file into the new directory
+#
+#
+file {
+         name    => "temperature:docker-compose.yml",
+         require => "temperature:directory",
+         source  => "docker-compose.temperature.yml",
+         target  => "${HOME}/temperature/docker-compose.yml",
+}
+
+
+#
+# Pull the most recent versions of the appropriate containers.
+#
+# Note: If the containers weren't present then docker-compose
+# would fetch them.  This is just an example.
+#
+docker {
+          name  => "temperature:containers",
+          image => [
+                     "influxdb:1.8",
+                     "grafana/grafana:latest",
+                     "hertzg/rtl_433:latest",
+                   ],
+          force => "yes",
+          notify => "temperature:restart"
+}
+
+
+#
+# If we've changed then we'll restart the containers.
+#
+shell triggered {
+         name    => "temperature:restart",
+         command => "bash -c 'cd ~/temperature ; docker-compose down ; docker-compose up -d'",
+
+}
