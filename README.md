@@ -18,6 +18,7 @@
    * [edit](#edit)
    * [file](#file)
    * [git](#git)
+   * [group](#group)
    * [link](#link)
    * [log](#log)
    * [package](#package)
@@ -488,6 +489,22 @@ notification if either:
 
 * The repository wasn't present, and had to be cloned.
 * The repository was updated.  (i.e. Remote changes were pulled in.)
+
+
+
+## `group`
+
+The group module allows you to add or remove local Unix groups to your system.
+
+Example:
+
+```
+group { group => "sysadmin",
+        state => "present" }
+```
+
+* `group` is a mandatory parameter.
+* `state` should be one of `absent` or `present`, depending upon whether you want to add or remove the group.
 
 
 
