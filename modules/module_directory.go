@@ -40,7 +40,7 @@ func (f *DirectoryModule) Execute(env *environment.Environment, args map[string]
 	}
 
 	// Get the argument
-	arg, _ := args["target"]
+	arg := args["target"]
 
 	// if it is a string process it
 	str, ok := arg.(string)

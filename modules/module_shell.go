@@ -41,7 +41,7 @@ func (f *ShellModule) Execute(env *environment.Environment, args map[string]inte
 	}
 
 	// Get the argument
-	arg, _ := args["command"]
+	arg := args["command"]
 
 	// if it is a string process it
 	str, ok := arg.(string)
