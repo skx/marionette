@@ -15,7 +15,7 @@ let dst = "/tmp/save"
 #
 # Find a binary
 #
-let cmd = "curl --output ${dst} ${url}" if on_path("fcurl")
+let cmd = "curl --output ${dst} ${url}" if on_path("curl")
 let cmd = "wget -O ${dst} ${url}"       if on_path("wget")
 
 #
