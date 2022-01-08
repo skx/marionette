@@ -1,0 +1,279 @@
+#
+# This is an example rule-file for marionette.
+#
+# The primary purpose of this file is to demonstrate the syntax, and
+# give examples of what our rules can do.
+#
+# As you can guess comments are prefixed with a "#", and they are ignored
+# entirely.
+#
+
+
+#
+# Variables can be defined as simple strings, via the `let` keyword
+#
+let foo = "bar"
+
+
+#
+# Variables can also be defined to contain the output of commands.
+#
+# NOTE: Any trailing newline will be removed from the output.
+#
+let today = `date`
+
+
+#
+# The general form of our rules is something like this:
+#
+#   $MODULE {
+#              name => "NAME OF RULE",
+#              arg_1 => "Value 1 ... ",
+#              arg_2 => [ "array values", "are fine" ],
+#              arg_3 => "Value 3 .. ",
+#   }
+#
+#
+# Where `$MODULE` name is the name of the module which is being used,
+# and then there is a hash of "key => values".
+#
+# It is important to note that rules should have names, as these names are
+# used to trigger subsequant rules, or define dependencies.  If you
+# do not specify a name then one will be auto-generated, but the names
+# will be different each time the rule-file is processed.
+#
+# Each rule contains the appropriate parameters, and values, to drive
+# the module.  However there are also two magical keys which are global
+# and used for defining relationships/dependencies:
+#
+#    require:
+#      Specify the single, or multiple, rules this depends upon.
+#
+#    notify:
+#      Specify either a single rule to trigger, or multiple rules to
+#      trigger, when this rule triggers.
+#
+# Triggering in this sense means that the rule resulted in a change to
+# your system.  If you write a rule that says "/tmp/blah" must exist
+# and that directory is missing then it will be created, and the rule
+# will "notify" any rules which are specified.  Once the directory is
+# present that will no longer occur.
+#
+# Finally there are two more magical keys which are used to make a block
+# conditional:
+#
+#     if:
+#      Only run the block if the specified expression is true.
+#
+#     unless:
+#      Only run the block if the specified expression is false.
+#
+
+
+#
+# Now we'll start with some simple examples.
+#
+
+#
+#  We'll create the directory /tmp/test, if it is missing.
+#
+#  There is nothing complex here, as this is a simple example.
+#
+directory { name   => "hello-world",
+            target => "/tmp/test",
+            mode   => "0755", }
+
+
+#
+# Now we'll create a child directory.
+#
+# (We don't need to do this in two steps, we can create a directory such
+# as "/tmp/foo/bar/test/meow/kitten" in one step.  Each subdirectory will
+# be created as you'd expect.)
+#
+# Here we're choosing to say that this rule will only occur after the
+# previous one.
+#
+directory { name    => "example-two",
+            target  => "/tmp/test/me",
+            require => "hello-world" }
+
+#
+# NOTE:
+#
+# If we required two dependencies, or two things to happen before our
+# rule was executed we'd use an array:
+#
+#    require => [ "rule-one", "rule-two" ]
+#
+
+#
+# Now look at the other kind of relationship we can define, which is
+# triggering/notifying other rules when we change.
+#
+# First of all we'll define a rule with the special "triggered" marker,
+# this means the rule will NEVER execute UNLESS it is triggered explicitly
+# by name.
+#
+
+shell triggered { name    => "test-shell-command",
+                  command => "wc -l /tmp/input > /tmp/output.txt" }
+
+
+#
+# With that rule defined we can now create a file "/tmp/input" with
+# some fixed content, and explicitly notify the rule it should run.
+#
+file { name    => "test-static-content",
+       target  => "/tmp/input",
+       content => "This is my file content
+The string has inline newlines.
+I think three lines is enough
+",
+       notify  => "test-shell-command" }
+
+#
+# As a result of running this two things should have happened:
+#
+#  1. The file /tmp/input.txt should have our fixed content saved to it.
+#
+#  2. The file /tmp/output.txt should have been created, because we
+#     notified the "test-shell-command" rule it should run.
+#
+# Future runs will change nothing, unless you remove the input file, or
+# edit it such that it contains the wrong content.
+#
+
+
+#
+#  We'll now demonstrate backtick usage, in two different ways.
+#
+#  Recall at the top of our file we added:
+#
+#      let today = `date`
+#
+#  We can use that variable as you'd expect to write the date to a file.
+#
+
+file { name    => "test-variable",
+       target  => "/tmp/today",
+       content => "${today}"
+}
+
+
+
+
+#
+#  That concludes our general introduction.
+#
+#  We've seen:
+#
+#   1.  How to use a module "file", "directory", and "shell".
+#
+#   2.  How to declare dependencies.
+#
+#   3.  How to trigger other rules, and keep them from firing unless
+#      notified explicitly.  (Via the use of the `triggered` token.)
+#
+#
+
+
+##
+## Other examples
+##
+
+# Create a file with content from the given remote URL
+#
+# Here we see "${foo}" is used, that will expand to the variable defined
+# at the top of this file.
+#
+# Variable expansion applies to all strings used as values in our parameter
+# blocks.  Keys are not expanded.
+#
+file {  name       => "fetch file",
+        target     => "/tmp/${foo}.txt",
+        source_url => "https://steve.fi/",
+
+#
+# Implied since I run as non-root
+#
+#       owner      => "${USER}",
+#       group      => "${USER}",
+
+        notify     => [ "I count your lines" ],
+}
+
+
+#
+# We support simple conditionals for rules, via the magic keys
+# "if" and "unless".  These allow you to skip rules if a file
+# exists, or not.
+#
+# NOTE: Here the value of `if` and `unless` are simple expressions,
+# and they're explicitly not quoted because that would require the
+# use of complex escapes if you wanted to compare two values:
+#
+#   "if" => "equals( \"foo\", \"bar\" )",
+#
+shell { name    => "Echo Test",
+        command => "echo I'm Unix, probably.",
+        if      => exists( /bin/ls ) }
+
+#
+# These are some shell-commands.
+#
+# First one is a repeat of the previous example; it is triggered by the
+# download.
+#
+# The second runs every time.
+#
+shell triggered { name    => "I count your lines",
+                  command => "wc -l /tmp/${foo}.txt > /tmp/line.count"  }
+
+shell { name    => "I touch your file.",
+        command => "touch /tmp/test.me" }
+
+
+#
+# Create a symlink /tmp/password.txt, pointing to /etc/passwd.
+#
+link { name   => "Symlink test",
+       source => "/etc/passwd",
+       target => "/tmp/password.txt" }
+
+
+#
+# Clone a remote repository to the local system.
+#
+git { path       => "/tmp/foot/bar/baz",
+      repository => "https://github.com/skx/marionette", 
+      branch     => "master" }
+
+#
+# Copy this file to a new name.
+#
+file { name   => "copy input.txt to copy.txt",
+       source => "overview.recipe",
+       target => "overview.copy" }
+
+#
+# Edit the copied to remove any comments, i.e lines prefixed with "#".
+#
+edit { name => "drop comments",
+       target => "overview.copy",
+       remove_lines => "^#" }
+
+
+#
+# Create a new user for the local system, "server", unless it already exists.
+#
+# NOTE: The use of `echo` means we don't really run the user-creation, as that
+# would fail unless you ran the script under sudo.
+#
+let user = "server"
+
+shell {
+    name => "Create user: ${user}",
+    command => "echo useradd --system --no-create-home ${user}",
+    unless => success("id ${user}"),
+}
