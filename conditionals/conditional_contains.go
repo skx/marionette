@@ -1,4 +1,4 @@
-// equals() method
+// contains() method
 
 package conditionals
 

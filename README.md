@@ -214,6 +214,8 @@ The following list shows all the built-in functions that you may use (but only w
 * `nonempty(string|variable)`
   * Return true if the string/variable is non-empty.
   * `set` is a synonym.
+* `on_path(string|variable)`
+  * Return true if a binary with the given name is on the users' PATH.
 * `empty(string|variable)`
   * Return true if the string/variable is empty (i.e. has zero length).
   * `unset` is a synonym.
