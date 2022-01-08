@@ -7,6 +7,7 @@
 * [Rule Definition](#rule-definition)
   * [Dependency Management](#dependency-management)
   * [Conditionals](#conditionals)
+  * [Examples](#examples)
   * [Misc. Features](#misc-features)
     * [Command Execution](#command-execution)
     * [File Inclusion](#include-files)
@@ -228,6 +229,12 @@ More conditional primitives may be added if they appear to be necessary, or if u
 
 **NOTE**: The conditionals are only supported when present in keys named `if` or `unless`.  This syntax is special for those two key-types.
 
+
+## Examples
+
+You can find a small set of example recipes beneath the examples directory:
+
+* [examples/](examples/)
 
 
 
