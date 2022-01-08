@@ -22,15 +22,10 @@ type ShellModule struct {
 // Check is part of the module-api, and checks arguments.
 func (f *ShellModule) Check(args map[string]interface{}) error {
 
-	// Ensure we have a command to run.
+	// Ensure we have one or more commands to run.
 	_, ok := args["command"]
 	if !ok {
 		return fmt.Errorf("missing 'command' parameter")
-	}
-
-	cmd := StringParam(args, "command")
-	if cmd == "" {
-		return fmt.Errorf("failed to convert cmd to string")
 	}
 
 	return nil
@@ -39,22 +34,63 @@ func (f *ShellModule) Check(args map[string]interface{}) error {
 // Execute is part of the module-api, and is invoked to run a rule.
 func (f *ShellModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
 
-	// Get the command
-	str := StringParam(args, "command")
-	if str == "" {
+	// Ensure we have one or more commands to run.
+	_, ok := args["command"]
+	if !ok {
 		return false, fmt.Errorf("missing 'command' parameter")
 	}
 
+	// Get the argument
+	arg, _ := args["command"]
+
+	// if it is a string process it
+	str, ok := arg.(string)
+	if ok {
+
+		// we return an error if the command failed
+		err := f.executeSingle(str, args)
+		if err != nil {
+			return false, err
+		}
+
+		// otherwise we always assume a change was made
+		return true, nil
+	}
+
+	// otherwise we assume it is an array of commands
+	cmds := arg.([]string)
+
+	// process each argument
+	for _, cmd := range cmds {
+
+		// Run this command
+		err := f.executeSingle(cmd, args)
+
+		// process any error
+		if err != nil {
+			return false, err
+		}
+	}
+
+	// shell commands always result in a change
+	return true, nil
+}
+
+// executeSingle executes a single command.
+//
+// All parameters are available, as is the string command to run.
+func (f *ShellModule) executeSingle(command string, args map[string]interface{}) error {
+
 	// Show what we're doing.
-	log.Printf("[INFO] Executing: %s", str)
+	log.Printf("[INFO] Executing: %s", command)
 
 	// Split on space to execute
 	var bits []string
-	bits = strings.Split(str, " ")
+	bits = strings.Split(command, " ")
 
 	// but if we see redirection, or the use of a pipe, use the shell instead
-	if strings.Contains(str, ">") || strings.Contains(str, "&") || strings.Contains(str, "|") || strings.Contains(str, "<") {
-		bits = []string{"bash", "-c", str}
+	if strings.Contains(command, ">") || strings.Contains(command, "&") || strings.Contains(command, "|") || strings.Contains(command, "<") {
+		bits = []string{"bash", "-c", command}
 	}
 
 	// Now run
@@ -77,10 +113,10 @@ func (f *ShellModule) Execute(env *environment.Environment, args map[string]inte
 	// Run the command
 	err := cmd.Run()
 	if err != nil {
-		return false, fmt.Errorf("error running command '%s' %s", str, err.Error())
+		return fmt.Errorf("error running command '%s' %s", command, err.Error())
 	}
 
-	return true, nil
+	return nil
 }
 
 // init is used to dynamically register our module.
