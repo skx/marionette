@@ -45,7 +45,7 @@ func (g *GroupModule) Execute(env *environment.Environment, args map[string]inte
 	}
 
 	// Create the group
-	ret := g.createUser(args)
+	ret := g.createGroup(args)
 
 	// error?
 	if ret != nil {
@@ -64,7 +64,7 @@ func (g *GroupModule) groupExists(group string) bool {
 }
 
 // createGroup creates a local group.
-func (g *GroupModule) createUser(args map[string]interface{}) error {
+func (g *GroupModule) createGroup(args map[string]interface{}) error {
 
 	group := StringParam(args, "group")
 

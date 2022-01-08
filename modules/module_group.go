@@ -1,4 +1,4 @@
-// Common code for the "user" module.
+// Common code for the "group" module.
 //
 // Execute is implemented in a per-OS fashion.
 
