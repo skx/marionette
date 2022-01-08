@@ -76,6 +76,8 @@ func (g *GitModule) Execute(env *environment.Environment, args map[string]interf
 		}
 
 		changed = true
+	} else {
+		log.Printf("[DEBUG] Repository exists at %s", tmp)
 	}
 
 	//
@@ -85,19 +87,19 @@ func (g *GitModule) Execute(env *environment.Environment, args map[string]interf
 	// Open the repo.
 	r, err := git.PlainOpen(path)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("git.PlainOpen failed %s", err)
 	}
 
 	// Get the head-commit
-	ref, err := r.Head()
+	ref, err := r.Reference(plumbing.HEAD, true)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("git.Head() failed %s", err)
 	}
 
 	// Get the work tree
 	w, err := r.Worktree()
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("git.Worktree failed %s", err)
 	}
 
 	options := &git.PullOptions{RemoteName: "origin"}
@@ -110,7 +112,7 @@ func (g *GitModule) Execute(env *environment.Environment, args map[string]interf
 			RefSpecs: []config.RefSpec{"refs/*:refs/*", "HEAD:refs/heads/HEAD"},
 		})
 		if err != nil && err != git.NoErrAlreadyUpToDate {
-			return false, err
+			return false, fmt.Errorf("git.Fetch failed %s", err)
 		}
 
 		// checkout the branch
@@ -119,7 +121,7 @@ func (g *GitModule) Execute(env *environment.Environment, args map[string]interf
 			Force:  true,
 		})
 		if err != nil {
-			return false, err
+			return false, fmt.Errorf("git.Checkout failed for branch %s: %s", branch, err)
 		}
 
 		options.ReferenceName = plumbing.ReferenceName(fmt.Sprintf("refs/heads/%s", branch))
@@ -128,14 +130,16 @@ func (g *GitModule) Execute(env *environment.Environment, args map[string]interf
 	// Do the pull
 	err = w.Pull(options)
 	if err != nil && err != git.NoErrAlreadyUpToDate {
-		return false, err
+		return false, fmt.Errorf("git.Pull failed %s", err)
 	}
 
 	// Get the second ref
-	ref2, err := r.Head()
+	ref2, err := r.Reference(plumbing.HEAD, true)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("git.Head failed for comparison %s", err)
 	}
+
+	log.Printf("[DEBUG] First reference %s, second reference %s", ref.Hash(), ref2.Hash())
 
 	// If the hashes differ we've updated, and thus changed
 	if ref2.Hash() != ref.Hash() {
