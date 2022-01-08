@@ -152,7 +152,7 @@ func (p *Parser) parseLet() (*ast.Assign, error) {
 	}
 
 	// Look at the next token and see if it is a
-	// conditional inclusion
+	// conditional assignment.
 	if p.peekTokenIs("if") || p.peekTokenIs("unless") {
 
 		// skip the token - after saving it
