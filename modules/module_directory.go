@@ -25,22 +25,65 @@ func (f *DirectoryModule) Check(args map[string]interface{}) error {
 		return fmt.Errorf("missing 'target' parameter")
 	}
 
-	target := StringParam(args, "target")
-	if target == "" {
-		return fmt.Errorf("failed to convert target to string")
-	}
-
+	// Target may be either a string or an array, so we don't test
+	// the type here.
 	return nil
 }
 
 // Execute is part of the module-api, and is invoked to run a rule.
 func (f *DirectoryModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
 
-	// Default to not having changed
+	// Ensure we have one or more targets to process
+	_, ok := args["target"]
+	if !ok {
+		return false, fmt.Errorf("missing 'target' parameter")
+	}
+
+	// Get the argument
+	arg := args["target"]
+
+	// if it is a string process it
+	str, ok := arg.(string)
+	if ok {
+		return f.executeSingle(str, args)
+	}
+
+	// default to not being changed
 	changed := false
 
-	// Get the target
-	target := StringParam(args, "target")
+	// otherwise we assume it is an array
+	dirs := arg.([]string)
+
+	// process each argument
+	for _, arg := range dirs {
+
+		// we'll see if it changed
+		//
+		// if any single directory resulted in a change then
+		// our return value will reflect that
+		change, err := f.executeSingle(arg, args)
+
+		// but first process any error
+		if err != nil {
+			return false, err
+		}
+
+		// record the change
+		if change {
+			changed = true
+		}
+	}
+
+	return changed, nil
+}
+
+// executeSingle executes a single directory action.
+//
+// All parameters are available, as is the single target of this function.
+func (f *DirectoryModule) executeSingle(target string, args map[string]interface{}) (bool, error) {
+
+	// Default to not having changed
+	changed := false
 
 	// We assume we're creating the directory, but we might be removing it.
 	state := StringParam(args, "state")

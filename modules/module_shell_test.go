@@ -26,16 +26,6 @@ func TestShellCheck(t *testing.T) {
 		t.Fatalf("got error - but wrong one : %s", err)
 	}
 
-	// Wrong kind of target
-	args["command"] = 3
-	err = s.Check(args)
-	if err == nil {
-		t.Fatalf("expected error due to missing command")
-	}
-	if !strings.Contains(err.Error(), "failed to convert") {
-		t.Fatalf("got error - but wrong one : %s", err)
-	}
-
 	// Valid target
 	args["command"] = "/usr/bin/uptime"
 	err = s.Check(args)
@@ -103,10 +93,10 @@ func TestShell(t *testing.T) {
 	args["command"] = "/this/does/not/exist"
 	changed, err = sQuiet.Execute(env, args)
 
-	if changed {
-		t.Fatalf("Didn't expect to see changed result")
-	}
 	if err == nil {
 		t.Fatalf("wanted error running missing command, got none")
+	}
+	if changed {
+		t.Fatalf("Didn't expect to see changed result")
 	}
 }

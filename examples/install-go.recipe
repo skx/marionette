@@ -35,12 +35,11 @@ let archive = "/opt/go-archive"
 # and a location to download the source to.
 #
 directory {
-          target => "${archive}",
           state  => "present",
-}
-directory {
-          target => "${install}/go-${version}",
-          state  => "present",
+          target => [
+                      "${archive}",
+                      "${install}/go-${version}",
+                    ]
 }
 
 

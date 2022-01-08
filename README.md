@@ -354,7 +354,7 @@ directory {  name    => "My home should have a binary directory",
 
 Valid parameters are:
 
-* `target` is a mandatory parameter, and specifies the directory to be operated upon.
+* `target` is a mandatory parameter, and specifies the directory, or directories, to operate upon.
 * `owner` - Username of the owner, e.g. "root".
 * `group` - Groupname of the owner, e.g. "root".
 * `mode` - The mode to set, e.g. "0755".
@@ -558,11 +558,21 @@ The shell module allows you to run shell-commands, complete with redirection and
 Example:
 
 ```
-shell { name => "I touch your file.",
-        command => "touch /tmp/blah/test.me" }
+shell { name    => "I touch your file.",
+        command => "touch /tmp/blah/test.me"
+      }
 ```
 
-`command` is the only mandatory parameter.
+`command` is the only mandatory parameter.  Multiple values can be specified:
+
+```
+shell { name    => "restart the aplication",
+        command => [
+                     "systemctl stop  foo.service",
+                     "systemctl start foo.service",
+                   ]
+      }
+```
 
 
 
