@@ -15,14 +15,16 @@ import (
 	"github.com/skx/marionette/token"
 )
 
-// Node represents a node.
+// Node represents a node that we can process.
 type Node interface {
+
+	// String will convert this Node object to a human-readable form.
 	String() string
 }
 
 // Assign represents a variable assignment.
 type Assign struct {
-	// Node is our parent node.
+	// Node is our parent object.
 	Node
 
 	// Key is the name of the variable.
@@ -33,6 +35,14 @@ type Assign struct {
 	// This is a token so that we can execute commands,
 	// via backticks.
 	Value token.Token
+
+	// ConditionType holds "if" or "unless" if this assignment
+	// action is to be carried out conditionally.
+	ConditionType string
+
+	// ConditionRule holds a conditional-rule to match,
+	// if the ConditionType is non-empty.
+	ConditionRule *conditionals.ConditionCall
 }
 
 // String turns an Assign object into a decent string.
@@ -48,23 +58,31 @@ func (a *Assign) String() string {
 	case token.STRING:
 		t = "string"
 	}
-	return (fmt.Sprintf("Assign{Key:%s Value:%s Type:%s}", a.Key, a.Value.Literal, t))
+
+	// No condition?
+	if a.ConditionType == "" {
+		return (fmt.Sprintf("Assign{Key:%s Value:%s Type:%s}", a.Key, a.Value.Literal, t))
+	}
+
+	return (fmt.Sprintf("Assign{Key:%s Value:%s Type:%s ConditionType:%s Condition:%s}", a.Key, a.Value.Literal, t, a.ConditionType, a.ConditionRule))
 }
 
 // Include represents a file inclusion.
 //
 // This is produced by the parser by include statements.
 type Include struct {
-	// Node is our parent node.
+	// Node is our parent object.
 	Node
 
 	// Source holds the location to include.
 	Source string
 
-	// ConditionType holds "if" or "unless" if this inclusion is conditional
+	// ConditionType holds "if" or "unless" if this inclusion is to
+	// be executed conditionally.
 	ConditionType string
 
-	// ConditionRule holds a conditional-rule to match, if ConditionType is non-empty.
+	// ConditionRule holds a conditional-rule to match, if
+	// ConditionType is non-empty.
 	ConditionRule *conditionals.ConditionCall
 }
 
@@ -99,6 +117,14 @@ type Rule struct {
 
 	// Parameters contains the params supplied by the user.
 	Params map[string]interface{}
+
+	// ConditionType holds "if" or "unless" if this rule should
+	// be executed only conditionally.
+	ConditionType string
+
+	// ConditionRule holds a conditional-rule to match, if
+	// ConditionType is non-empty.
+	ConditionRule *conditionals.ConditionCall
 }
 
 // String turns a Rule object into a useful string
@@ -134,7 +160,12 @@ func (r *Rule) String() string {
 	// trip prefix
 	args = strings.TrimPrefix(args, ", ")
 
-	return fmt.Sprintf("Rule %s{%s}", r.Type, args)
+	if r.ConditionType == "" {
+		return fmt.Sprintf("Rule %s{%s}", r.Type, args)
+	}
+
+	return fmt.Sprintf("Rule %s{%s ConditionType:%s Condition:%s}", r.Type, args, r.ConditionType, r.ConditionRule)
+
 }
 
 // Program contains a program

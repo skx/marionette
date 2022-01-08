@@ -151,6 +151,28 @@ func (p *Parser) parseLet() (*ast.Assign, error) {
 		return let, fmt.Errorf("unexpected value for variable assignment; expected string or backtick, got %v", val)
 	}
 
+	// Look at the next token and see if it is a
+	// conditional assignment.
+	if p.peekTokenIs("if") || p.peekTokenIs("unless") {
+
+		// skip the token - after saving it
+		nxt := p.peekToken.Literal
+		p.nextToken()
+
+		// Get the name/arguments of the function call
+		// we expect to come next.
+		fname, args, error := p.parseFunctionCall()
+
+		// error? then return that
+		if error != nil {
+			return let, error
+		}
+
+		// Otherwise save the condition.
+		let.ConditionType = nxt
+		let.ConditionRule = &conditionals.ConditionCall{Name: fname, Args: args}
+	}
+
 	// Add the node to our program, and continue
 	let.Key = name.Literal
 	let.Value = val
@@ -302,7 +324,8 @@ func (p *Parser) parseBlock(ty string) (*ast.Rule, error) {
 			//
 			// Save those values away in our interface map.
 			//
-			r.Params[name] = &conditionals.ConditionCall{Name: fname, Args: args}
+			r.ConditionType = name
+			r.ConditionRule = &conditionals.ConditionCall{Name: fname, Args: args}
 			continue
 		}
 

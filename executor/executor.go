@@ -312,6 +312,34 @@ func (e *Executor) Execute() error {
 // executeAssign executes an assignment node, updating the environment.
 func (e *Executor) executeAssign(assign *ast.Assign) error {
 
+	// OK is this conditionally assigned?
+	if assign.ConditionType != "" {
+
+		// Get the condition type
+		cond := assign.ConditionType
+
+		// Run the conditional-rule
+		res, err := e.runConditional(assign.ConditionRule)
+		if err != nil {
+			return err
+		}
+
+		switch cond {
+		case "if":
+			if !res {
+				log.Printf("[INFO] Skipping assignment to %s condition was not true: %s", assign.Key, assign.ConditionRule)
+				return nil
+			}
+		case "unless":
+			if res {
+				log.Printf("[INFO] Skipping assignment to %s condition was not false: %s", assign.Key, assign.ConditionRule)
+				return nil
+			}
+		default:
+			return fmt.Errorf("unknown condition-type %s", cond)
+		}
+	}
+
 	key := assign.Key
 	val := assign.Value
 	ret := ""
@@ -343,30 +371,29 @@ func (e *Executor) executeInclude(inc *ast.Include) error {
 	// OK is this conditionally included?
 	if inc.ConditionType != "" {
 
+		// Get the condition type
 		cond := inc.ConditionType
 
-		if cond == "if" {
-			res, err := e.runConditional(inc.ConditionRule)
-			if err != nil {
-				return err
-			}
+		// Run the conditional-rule
+		res, err := e.runConditional(inc.ConditionRule)
+		if err != nil {
+			return err
+		}
+
+		switch cond {
+		case "if":
 			if !res {
 				log.Printf("[INFO] Skipping inclusion of %s condition was not true: %s", inc.Source, inc.ConditionRule)
 				return nil
 			}
-		}
-
-		if cond == "unless" {
-			res, err := e.runConditional(inc.ConditionRule)
-			if err != nil {
-				return err
-			}
+		case "unless":
 			if res {
 				log.Printf("[INFO] Skipping inclusion of %s condition was not false: %s", inc.Source, inc.ConditionRule)
 				return nil
 			}
+		default:
+			return fmt.Errorf("unknown condition-type %s", cond)
 		}
-
 	}
 
 	// Expand any variables in the string.
@@ -493,25 +520,31 @@ func (e *Executor) executeSingleRule(rule *ast.Rule) error {
 	//
 	// Are there conditionals present?
 	//
-	if rule.Params["if"] != nil {
-		res, err := e.runConditional(rule.Params["if"])
-		if err != nil {
-			return err
-		}
-		if !res {
-			log.Printf("[INFO] Skipping rule as condition was not true: %s", rule.Params["if"])
-			return nil
-		}
-	}
+	if rule.ConditionType != "" {
 
-	if rule.Params["unless"] != nil {
-		res, err := e.runConditional(rule.Params["unless"])
+		// Get the type
+		cond := rule.ConditionType
+
+		// Run the condition.
+		res, err := e.runConditional(rule.ConditionRule)
 		if err != nil {
 			return err
 		}
-		if res {
-			log.Printf("[INFO] Skipping rule condition was true: %s", rule.Params["unless"])
-			return nil
+
+		switch cond {
+		case "if":
+			if !res {
+				log.Printf("[INFO] Skipping rule as condition was not true: %s", rule.ConditionRule)
+				return nil
+			}
+		case "unless":
+			if res {
+				log.Printf("[INFO] Skipping rule as condition was true: %s", rule.ConditionRule)
+				return nil
+			}
+		default:
+			return fmt.Errorf("unknown condition-type %s", cond)
+
 		}
 	}
 
