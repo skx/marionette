@@ -1,4 +1,4 @@
-// equals() method tests
+// contains() method tests
 
 package conditionals
 
@@ -6,8 +6,8 @@ import (
 	"testing"
 )
 
-// TestContainssArgs ensures we have the correct argument count.
-func TestContainssArgs(t *testing.T) {
+// TestContainsArgs ensures we have the correct argument count.
+func TestContainsArgs(t *testing.T) {
 
 	_, err := Contains([]string{})
 	if err == nil {
@@ -31,7 +31,7 @@ func TestContainssArgs(t *testing.T) {
 }
 
 // TestContains ensures we report on equality properly.
-func TestContainss(t *testing.T) {
+func TestContains(t *testing.T) {
 
 	// Equal
 	res, err := Contains([]string{"foo", "foo"})
