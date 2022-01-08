@@ -57,6 +57,9 @@ docker {
 #
 shell triggered {
          name    => "temperature:restart",
-         command => "bash -c 'cd ~/temperature ; docker-compose down ; docker-compose up -d'",
+         command => [
+                       "cd ~/temperature && docker-compose down",
+                       "cd ~/temperature && docker-compose up -d",
+                    ]
 
 }
