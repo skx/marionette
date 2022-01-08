@@ -89,9 +89,9 @@ $MODULE [triggered] {
 
 Each rule starts by declaring the type of module which is being invoked, then there is a block containing "`key => value`" sections.  Different modules will accept/expect different keys to configure themselves.  (Unknown arguments will generally be ignored.)
 
-A rule can also contain the optional `triggered` attribute, which is discussed later.  (Basically a `triggered`-rule is skipped, unless it is explicitly invoked by another rule - think of it as a "handler" if you're used to `ansible`.)
+A rule can also contain the optional `triggered` attribute, which is discussed later.  (A rule with the `triggered` modifier is not executed unless it is explicitly invoked by another rule - think of it as a "handler" if you're used to `ansible`.)
 
-Here is a concrete example rule which executes a shell-command:
+Here is an example rule which executes a shell-command:
 
 ```
 # Run a command, unconditionally
@@ -112,13 +112,19 @@ directory {
 }
 ```
 
+There are four magical keys which can be supplied to all modules:
 
+| Name     | Usage                                                            |
+|----------|------------------------------------------------------------------|
+| `require`| This is used for [dependency management](#dependency-management) |
+| `notify` | This is used for [dependency management](#dependency-management) |
+| `if`     | This is used to make a rule [conditional](#conditionals)         |
+| `unless` | This is used to make a rule [conditional](#conditionals)         |
 
 
 ## Dependency Management
 
-We have two ways to link rules to each other, using a pair of keys with
-special meaning:
+There are two keys which can be used to link rules together, to handle dependencies:
 
 * `require`
   * This key contains either a single rule-name, or a list of any rule-names, which must be executed before _this_ one.
@@ -175,7 +181,7 @@ You'll note that any rule which is followed by the token `triggered` will __only
 
 ## Conditionals
 
-In addition to the core rules we also allow conditional-execution of rules, via the magical keys `if` and `unless`.
+Rules may be made conditional, via the magical keys `if` and `unless`.
 
 The following example runs a command, using `apt-get`, only if a specific file exists upon the filesystem:
 
@@ -230,7 +236,7 @@ More conditional primitives may be added if they appear to be necessary, or if u
 
 ### Command Execution
 
-Backticks can be used to execute commands, when used in variable-assignments.
+Backticks can be used to execute commands, but only in variable-assignments.
 
 For example we might determine the system architecture like this:
 
