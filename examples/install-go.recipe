@@ -1,0 +1,96 @@
+#
+# This set of rules is designed to deploy a binary version of the golang toolchain upon a local system.
+#
+# We create /opt/go-archive to contain the binary release and unpack that named version beneath:
+#
+#   /opt/go-${version}
+#
+# To make using this easier we create a symlink which points to
+# that version at:
+#
+#   /opt/go
+#
+# The user can then add `/opt/go/bin` to their path to use the version:
+#
+#   export PATH=/opt/go/bin:$PATH
+#   export GOROOT=/opt/go
+#
+
+
+#
+# The version of golang we're installing
+#
+let version = "1.17.6"
+
+#
+# Here we handle the archive and the download paths:
+#
+let install = "/opt"
+let archive = "/opt/go-archive"
+
+
+
+#
+# So the first thing we do is create a directory to contain the binaries,
+# and a location to download the source to.
+#
+directory {
+          target => "${archive}",
+          state  => "present",
+}
+directory {
+          target => "${install}/go-${version}",
+          state  => "present",
+}
+
+
+#
+# Ensure we have wget to download
+#
+package {
+          package => "wget",
+          state   => "installed",
+          name    => "golang:wget",
+}
+
+#
+# Download the binary release to our archive-location.
+#
+shell {
+      name    => "golang:download",
+      command => "wget -O ${archive}/${version}.tar.gz https://go.dev/dl/go${version}.${OS}-${ARCH}.tar.gz",
+      unless  => exists(${archive}/${version}.tar.gz)
+      require => "golang:wget",
+}
+
+#
+# Unpack the release, stripping the leading directory.
+#
+shell {
+      name    => "golang:unpack",
+      command => "tar xf ${archive}/${version}.tar.gz --directory=${install}/go-${version} --strip-components=1",
+
+      # If there is a /bin directory then we've unpacked already.
+      unless  => exists(${install}/go-${version}/bin )
+
+      # We can only unpack if we've downloaded
+      require => "golang:download"
+}
+
+#
+# Now create a symlink
+#
+link {
+     name    => "golang:symlink",
+     source  => "/opt/go-${version}",
+     target  => "/opt/go",
+     require => "golang:unpack",
+}
+
+#
+# Show that we're done.
+#
+log {
+    message => "/opt/go now points to the binary release for ${OS} [${ARCH}] at ${install}/go-${version}"
+    require => "golang:symlink"
+}

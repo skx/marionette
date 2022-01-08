@@ -7,6 +7,7 @@
 * [Rule Definition](#rule-definition)
   * [Dependency Management](#dependency-management)
   * [Conditionals](#conditionals)
+  * [Examples](#examples)
   * [Misc. Features](#misc-features)
     * [Command Execution](#command-execution)
     * [File Inclusion](#include-files)
@@ -22,7 +23,6 @@
    * [package](#package)
    * [shell](#shell)
    * [user](#user)
-* [Example Rules](#example-rules)
 * [Future Plans](#future-plans)
   * [See also](#see-also)
 * [Github Setup](#github-setup)
@@ -228,6 +228,12 @@ More conditional primitives may be added if they appear to be necessary, or if u
 
 **NOTE**: The conditionals are only supported when present in keys named `if` or `unless`.  This syntax is special for those two key-types.
 
+
+## Examples
+
+You can find a small set of example recipes beneath the examples directory:
+
+* [examples/](examples/)
 
 
 
@@ -575,18 +581,6 @@ user { login => "steve",
 * `login` is a mandatory parameter.
 * `shell` is an optional parameter to use for the users' shell.
 * `state` should be one of `absent` or `present`, depending upon whether you want to add or remove the user.
-
-
-
-
-# Example Rules
-
-There is an example ruleset included in the distribution:
-
-* [input.txt](input.txt)
-
-That should be safe to run for all users, as it only modifies files beneath `/tmp`.
-
 
 
 
