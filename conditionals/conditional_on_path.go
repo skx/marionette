@@ -26,7 +26,7 @@ func OnPath(args []string) (bool, error) {
 	// got an error? return it
 	if err != nil {
 		log.Printf("[DEBUG] error running lookup %s", err)
-		return false, err
+		return false, nil
 	}
 
 	log.Printf("[DEBUG] lookup resulted in '%s'", path)

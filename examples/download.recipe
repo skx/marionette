@@ -1,0 +1,31 @@
+#
+# This example uses either wget, or curl, to download a file
+#
+
+#
+# Going to download this URL
+#
+let url = "https://example.com/"
+
+#
+# Going to save here
+#
+let dst = "/tmp/save"
+
+#
+# Find a binary
+#
+let cmd = "curl --output ${dst} ${url}" if on_path("fcurl")
+let cmd = "wget -O ${dst} ${url}"       if on_path("wget")
+
+#
+# Fail if we didn't
+#
+fail {
+        message => "Failed to find curl or wget on the PATH",
+        if      => unset(${cmd})
+}
+
+log {
+        message => "Download command: ${cmd}"
+}

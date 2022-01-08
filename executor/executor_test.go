@@ -219,18 +219,21 @@ func TestIf(t *testing.T) {
 	//
 	params := make(map[string]interface{})
 	params["name"] = "foo"
-	params["if"] = &conditionals.ConditionCall{Name: "equals",
-		Args: []string{"foo", "bar"}}
 
 	//
 	// Create our rule.
 	//
 	r1 := []ast.Node{
 		&ast.Rule{
-			Type:      "file",
-			Name:      "test",
-			Triggered: false,
-			Params:    params,
+			Type:          "file",
+			Name:          "test",
+			Triggered:     false,
+			Params:        params,
+			ConditionType: "if",
+			ConditionRule: &conditionals.ConditionCall{
+				Name: "equals",
+				Args: []string{"foo", "bar"},
+			},
 		},
 	}
 
@@ -252,30 +255,30 @@ func TestIf(t *testing.T) {
 	//
 	// Now we try to run with the wrong type for our conditional
 	//
-	params["if"] = "foo"
-
 	// change params
 	tmp := r1[0].(*ast.Rule)
-	tmp.Params = params
+	tmp.ConditionType = "foo"
 
 	ex = New(r1)
 	err = ex.Execute()
 	if err == nil {
 		t.Errorf("expected error running rules, got none")
 	}
-	if !strings.Contains(err.Error(), "xpected a conditional structure") {
+	if !strings.Contains(err.Error(), "unknown condition-type") {
 		t.Errorf("got an error, but not the right kind: %s", err.Error())
 	}
 
 	//
 	// Finally we try to run with an unknown conditional
 	//
-	params["if"] = &conditionals.ConditionCall{Name: "agrees",
-		Args: []string{"foo", "bar"}}
-
 	// change params
 	tmpt := r1[0].(*ast.Rule)
 	tmpt.Params = params
+	tmpt.ConditionType = "if"
+	tmpt.ConditionRule = &conditionals.ConditionCall{
+		Name: "agrees",
+		Args: []string{"foo", "bar"},
+	}
 
 	ex = New(r1)
 	err = ex.Execute()
@@ -297,16 +300,27 @@ func TestTriggered(t *testing.T) {
 	//
 	r1 := []ast.Node{
 		&ast.Rule{Type: "file",
-			Name:      "bob",
-			Triggered: false,
-			Params: map[string]interface{}{"require": "test",
-				"if": &conditionals.ConditionCall{Name: "equal",
-					Args: []string{"foo", "bar"}}},
+			Name:          "bob",
+			Triggered:     false,
+			ConditionType: "if",
+			ConditionRule: &conditionals.ConditionCall{
+				Name: "equal",
+				Args: []string{"foo", "bar"},
+			},
+			Params: map[string]interface{}{
+				"require": "test",
+			},
 		},
 		&ast.Rule{Type: "file",
 			Name:      "test",
 			Triggered: true,
-			Params:    map[string]interface{}{"require": 3, "target": "/tmp/foo", "ensure": "present", "content": "foo"}},
+			Params: map[string]interface{}{
+				"require": 3,
+				"target":  "/tmp/foo",
+				"ensure":  "present",
+				"content": "foo",
+			},
+		},
 	}
 
 	//
@@ -334,18 +348,23 @@ func TestUnless(t *testing.T) {
 	//
 	params := make(map[string]interface{})
 	params["name"] = "foo"
-	params["unless"] = &conditionals.ConditionCall{Name: "equals",
-		Args: []string{"bar", "bar"}}
+	params["target"] = "foo"
+	params["source_url"] = "https://example.com/"
 
 	//
 	// Create our rule.
 	//
 	r1 := []ast.Node{
 		&ast.Rule{
-			Type:      "file",
-			Name:      "test",
-			Triggered: false,
-			Params:    params,
+			Type:          "file",
+			Name:          "test",
+			Triggered:     false,
+			Params:        params,
+			ConditionType: "unless",
+			ConditionRule: &conditionals.ConditionCall{
+				Name: "equals",
+				Args: []string{"bar", "bar"},
+			},
 		},
 	}
 
@@ -367,30 +386,28 @@ func TestUnless(t *testing.T) {
 	//
 	// Now we try to run with the wrong type for our conditional
 	//
-	params["unless"] = "foo"
-
 	// change params
 	tmp := r1[0].(*ast.Rule)
-	tmp.Params = params
+	tmp.ConditionType = "foo"
 
 	ex = New(r1)
 	err = ex.Execute()
 	if err == nil {
 		t.Errorf("expected error running rules, got none")
 	}
-	if !strings.Contains(err.Error(), "xpected a conditional structure") {
+	if !strings.Contains(err.Error(), "unknown condition-type") {
 		t.Errorf("got an error, but not the right kind: %s", err.Error())
 	}
 
 	//
 	// Finally we try to run with an unknown conditional
 	//
-	params["unless"] = &conditionals.ConditionCall{Name: "agrees",
-		Args: []string{"foo", "bar"}}
-
 	// change params
 	tmpt := r1[0].(*ast.Rule)
-	tmpt.Params = params
+	tmpt.ConditionRule = &conditionals.ConditionCall{
+		Name: "agrees",
+		Args: []string{"foo", "bar"},
+	}
 
 	ex = New(r1)
 	err = ex.Execute()

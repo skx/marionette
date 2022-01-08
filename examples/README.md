@@ -12,5 +12,9 @@ This directory contains some simple examples, to show how this tool can be used.
   * It also pulls three docker containers from their remote source.
   * Finally it restarts the application.
 
+* [download.recipe](download.recipe)
+  * Demonstrates how to use the conditional assignments to choose programs.
+  * Selecting either wget or curl, depending on which is available.
+
 * [overview.recipe](overview.recipe)
   * This is a well-commented example that shows numerous examples of the various modules.
