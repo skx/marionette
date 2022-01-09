@@ -309,34 +309,53 @@ func (e *Executor) Execute() error {
 	return nil
 }
 
+// shouldExecute tests whether the assignment/include/rule should be executed,
+// based on the condition and the rule.
+func (e *Executor) shouldExecute(cType string, cRule *conditionals.ConditionCall) (bool, error) {
+
+	// Run the conditional-rule
+	res, err := e.runConditional(cRule)
+	if err != nil {
+		return false, err
+	}
+
+	// Now see if this means the thing should execute
+	switch cType {
+	case "if":
+		if !res {
+			log.Printf("[INFO] Skipping because condition was not true: %s", cRule)
+			return false, nil
+		}
+	case "unless":
+		if res {
+			log.Printf("[INFO] Skipping because condition was not false: %s", cRule)
+			return false, nil
+		}
+	default:
+		return false, fmt.Errorf("unknown condition-type %s", cType)
+	}
+
+	// OK the assignment/include/rule should be executed
+	return true, nil
+}
+
 // executeAssign executes an assignment node, updating the environment.
 func (e *Executor) executeAssign(assign *ast.Assign) error {
 
 	// OK is this conditionally assigned?
 	if assign.ConditionType != "" {
 
-		// Get the condition type
-		cond := assign.ConditionType
+		// Should we execute the assignment?
+		ret, err := e.shouldExecute(assign.ConditionType, assign.ConditionRule)
 
-		// Run the conditional-rule
-		res, err := e.runConditional(assign.ConditionRule)
+		// Error?  Then return that
 		if err != nil {
 			return err
 		}
 
-		switch cond {
-		case "if":
-			if !res {
-				log.Printf("[INFO] Skipping assignment to %s condition was not true: %s", assign.Key, assign.ConditionRule)
-				return nil
-			}
-		case "unless":
-			if res {
-				log.Printf("[INFO] Skipping assignment to %s condition was not false: %s", assign.Key, assign.ConditionRule)
-				return nil
-			}
-		default:
-			return fmt.Errorf("unknown condition-type %s", cond)
+		// If we didn't get a "true" then we should skip this action.
+		if !ret {
+			return nil
 		}
 	}
 
@@ -368,31 +387,20 @@ func (e *Executor) executeAssign(assign *ast.Assign) error {
 // executeInclude will handle a file inclusion node.
 func (e *Executor) executeInclude(inc *ast.Include) error {
 
-	// OK is this conditionally included?
+	// OK is this conditionally assigned?
 	if inc.ConditionType != "" {
 
-		// Get the condition type
-		cond := inc.ConditionType
+		// Should we execute the inclusion?
+		ret, err := e.shouldExecute(inc.ConditionType, inc.ConditionRule)
 
-		// Run the conditional-rule
-		res, err := e.runConditional(inc.ConditionRule)
+		// Error?  Then return that
 		if err != nil {
 			return err
 		}
 
-		switch cond {
-		case "if":
-			if !res {
-				log.Printf("[INFO] Skipping inclusion of %s condition was not true: %s", inc.Source, inc.ConditionRule)
-				return nil
-			}
-		case "unless":
-			if res {
-				log.Printf("[INFO] Skipping inclusion of %s condition was not false: %s", inc.Source, inc.ConditionRule)
-				return nil
-			}
-		default:
-			return fmt.Errorf("unknown condition-type %s", cond)
+		// If we didn't get a "true" then we should skip this action.
+		if !ret {
+			return nil
 		}
 	}
 
@@ -517,34 +525,20 @@ func (e *Executor) executeSingleRule(rule *ast.Rule) error {
 	// Show what we're doing
 	log.Printf("[INFO] Running %s-module rule: %s", rule.Type, rule.Name)
 
-	//
-	// Are there conditionals present?
-	//
+	// OK is this conditionally executed?
 	if rule.ConditionType != "" {
 
-		// Get the type
-		cond := rule.ConditionType
+		// Should we execute the rule?
+		ret, err := e.shouldExecute(rule.ConditionType, rule.ConditionRule)
 
-		// Run the condition.
-		res, err := e.runConditional(rule.ConditionRule)
+		// Error?  Then return that
 		if err != nil {
 			return err
 		}
 
-		switch cond {
-		case "if":
-			if !res {
-				log.Printf("[INFO] Skipping rule as condition was not true: %s", rule.ConditionRule)
-				return nil
-			}
-		case "unless":
-			if res {
-				log.Printf("[INFO] Skipping rule as condition was true: %s", rule.ConditionRule)
-				return nil
-			}
-		default:
-			return fmt.Errorf("unknown condition-type %s", cond)
-
+		// If we didn't get a "true" then we should skip this action.
+		if !ret {
+			return nil
 		}
 	}
 
