@@ -1,10 +1,11 @@
-//go:build windows
+//go:build darwin || windows
 
 package modules
 
 import (
 	"fmt"
 	"log"
+	"runtime"
 
 	"github.com/skx/marionette/environment"
 )
@@ -12,7 +13,9 @@ import (
 // Execute is part of the module-api, and is invoked to run a rule.
 func (g *GroupModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
 
-	log.Printf("[ERROR] the 'group' module is not implemented upon Windows")
+	message := "the 'group' module is not implemented on this platform"
 
-	return false, fmt.Errorf("the 'group' module is not implemented upon Windows")
+	log.Printf("[ERROR] %s: %s", message, runtime.GOOS)
+
+	return false, fmt.Errorf("%s: %s", message, runtime.GOOS)
 }
