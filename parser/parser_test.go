@@ -21,6 +21,15 @@ func TestAssignment(t *testing.T) {
 		"let foo=",
 		"let foo=bar",
 		"let foo=1",
+		"let a=\"b\" unless",
+		"let a=\"b\" unless false",
+		"let a=\"b\" unless false(",
+		"let a=\"b\" unless false(/bin/ls,",
+		"let a=\"3\" if     ",
+		"let a=\"3\" if     true",
+		"let a=\"3\" if     true(",
+		"let a=\"3\" if     true(/bin/ls",
+		"let a=\"3\" if     true(/bin/ls,",
 	}
 
 	// Ensure each one fails
@@ -37,6 +46,7 @@ func TestAssignment(t *testing.T) {
 	// Now test valid assignments
 	valid := []string{
 		"let x = `/bin/true`",
+		"let x = `/bin/true` if equal(\"a\",\"a\")",
 		"let a = \"boo\"",
 	}
 
