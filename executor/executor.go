@@ -3,7 +3,7 @@
 // This means processing the rules, one by one, but also ensuring
 // dependencies are handled.
 //
-// Variable assignments, and include-file inclusion, occur at
+// Variable assignments, and the inclusion of files, occur at
 // run-time too, so they are handled here.
 package executor
 
@@ -387,7 +387,7 @@ func (e *Executor) executeInclude(inc *ast.Include) error {
 	// And read/run it.
 	err := e.executeIncludeReal(inc.Source)
 	if err != nil {
-		return fmt.Errorf("failed to read include-source %s: %s", inc.Source, err)
+		return fmt.Errorf("failed to execute included file %s: %s", inc.Source, err)
 	}
 
 	return nil
@@ -448,7 +448,6 @@ func (e *Executor) executeIncludeReal(source string) error {
 
 	// Once the child executor has finished we'll copy back
 	// the files that it has seen as included.
-	// Propagate all the include-files that have been seen
 	for k, v := range ex.included {
 		e.included[k] = v
 	}
@@ -457,11 +456,23 @@ func (e *Executor) executeIncludeReal(source string) error {
 }
 
 // shouldExecute tests whether the assignment/include/rule should be executed,
-// based on the condition and the rule.
+// based on the condition-type and the condition-rule.
 func (e *Executor) shouldExecute(cType string, cRule *conditionals.ConditionCall) (bool, error) {
 
-	// Run the conditional-rule
-	res, err := e.runConditional(cRule)
+	// Look for the implementation of the conditional-method.
+	helper := conditionals.Lookup(cRule.Name)
+	if helper == nil {
+		return false, fmt.Errorf("conditional-function %s not available", cRule.Name)
+	}
+
+	// We want to ensure that we expand all arguments
+	args := []string{}
+	for _, arg := range cRule.Args {
+		args = append(args, e.env.ExpandVariables(arg))
+	}
+
+	// Call the function, and handle any error.
+	res, err := helper(args)
 	if err != nil {
 		return false, err
 	}
@@ -484,36 +495,6 @@ func (e *Executor) shouldExecute(cType string, cRule *conditionals.ConditionCall
 
 	// OK the assignment/include/rule should be executed
 	return true, nil
-}
-
-// runConditional returns true if the given conditional is true.
-//
-// The conditionals are implemented in their own package, and can be
-// looked up by name.  We lookup the conditional, and if it exists
-// invoke it dynamically returning the appropriate result.
-func (e *Executor) runConditional(cond interface{}) (bool, error) {
-
-	// Get the value as an instance of our Conditional struct
-	test, ok := cond.(*conditionals.ConditionCall)
-	if !ok {
-		return false, fmt.Errorf("we expected a conditional structure, but got %v", cond)
-	}
-
-	// Look for the implementation of the conditional-method.
-	helper := conditionals.Lookup(test.Name)
-	if helper == nil {
-		return false, fmt.Errorf("conditional-function %s not available", test.Name)
-	}
-
-	// We want to ensure that we expand all arguments
-	args := []string{}
-
-	for _, arg := range test.Args {
-		args = append(args, e.env.ExpandVariables(arg))
-	}
-
-	// Call the function, and return whatever result it gives us.
-	return helper(args)
 }
 
 // executeSingleRule creates the appropriate module, and runs the single rule.
