@@ -40,7 +40,7 @@ func runFile(filename string, cfg *config.Config) error {
 	// Mark the file as having been processed.
 	ex.MarkSeen(filename)
 
-	// // Set "magic" variables for the current include file.
+	// Set "magic" variables for the current include file.
 	err = ex.SetMagicIncludeVars(filename)
 	if err != nil {
 		return err
