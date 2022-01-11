@@ -9,6 +9,7 @@ import (
 	"github.com/skx/marionette/ast"
 	"github.com/skx/marionette/conditionals"
 	"github.com/skx/marionette/config"
+	"github.com/skx/marionette/token"
 )
 
 // TestSimpleRule tests that running a simple rule succeeds
@@ -32,8 +33,8 @@ func TestSimpleRule(t *testing.T) {
 	// Setup the parameters
 	//
 	params := make(map[string]interface{})
-	params["target"] = tmpfile.Name()
-	params["content"] = expected
+	params["target"] = token.Token{Type: token.STRING, Literal: tmpfile.Name()}
+	params["content"] = token.Token{Type: token.STRING, Literal: expected}
 
 	//
 	// Create a simple rule
