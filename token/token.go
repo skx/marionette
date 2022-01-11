@@ -2,6 +2,8 @@
 // and which our parser understands.
 package token
 
+import "fmt"
+
 // Type is a string
 type Type string
 
@@ -28,3 +30,20 @@ const (
 	RPAREN   = ")"
 	STRING   = "STRING"
 )
+
+// String turns the token into a readable string
+func (t Token) String() string {
+
+	// string?
+	if t.Type == STRING {
+		return t.Literal
+	}
+
+	// backtick?
+	if t.Type == BACKTICK {
+		return "`" + t.Literal + "`"
+	}
+
+	// everything else is less pretty
+	return fmt.Sprintf("token{Type:%s Literal:%s}", t.Type, t.Literal)
+}
