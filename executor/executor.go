@@ -558,42 +558,74 @@ func (e *Executor) executeSingleRule(rule *ast.Rule) error {
 	return nil
 }
 
-// runInternalModule executes the given rule with the loaded internal
-// module.
+// runInternalModule executes the given rule with the loaded internal module.
 func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (bool, error) {
 
-	// Check the arguments
-	err := helper.Check(rule.Params)
-	if err != nil {
-		return false, fmt.Errorf("error validating %s-module rule '%s' %s",
-			rule.Type, rule.Name, err.Error())
-	}
+	var err error
 
-	// Expand all params
+	// Expand all params into strings/arrays of strings
+	// into a new map.  We leave the rule-params alone.
 	params := make(map[string]interface{})
 
+	// So for each argument
 	for k, v := range rule.Params {
 
-		// param is a string?  expand it
-		str, ok := v.(string)
+		// param has a single value?
+		tok, ok := v.(token.Token)
 		if ok {
-			params[k] = e.env.ExpandVariables(str)
+			val := ""
+
+			switch tok.Type {
+			case token.STRING:
+				val = e.env.ExpandVariables(tok.Literal)
+			case token.BACKTICK:
+				val, err = e.env.ExpandTokenVariables(tok)
+				if err != nil {
+					return false, err
+				}
+			default:
+				return false, fmt.Errorf("unhandled type in runInternalModule %v", tok)
+			}
+
+			params[k] = val
 			continue
 		}
 
-		// param is a string array?  expand them
-		strs, ok2 := v.([]string)
+		// param has an array of values?
+		toks, ok2 := v.([]token.Token)
 		if ok2 {
-			var tmp []string
-			var t string
 
-			for _, x := range strs {
-				t = e.env.ExpandVariables(x)
-				tmp = append(tmp, t)
+			// temporary values
+			var tmp []string
+
+			for _, val := range toks {
+
+				str := ""
+
+				switch tok.Type {
+				case token.STRING:
+					str = e.env.ExpandVariables(val.Literal)
+				case token.BACKTICK:
+					str, err = e.env.ExpandTokenVariables(val)
+					if err != nil {
+						return false, err
+					}
+				default:
+					return false, fmt.Errorf("unhandled type in runInternalModule %v", tok)
+				}
+				tmp = append(tmp, str)
 			}
+
 			params[k] = tmp
 			continue
 		}
+	}
+
+	// Check the arguments
+	err = helper.Check(params)
+	if err != nil {
+		return false, fmt.Errorf("error validating %s-module rule '%s' %s",
+			rule.Type, rule.Name, err.Error())
 	}
 
 	// Run the change
