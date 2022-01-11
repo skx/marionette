@@ -36,6 +36,9 @@ type Executor struct {
 	// their index.
 	index map[string]int
 
+	// Keep track of which rules we've executed
+	executed map[string]bool
+
 	// included keeps track of which files we've already included.
 	//
 	// We use this to avoid issues with recursive file inclusions
@@ -60,6 +63,8 @@ func New(program []ast.Node) *Executor {
 		env:      environment.New(),
 		Program:  program,
 		included: make(map[string]bool),
+		executed: make(map[string]bool),
+		index:    make(map[string]int),
 	}
 
 	return e
@@ -145,7 +150,6 @@ func (e *Executor) Check() error {
 	// We'll also make sure we don't try to notify/depend upon
 	// a rule that we can't find.
 	//
-	e.index = make(map[string]int)
 
 	//
 	// Walk over all the nodes we've got
@@ -219,11 +223,8 @@ func (e *Executor) Check() error {
 // Execute runs the rules in turn, handling any dependency ordering.
 func (e *Executor) Execute() error {
 
-	// Keep track of which rules we've executed
-	seen := make(map[int]bool)
-
 	// For each node in our program
-	for i, r := range e.Program {
+	for _, r := range e.Program {
 
 		// Test the type to see what we should do.
 		switch r := r.(type) {
@@ -251,54 +252,11 @@ func (e *Executor) Execute() error {
 			// rule execution
 			log.Printf("[DEBUG] Processing rule: %s", r)
 
-			// Don't run rules that are only present to
-			// be notified by a trigger.
-			if r.Triggered {
-				continue
-			}
-
-			// Have we executed this rule already?
-			if seen[i] {
-				continue
-			}
-
-			// Get the rule dependencies.
-			deps := e.deps(r, "require")
-
-			// Process each one
-			for i, dep := range deps {
-
-				// Have we executed this rule already?
-				if seen[i] {
-					continue
-				}
-
-				// get the actual rule, by index
-				dr := e.Program[e.index[dep]].(*ast.Rule)
-
-				// Don't run rules that are only present to
-				// be notified by a trigger.
-				if dr.Triggered {
-					continue
-				}
-
-				err := e.executeSingleRule(dr)
-				if err != nil {
-					return err
-				}
-
-				// Now we've executed the rule.
-				seen[i] = true
-			}
-
-			// Now the rule itself
 			err := e.executeSingleRule(r)
 			if err != nil {
 				return err
 			}
 
-			// And mark this as executed too.
-			seen[i] = true
 		default:
 			return fmt.Errorf("unknown node type! %t", r)
 		}
@@ -502,6 +460,37 @@ func (e *Executor) executeSingleRule(rule *ast.Rule) error {
 
 	// Show what we're doing
 	log.Printf("[INFO] Running %s-module rule: %s", rule.Type, rule.Name)
+
+	// Don't run rules that are only present to
+	// be notified by a trigger.
+	if rule.Triggered {
+		log.Printf("[DEBUG] Skipping rule because it has the triggered-modifier")
+		return nil
+	}
+
+	// Have we executed this rule already?
+	if e.executed[rule.Name] {
+		log.Printf("[DEBUG] Skipping rule because it has already executed")
+		return nil
+	}
+
+	e.executed[rule.Name] = true
+
+	// Get the rule dependencies.
+	deps := e.deps(rule, "require")
+
+	// Process each one
+	for _, dep := range deps {
+
+		dr := e.Program[e.index[dep]].(*ast.Rule)
+		log.Printf("[DEBUG] Running dependency for %s: %s\n", rule.Name, dr.Name)
+		// Now the rule itself
+		err := e.executeSingleRule(dr)
+		if err != nil {
+			return err
+		}
+
+	}
 
 	// OK is this conditionally executed?
 	if rule.ConditionType != "" {
