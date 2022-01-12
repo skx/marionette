@@ -354,11 +354,11 @@ func (p *Parser) getName(params map[string]interface{}) string {
 	if ok {
 
 		// OK we did.  Was it a string?
-		str, ok := n.(string)
+		str, ok := n.(token.Token)
 		if ok {
 
 			// Yes.  Use it.
-			return str
+			return str.Literal
 		}
 	}
 
@@ -416,52 +416,64 @@ func (p *Parser) parseFunctionCall() (string, []string, error) {
 
 // readValue returns the value associated with a name.
 //
-// The value is either a string, or an array of strings.
+// This is used when parsing blocks/rules, and it will return either
+// an array of tokens, or a single token.
+//
+// We need to return tokens here, rather than their literal contents,
+// so that we can later differentiate between "strings" and "backtick-strings"
+// which should be expanded at run-time.
 func (p *Parser) readValue(name string) (interface{}, error) {
 
-	var a []string
+	// The return value.
+	var result []token.Token
 
-	t := p.nextToken()
+	// Get the next value
+	tok := p.nextToken()
 
 	// error checking
-	if t.Type == token.ILLEGAL {
-		return nil, fmt.Errorf("found illegal token:%v processing block %s", t, name)
+	if tok.Type == token.ILLEGAL {
+		return nil, fmt.Errorf("found illegal token:%v processing block %s", tok, name)
 	}
-	if t.Type == token.EOF {
+	if tok.Type == token.EOF {
 		return nil, fmt.Errorf("found end of file processing block %s", name)
 	}
 
-	// string or backticks
-	if t.Type == token.STRING || t.Type == token.BACKTICK {
-		return t.Literal, nil
+	// If we got a single string or backtick we're good
+	if tok.Type == token.STRING || tok.Type == token.BACKTICK {
+		return tok, nil
 	}
 
 	// array?
-	if t.Type != token.LSQUARE {
+	if tok.Type != token.LSQUARE {
 		return nil, fmt.Errorf("not a string or an array for value in block %s", name)
 	}
 
+	// OK we've got an array of values
 	for {
-		t := p.nextToken()
+		// Get the value
+		tok = p.nextToken()
 
 		// error checking
-		if t.Type == token.ILLEGAL {
-			return nil, fmt.Errorf("found illegal token:%v processing block %s", t, name)
+		if tok.Type == token.ILLEGAL {
+			return nil, fmt.Errorf("found illegal token:%v processing block %s", tok, name)
 		}
-		if t.Type == token.EOF {
+		if tok.Type == token.EOF {
 			return nil, fmt.Errorf("found end of file, processing block %s", name)
 		}
 
-		if t.Type == token.COMMA {
+		// commas are separators, and are skipped
+		if tok.Type == token.COMMA {
 			continue
 		}
 
-		if t.Type == token.STRING {
-			a = append(a, t.Literal)
+		// If this is a string/backtick-string then append the token
+		if tok.Type == token.STRING || tok.Type == token.BACKTICK {
+			result = append(result, tok)
 		}
 
-		if t.Type == token.RSQUARE {
-			return a, nil
+		// block will be terminated by a "]"
+		if tok.Type == token.RSQUARE {
+			return result, nil
 		}
 	}
 }

@@ -116,6 +116,14 @@ type Rule struct {
 	Triggered bool
 
 	// Parameters contains the params supplied by the user.
+	//
+	// The keys will be strings, with the values being either
+	// a single token, or an array of tokens.
+	//
+	// (We need to store the tokens here, because we need to
+	// be able to differentiate later whether we received a
+	// string or a backtick-string which should be expanded
+	// at runtime.)
 	Params map[string]interface{}
 
 	// ConditionType holds "if" or "unless" if this rule should
@@ -139,12 +147,12 @@ func (r *Rule) String() string {
 		// try to format the value
 		val := ""
 
-		str, ok := v.(string)
+		str, ok := v.(token.Token)
 		if ok {
 			val = fmt.Sprintf("\"%s\"", str)
 		}
 
-		array, ok2 := v.([]string)
+		array, ok2 := v.([]token.Token)
 		if ok2 {
 			for _, s := range array {
 				val += fmt.Sprintf(", \"%s\"", s)

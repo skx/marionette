@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"log"
 	"path/filepath"
+	"strings"
 
 	"github.com/skx/marionette/ast"
 	"github.com/skx/marionette/conditionals"
@@ -100,7 +101,7 @@ func (e *Executor) SetMagicIncludeVars(path string) error {
 // Get the rules a rule depends upon, via the given key.
 //
 // This is used to find any `require` or `notify` rules.
-func (e *Executor) deps(rule *ast.Rule, key string) []string {
+func (e *Executor) deps(rule *ast.Rule, key string) ([]string, error) {
 
 	var res []string
 
@@ -108,7 +109,7 @@ func (e *Executor) deps(rule *ast.Rule, key string) []string {
 
 	// no requirements?  Awesome
 	if !ok {
-		return res
+		return res, nil
 	}
 
 	//
@@ -118,18 +119,32 @@ func (e *Executor) deps(rule *ast.Rule, key string) []string {
 	// Handle both cases.
 	//
 
-	str, ok := requires.(string)
+	tok, ok := requires.(token.Token)
 	if ok {
-		res = append(res, str)
-		return res
+		val, err := e.expandToken(tok)
+		if err != nil {
+			return res, err
+		}
+		res = append(res, val)
+		return res, nil
 	}
 
-	strs, ok := requires.([]string)
+	toks, ok := requires.([]token.Token)
 	if ok {
-		return strs
+
+		for _, tmp := range toks {
+
+			val, err := e.expandToken(tmp)
+			if err != nil {
+				return res, err
+			}
+
+			res = append(res, val)
+		}
+		return res, nil
 	}
 
-	return res
+	return res, nil
 }
 
 // Check ensures the rules make sense.
@@ -193,8 +208,21 @@ func (e *Executor) Check() error {
 		// Get the dependencies of that rule, and the things
 		// it will notify in the event it is triggered.
 		//
-		deps := e.deps(rule, "require")
-		notify := e.deps(rule, "notify")
+		deps, dErr := e.deps(rule, "require")
+		if dErr != nil {
+			return dErr
+		}
+
+		notify, nErr := e.deps(rule, "notify")
+		if nErr != nil {
+			return nErr
+		}
+
+		// Log these.
+		log.Printf("[DEBUG] Rule %s require:[%s] notify:[%s]\n",
+			rule.Name,
+			strings.Join(deps, ","),
+			strings.Join(notify, ","))
 
 		// Join the pair of rules
 		var all []string
@@ -286,19 +314,10 @@ func (e *Executor) executeAssign(assign *ast.Assign) error {
 
 	key := assign.Key
 	val := assign.Value
-	ret := ""
-	var err error
 
-	switch val.Type {
-	case token.STRING:
-		ret = e.env.ExpandVariables(val.Literal)
-	case token.BACKTICK:
-		ret, err = e.env.ExpandTokenVariables(val)
-		if err != nil {
-			return err
-		}
-	default:
-		return fmt.Errorf("unhandled type in executeAssign %v", val)
+	ret, err := e.expandToken(val)
+	if err != nil {
+		return err
 	}
 
 	// Show what we're going to do.
@@ -477,7 +496,10 @@ func (e *Executor) executeSingleRule(rule *ast.Rule) error {
 	e.executed[rule.Name] = true
 
 	// Get the rule dependencies.
-	deps := e.deps(rule, "require")
+	deps, dErr := e.deps(rule, "require")
+	if dErr != nil {
+		return dErr
+	}
 
 	// Process each one
 	for _, dep := range deps {
@@ -533,7 +555,10 @@ func (e *Executor) executeSingleRule(rule *ast.Rule) error {
 		log.Printf("[INFO] Rule resulted in a change being made.")
 
 		// Now call any rules that we should notify.
-		notify := e.deps(rule, "notify")
+		notify, nErr := e.deps(rule, "notify")
+		if nErr != nil {
+			return nErr
+		}
 
 		// Process each one
 		for _, child := range notify {
@@ -558,42 +583,63 @@ func (e *Executor) executeSingleRule(rule *ast.Rule) error {
 	return nil
 }
 
-// runInternalModule executes the given rule with the loaded internal
-// module.
+// runInternalModule executes the given rule with the loaded internal module.
 func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (bool, error) {
 
-	// Check the arguments
-	err := helper.Check(rule.Params)
-	if err != nil {
-		return false, fmt.Errorf("error validating %s-module rule '%s' %s",
-			rule.Type, rule.Name, err.Error())
-	}
+	var err error
 
-	// Expand all params
+	// Expand all params into strings/arrays of strings
+	// into a new map.  We leave the rule-params alone.
 	params := make(map[string]interface{})
 
+	// So for each argument
 	for k, v := range rule.Params {
 
-		// param is a string?  expand it
-		str, ok := v.(string)
+		// param has a single value?
+		tok, ok := v.(token.Token)
 		if ok {
-			params[k] = e.env.ExpandVariables(str)
+			// expand the variables in the string
+			val := ""
+			val, err = e.expandToken(tok)
+			if err != nil {
+				return false, err
+			}
+
+			// save the value away
+			params[k] = val
 			continue
 		}
 
-		// param is a string array?  expand them
-		strs, ok2 := v.([]string)
+		// param has an array of values?
+		toks, ok2 := v.([]token.Token)
 		if ok2 {
-			var tmp []string
-			var t string
 
-			for _, x := range strs {
-				t = e.env.ExpandVariables(x)
-				tmp = append(tmp, t)
+			// temporary values
+			var tmp []string
+
+			for _, val := range toks {
+
+				str := ""
+
+				// expand the variables in the string
+				str, err = e.expandToken(val)
+				if err != nil {
+					return false, err
+				}
+
+				tmp = append(tmp, str)
 			}
+
 			params[k] = tmp
 			continue
 		}
+	}
+
+	// Check the arguments
+	err = helper.Check(params)
+	if err != nil {
+		return false, fmt.Errorf("error validating %s-module rule '%s' %s",
+			rule.Type, rule.Name, err.Error())
 	}
 
 	// Run the change
@@ -604,4 +650,29 @@ func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (
 	}
 
 	return changed, nil
+}
+
+// expandToken expands the given token into a string.
+//
+// This means handling the case where a token is a string, expanding
+// varibles, and when the token is a backtick-string then running the
+// command too.
+func (e *Executor) expandToken(tok token.Token) (string, error) {
+
+	ret := ""
+	var err error
+
+	switch tok.Type {
+	case token.STRING:
+		ret = e.env.ExpandVariables(tok.Literal)
+	case token.BACKTICK:
+		ret, err = e.env.ExpandTokenVariables(tok)
+		if err != nil {
+			return "", err
+		}
+	default:
+		return "", fmt.Errorf("unhandled type in executeAssign %v", tok)
+	}
+
+	return ret, nil
 }
