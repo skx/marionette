@@ -161,7 +161,7 @@ func TestBrokenDependencies(t *testing.T) {
 	//
 	params := make(map[string]interface{})
 	// -> missing rule
-	params["require"] = "foo"
+	params["require"] = token.Token{Type: token.STRING, Literal: "foo"}
 
 	//
 	// Create a rule with a single dependency
@@ -175,7 +175,11 @@ func TestBrokenDependencies(t *testing.T) {
 
 	//
 	// Create a rule with a pair of dependencies
-	params["require"] = []string{"foo", "bar"}
+	params["require"] = []token.Token{
+		token.Token{Type: token.STRING, Literal: "foo"},
+		token.Token{Type: token.STRING, Literal: "bar"},
+	}
+
 	r2 := []ast.Node{
 		&ast.Rule{Type: "file",
 			Name:      "test",

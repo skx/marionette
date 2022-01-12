@@ -101,7 +101,7 @@ func (e *Executor) SetMagicIncludeVars(path string) error {
 // Get the rules a rule depends upon, via the given key.
 //
 // This is used to find any `require` or `notify` rules.
-func (e *Executor) deps(rule *ast.Rule, key string) []string {
+func (e *Executor) deps(rule *ast.Rule, key string) ([]string, error) {
 
 	var res []string
 
@@ -109,7 +109,7 @@ func (e *Executor) deps(rule *ast.Rule, key string) []string {
 
 	// no requirements?  Awesome
 	if !ok {
-		return res
+		return res, nil
 	}
 
 	//
@@ -123,10 +123,10 @@ func (e *Executor) deps(rule *ast.Rule, key string) []string {
 	if ok {
 		val, err := e.expandToken(tok)
 		if err != nil {
-			panic(err)
+			return res, err
 		}
 		res = append(res, val)
-		return res
+		return res, nil
 	}
 
 	toks, ok := requires.([]token.Token)
@@ -136,15 +136,15 @@ func (e *Executor) deps(rule *ast.Rule, key string) []string {
 
 			val, err := e.expandToken(tmp)
 			if err != nil {
-				panic(err)
+				return res, err
 			}
 
 			res = append(res, val)
 		}
-		return res
+		return res, nil
 	}
 
-	return res
+	return res, nil
 }
 
 // Check ensures the rules make sense.
@@ -208,8 +208,15 @@ func (e *Executor) Check() error {
 		// Get the dependencies of that rule, and the things
 		// it will notify in the event it is triggered.
 		//
-		deps := e.deps(rule, "require")
-		notify := e.deps(rule, "notify")
+		deps, dErr := e.deps(rule, "require")
+		if dErr != nil {
+			return dErr
+		}
+
+		notify, nErr := e.deps(rule, "notify")
+		if nErr != nil {
+			return nErr
+		}
 
 		// Log these.
 		log.Printf("[DEBUG] Rule %s require:[%s] notify:[%s]\n",
@@ -489,7 +496,10 @@ func (e *Executor) executeSingleRule(rule *ast.Rule) error {
 	e.executed[rule.Name] = true
 
 	// Get the rule dependencies.
-	deps := e.deps(rule, "require")
+	deps, dErr := e.deps(rule, "require")
+	if dErr != nil {
+		return dErr
+	}
 
 	// Process each one
 	for _, dep := range deps {
@@ -545,7 +555,10 @@ func (e *Executor) executeSingleRule(rule *ast.Rule) error {
 		log.Printf("[INFO] Rule resulted in a change being made.")
 
 		// Now call any rules that we should notify.
-		notify := e.deps(rule, "notify")
+		notify, nErr := e.deps(rule, "notify")
+		if nErr != nil {
+			return nErr
+		}
 
 		// Process each one
 		for _, child := range notify {
@@ -586,7 +599,8 @@ func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (
 		tok, ok := v.(token.Token)
 		if ok {
 			// expand the variables in the string
-			val, err := e.expandToken(tok)
+			val := ""
+			val, err = e.expandToken(tok)
 			if err != nil {
 				return false, err
 			}
@@ -608,7 +622,7 @@ func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (
 				str := ""
 
 				// expand the variables in the string
-				str, err := e.expandToken(val)
+				str, err = e.expandToken(val)
 				if err != nil {
 					return false, err
 				}
