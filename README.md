@@ -31,19 +31,16 @@
 
 # marionette
 
-`marionette` is a proof of concept application which is designed to carry out system automation tasks, much like the well-known configuration-management application [puppet](https://puppet.com/).
+`marionette` is a simple command-line application which is designed to carry out system automation tasks.  It was designed to resemble the well-known configuration-management application [puppet](https://puppet.com/).
 
-The motivation behind this application is to investigate the minimum functionality required to be useful.  Writing something like puppet is a huge undertaking, but it might be that only a small number of core primitives are actually required in-practice to do useful things.
-
-As things stand we have a small number of built-in modules, providing the primitives required to turn a blank virtual machine into a host running a few services:
+`marionette` contains a small number of built-in modules, providing enough primitives to turn a blank virtual machine into a host running a few services:
 
 * Cloning git repositories.
 * Creating/modifying files/directories.
 * Fetching Docker images.
 * Installing and removing packages.
-  * Currently we support Debian GNU/Linux, and CentOS
-  * Using `apt-get`, `dpkg`, and `yum` as appropriate..
-* Triggering shell actions.
+  * Debian GNU/Linux, and CentOS are supported, using `apt-get`, `dpkg`, and `yum` as appropriate..
+* Executing shell commands.
 
 In the future it is possible that more modules will be added, but this will require users to file bug-reports requesting them, contribute code, or the author realizing something is necessary.
 
@@ -90,7 +87,7 @@ $MODULE [triggered] {
 
 Each rule starts by declaring the type of module which is being invoked, then there is a block containing "`key => value`" sections.  Different modules will accept/expect different keys to configure themselves.  (Unknown arguments will generally be ignored.)
 
-A rule can also contain the optional `triggered` attribute, which is discussed later.  (A rule with the `triggered` modifier is not executed unless it is explicitly invoked by another rule - think of it as a "handler" if you're used to `ansible`.)
+A rule may also contain an optional `triggered` attribute.  Rules which contain the `triggered` modifier are not executed unless explicitly invoked by another rule - think of it as a "handler" if you're used to `ansible`.
 
 Here is an example rule which executes a shell-command:
 
@@ -130,9 +127,9 @@ There are two keys which can be used to link rules together, to handle dependenc
 * `require`
   * This key contains either a single rule-name, or a list of any rule-names, which must be executed before _this_ one.
 * `notify`
-  * A list of any number of rules which should be notified, because _this_ rule resulted in a state-change.
+  * A list of any number of rules which should be notified, if the given rule resulted in a state-change.
 
-**Note** You only need to specify a rule-name to link rules for the purpose of managing dependencies.
+**Note** You only need to give rules names to link them for the purpose of managing dependencies.
 
 Imagine we wanted to create a new directory, and write a file there.  We could do that with a pair of rules:
 
@@ -229,7 +226,17 @@ The following list shows all the built-in functions that you may use (but only w
 
 More conditional primitives may be added if they appear to be necessary, or if users request them.
 
-**NOTE**: The conditionals are only supported when present in keys named `if` or `unless`.  This syntax is special for those two key-types.
+**NOTE**: The conditionals are only supported when present in keys named `if` or `unless`.  This syntax is special for those two key-types, however conditionals may also be applied to variable assignments and file inclusion:
+
+```
+# Include a file of rules, on a per-arch basis
+include "x86_64.rules" if equal( "${ARCH}","x86_64" )
+include "i386.rules"   if equal( "${ARCH}","i386" )
+
+# Setup a ${cmd} to download something, depending on what is present.
+let cmd = "curl --output ${dst} ${url}" if on_path("curl")
+let cmd = "wget -O ${dst} ${url}"       if on_path("wget")
+```
 
 
 ## Examples
@@ -245,7 +252,7 @@ You can find a small set of example recipes beneath the examples directory:
 
 ### Command Execution
 
-Backticks can be used to execute commands, but only in variable-assignments.
+Backticks can be used to execute commands, in variable-assignments and in parameters to rules.
 
 For example we might determine the system architecture like this:
 
@@ -260,7 +267,7 @@ Here `${arch}` expands to the output of the command, as you would expect, with a
 
 > **Note** `${ARCH}` is available by default, as noted in the [pre-declared variables](#pre-declared-variables) section.  This was just an example of command-execution.
 
-Using commands inside parameter values does **not** work.  This will fail:
+Using commands inside parameter values is also supported:
 
 ```
 file { name    => "set-todays-date",
@@ -268,27 +275,16 @@ file { name    => "set-todays-date",
        content => `/usr/bin/date` }
 ```
 
-However using a variable allows it to work the way you'd expect:
-
-```
-let today = `/bin/date`
-
-file { name    => "set-todays-date",
-       target  => "/tmp/today",
-       content => "${today}" }
-
-```
-
 The commands executed with the backticks have any embedded variables expanded _before_ they run, so this works as you'd expect:
 
 ```
 let fmt   = "+%Y"
-let today = `/bin/date ${fmt}`
 
 file { name    => "set-todays-date",
        target  => "/tmp/today",
-       content => "${today}" }
+       content => `/bin/date ${fmt}` }
 ```
+
 
 ### Include Files
 
@@ -302,8 +298,6 @@ let prefix="/etc/marionette"
 include "foo.in"
 include "${prefix}/test.in"
 ```
-
-Dependency resolution will work across modules, as the rule-names use a single global namespace - that might change in the future if it causes surprises.  Variables defined in files which are included are also available outside their scope.
 
 To simplify your recipe writing including other files may be made conditional,
 just like our rules:
