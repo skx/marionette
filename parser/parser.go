@@ -354,11 +354,11 @@ func (p *Parser) getName(params map[string]interface{}) string {
 	if ok {
 
 		// OK we did.  Was it a string?
-		str, ok := n.(string)
+		str, ok := n.(token.Token)
 		if ok {
 
 			// Yes.  Use it.
-			return str
+			return str.Literal
 		}
 	}
 
