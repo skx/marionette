@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"log"
 	"path/filepath"
+	"strings"
 
 	"github.com/skx/marionette/ast"
 	"github.com/skx/marionette/conditionals"
@@ -118,15 +119,29 @@ func (e *Executor) deps(rule *ast.Rule, key string) []string {
 	// Handle both cases.
 	//
 
-	str, ok := requires.(string)
+	tok, ok := requires.(token.Token)
 	if ok {
-		res = append(res, str)
+		val, err := e.expandToken(tok)
+		if err != nil {
+			panic(err)
+		}
+		res = append(res, val)
 		return res
 	}
 
-	strs, ok := requires.([]string)
+	toks, ok := requires.([]token.Token)
 	if ok {
-		return strs
+
+		for _, tmp := range toks {
+
+			val, err := e.expandToken(tmp)
+			if err != nil {
+				panic(err)
+			}
+
+			res = append(res, val)
+		}
+		return res
 	}
 
 	return res
@@ -195,6 +210,12 @@ func (e *Executor) Check() error {
 		//
 		deps := e.deps(rule, "require")
 		notify := e.deps(rule, "notify")
+
+		// Log these.
+		log.Printf("[DEBUG] Rule %s require:[%s] notify:[%s]\n",
+			rule.Name,
+			strings.Join(deps, ","),
+			strings.Join(notify, ","))
 
 		// Join the pair of rules
 		var all []string
@@ -286,19 +307,10 @@ func (e *Executor) executeAssign(assign *ast.Assign) error {
 
 	key := assign.Key
 	val := assign.Value
-	ret := ""
-	var err error
 
-	switch val.Type {
-	case token.STRING:
-		ret = e.env.ExpandVariables(val.Literal)
-	case token.BACKTICK:
-		ret, err = e.env.ExpandTokenVariables(val)
-		if err != nil {
-			return err
-		}
-	default:
-		return fmt.Errorf("unhandled type in executeAssign %v", val)
+	ret, err := e.expandToken(val)
+	if err != nil {
+		return err
 	}
 
 	// Show what we're going to do.
@@ -573,20 +585,13 @@ func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (
 		// param has a single value?
 		tok, ok := v.(token.Token)
 		if ok {
-			val := ""
-
-			switch tok.Type {
-			case token.STRING:
-				val = e.env.ExpandVariables(tok.Literal)
-			case token.BACKTICK:
-				val, err = e.env.ExpandTokenVariables(tok)
-				if err != nil {
-					return false, err
-				}
-			default:
-				return false, fmt.Errorf("unhandled type in runInternalModule %v", tok)
+			// expand the variables in the string
+			val, err := e.expandToken(tok)
+			if err != nil {
+				return false, err
 			}
 
+			// save the value away
 			params[k] = val
 			continue
 		}
@@ -602,17 +607,12 @@ func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (
 
 				str := ""
 
-				switch tok.Type {
-				case token.STRING:
-					str = e.env.ExpandVariables(val.Literal)
-				case token.BACKTICK:
-					str, err = e.env.ExpandTokenVariables(val)
-					if err != nil {
-						return false, err
-					}
-				default:
-					return false, fmt.Errorf("unhandled type in runInternalModule %v", tok)
+				// expand the variables in the string
+				str, err := e.expandToken(val)
+				if err != nil {
+					return false, err
 				}
+
 				tmp = append(tmp, str)
 			}
 
@@ -636,4 +636,29 @@ func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (
 	}
 
 	return changed, nil
+}
+
+// expandToken expands the given token into a string.
+//
+// This means handling the case where a token is a string, expanding
+// varibles, and when the token is a backtick-string then running the
+// command too.
+func (e *Executor) expandToken(tok token.Token) (string, error) {
+
+	ret := ""
+	var err error
+
+	switch tok.Type {
+	case token.STRING:
+		ret = e.env.ExpandVariables(tok.Literal)
+	case token.BACKTICK:
+		ret, err = e.env.ExpandTokenVariables(tok)
+		if err != nil {
+			return "", err
+		}
+	default:
+		return "", fmt.Errorf("unhandled type in executeAssign %v", tok)
+	}
+
+	return ret, nil
 }
