@@ -437,7 +437,7 @@ func TestModerateExample(t *testing.T) {
 	}
 
 	// Write out a rule to delete that file
-	del, err := WriteContent("file { target => \"" + trash + "\", state => \"absent\" }")
+	del, err := WriteContent("file { target => \"" + trash + "\", state => \"absent\", require => \"logger\" }   log { name => \"logger\", message => \"hello\" }")
 	if err != nil {
 		t.Fatalf("failed to write file-rule")
 	}
