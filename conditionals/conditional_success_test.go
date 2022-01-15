@@ -2,7 +2,11 @@
 
 package conditionals
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/skx/marionette/file"
+)
 
 func TestSuccessArgs(t *testing.T) {
 
@@ -29,8 +33,12 @@ func TestSuccessArgs(t *testing.T) {
 
 func TestSuccessCmd(t *testing.T) {
 
+	if !file.Exists("/bin/ls") {
+		t.Skip("/bin/ls not present")
+	}
+
 	// No failure
-	out, err := Success([]string{"ls"})
+	out, err := Success([]string{"/bin/ls"})
 	if err != nil {
 		t.Fatalf("failed to run ls:%s", err)
 	}

@@ -2,7 +2,11 @@
 
 package conditionals
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/skx/marionette/file"
+)
 
 func TestFailureArgs(t *testing.T) {
 
@@ -29,17 +33,21 @@ func TestFailureArgs(t *testing.T) {
 
 func TestFailureCmd(t *testing.T) {
 
+	if !file.Exists("/bin/ls") {
+		t.Skip("/bin/ls not present")
+	}
+
 	// No failure
-	out, err := Failure([]string{"ls"})
+	out, err := Failure([]string{"/bin/ls"})
 	if err != nil {
-		t.Fatalf("failed to run ls:%s", err)
+		t.Fatalf("failed to run /bin/ls: %s", err)
 	}
 	if out {
 		t.Fatalf("expected false, got true")
 	}
 
 	// failure
-	out, err = Failure([]string{"ls /no/such/file/or/directory"})
+	out, err = Failure([]string{"/bin/ls /no/such/file/or/directory"})
 	if err != nil {
 		t.Fatalf("failed to run ls:%s", err)
 	}
