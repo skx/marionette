@@ -9,6 +9,8 @@ import (
 	"github.com/skx/marionette/ast"
 	"github.com/skx/marionette/conditionals"
 	"github.com/skx/marionette/config"
+	"github.com/skx/marionette/file"
+	"github.com/skx/marionette/parser"
 	"github.com/skx/marionette/token"
 )
 
@@ -422,5 +424,86 @@ func TestUnless(t *testing.T) {
 	if !strings.Contains(err.Error(), "not available") {
 		t.Errorf("got an error, but not the right kind: %s", err.Error())
 	}
+
+}
+
+// Test a moderately complex program
+func TestModerateExample(t *testing.T) {
+
+	// Write some content to a file
+	trash, err := WriteContent("this will get deleted")
+	if err != nil {
+		t.Fatalf("failed to write file to be deleted")
+	}
+
+	// Write out a rule to delete that file
+	del, err := WriteContent("file { target => \"" + trash + "\", state => \"absent\" }")
+	if err != nil {
+		t.Fatalf("failed to write file-rule")
+	}
+
+	// Now write out a proper file
+	main, err := WriteContent(`let a = "1" if equal("one", "one");` +
+		`include "` + del + `" if equal("one", "one");` +
+		`include "` + del + `" if equal("one", "one");`)
+
+	if err != nil {
+		t.Fatalf("failed to write main file")
+	}
+
+	// Run the whole thing.
+	data, err := ioutil.ReadFile(main)
+	if err != nil {
+		t.Fatalf("failed to read main file")
+	}
+	// Create a new parser with our file content.
+	p := parser.New(string(data))
+
+	// Parse the rules
+	out, err := p.Parse()
+	if err != nil {
+		t.Fatalf("failed to parse: %s", err)
+	}
+
+	// Execute
+	ex := New(out.Recipe)
+
+	// Check for broken dependencies
+	err = ex.Check()
+	if err != nil {
+		t.Fatalf("failed to check rules:%s", err)
+	}
+
+	// Now execute!
+	err = ex.Execute()
+	if err != nil {
+		t.Fatalf("failed to run rules:%s", err)
+	}
+
+	// Now we've run the temporary file we created at the start
+	// should have been removed.
+	if file.Exists(trash) {
+		t.Fatalf("file should have been removed, but wasn't!")
+	}
+
+	os.Remove(main)
+	os.Remove(del)
+	// os.Remove(trash) - removed already :)
+
+}
+
+func WriteContent(input string) (string, error) {
+
+	tmpfile, err := ioutil.TempFile("", "marionette-")
+	if err != nil {
+		return "", err
+	}
+
+	d1 := []byte(input)
+	err = os.WriteFile(tmpfile.Name(), d1, 0644)
+	if err != nil {
+		return "", err
+	}
+	return tmpfile.Name(), nil
 
 }
