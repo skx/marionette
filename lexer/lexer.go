@@ -236,8 +236,14 @@ func (l *Lexer) peekChar() rune {
 
 // determinate whether the given character is legal within an identifier or not.
 func isIdentifier(ch rune) bool {
-	return !isWhitespace(ch) && ch != rune(',') && ch != rune('(') && ch != rune(')') && ch != rune('=') && !isEmpty(ch)
-
+	return !isWhitespace(ch) &&
+		ch != rune(',') &&
+		ch != rune('(') &&
+		ch != rune(')') &&
+		ch != rune('{') &&
+		ch != rune('}') &&
+		ch != rune('=') &&
+		!isEmpty(ch)
 }
 
 // is the character white space?
