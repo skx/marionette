@@ -239,3 +239,22 @@ func TestInclude(t *testing.T) {
 		}
 	}
 }
+
+// #86 - Test we can parse modules without spaces
+func TestModuleSpace(t *testing.T) {
+
+	input := `shell{command=>"id"}`
+
+	p := New(input)
+	out, err := p.Parse()
+
+	// This should be error-free
+	if err != nil {
+		t.Errorf("unexpected error parsing input '%s': %s", input, err.Error())
+	}
+
+	// We should have one result
+	if len(out.Recipe) != 1 {
+		t.Errorf("unexpected number of results")
+	}
+}
