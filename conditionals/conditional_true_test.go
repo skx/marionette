@@ -21,7 +21,7 @@ func TestTrueArgs(t *testing.T) {
 
 	_, err = True([]string{"foo", "bar"})
 	if err == nil {
-		t.Fatalf("expected error with two args, got %s", err.Error())
+		t.Fatalf("expected error with two args, got none")
 	}
 
 	_, err = True([]string{"foo", "bar", "baz"})
