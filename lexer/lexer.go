@@ -194,6 +194,9 @@ func (l *Lexer) readString() (string, error) {
 			if l.ch == rune('t') {
 				l.ch = '\t'
 			}
+			if l.ch == rune('\'') {
+				l.ch = '\''
+			}
 			if l.ch == rune('"') {
 				l.ch = '"'
 			}
