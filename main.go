@@ -66,8 +66,15 @@ func main() {
 
 	// Parse our command-line flags.
 	debug := flag.Bool("debug", false, "Be very verbose in logging.")
-	verbose := flag.Bool("verbose", false, "Show logs when executing")
+	verbose := flag.Bool("verbose", false, "Show logs when executing.")
+	version := flag.Bool("version", false, "Show our version number.")
 	flag.Parse()
+
+	// If we're showing the version, then do so and exit
+	if *version {
+		showVersion()
+		return
+	}
 
 	// By default we set the log-level to "USER", which will
 	// allow the user-generated messages from our log-module
