@@ -587,7 +587,17 @@ shell { name    => "restart the aplication",
       }
 ```
 
+By default commands are executed directly, unless they contain redirection-characters (">", or "<"), or the use of a pipe ("|").  If special characters are used then we instead invoke the command via `/bin/bash`:
 
+* `bash -c "${command}"`
+
+You may specify `shell => "true"` to force the use of a shell, despite the lack of redirection/pipe characters:
+
+```
+shell { shell   => "true",
+        command => "sed .. /etc/file.txt"
+      }
+```
 
 
 ## `user`

@@ -81,17 +81,49 @@ func (f *ShellModule) Execute(env *environment.Environment, args map[string]inte
 // All parameters are available, as is the string command to run.
 func (f *ShellModule) executeSingle(command string, args map[string]interface{}) error {
 
-	// Show what we're doing.
-	log.Printf("[INFO] Executing: %s", command)
+	//
+	// Should we run using a shell?
+	//
+	useShell := false
 
-	// Split on space to execute
+	//
+	// Does the user explicitly request the use of a shell?
+	//
+	shell := StringParam(args, "shell")
+	if strings.ToLower(shell) == "true" {
+		useShell = true
+	}
+
+	//
+	// If the user didn't explicitly specify a shell must be used
+	// we must do so anyway if we see a redirection, or the use of
+	// a pipe.
+	//
+	if strings.Contains(command, ">") || strings.Contains(command, "&") || strings.Contains(command, "|") || strings.Contains(command, "<") {
+		useShell = true
+	}
+
+	//
+	// By default we split on space to find the things to execute.
+	//
 	var bits []string
 	bits = strings.Split(command, " ")
 
-	// but if we see redirection, or the use of a pipe, use the shell instead
-	if strings.Contains(command, ">") || strings.Contains(command, "&") || strings.Contains(command, "|") || strings.Contains(command, "<") {
+	//
+	// But
+	//
+	//   If the user explicitly specified the need to use a shell.
+	//
+	// or
+	//
+	//   We found a redirection/similar then we must run via a shell.
+	//
+	if useShell {
 		bits = []string{"bash", "-c", command}
 	}
+
+	// Show what we're executing.
+	log.Printf("[DEBUG] CMD: %s", strings.Join(bits, " "))
 
 	// Now run
 	cmd := exec.Command(bits[0], bits[1:]...)
