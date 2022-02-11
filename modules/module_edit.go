@@ -76,6 +76,19 @@ func (e *EditModule) Execute(env *environment.Environment, args map[string]inter
 		}
 	}
 
+	// Search & replace.
+	search := StringParam(args, "search")
+	replace := StringParam(args, "replace")
+	if search != "" && replace != "" {
+		changed, err := e.SearchReplace(target, search, replace)
+		if err != nil {
+			return false, err
+		}
+		if changed {
+			ret = true
+		}
+	}
+
 	return ret, nil
 }
 
@@ -184,6 +197,70 @@ func (e *EditModule) RemoveLines(path string, pattern string) (bool, error) {
 		}
 	}
 
+	identical, err := file.Identical(tmpfile.Name(), path)
+	if err != nil {
+		return false, err
+	}
+
+	if identical {
+		return false, nil
+	}
+
+	// otherwise change
+	err = file.Copy(tmpfile.Name(), path)
+	return true, err
+}
+
+// SearchReplace performs a search and replace operation across all lines
+// of the given file.
+//
+// Searches are literal, rather than regexp.
+func (e *EditModule) SearchReplace(path string, search string, replace string) (bool, error) {
+
+	// If the target file doesn't exist then we cannot change it.
+	if !file.Exists(path) {
+		return false, nil
+	}
+
+	// Compile the regular expression
+	term, errRE := regexp.Compile(search)
+	if errRE != nil {
+		return false, errRE
+	}
+
+	// Open the input file
+	in, err := os.Open(path)
+	if err != nil {
+		return false, err
+	}
+	defer in.Close()
+
+	// Open a temporary file
+	tmpfile, err := ioutil.TempFile("", "marionette-")
+	if err != nil {
+		return false, err
+	}
+	defer os.Remove(tmpfile.Name())
+
+	// Process the input file line by line
+	scanner := bufio.NewScanner(in)
+	for scanner.Scan() {
+
+		// Get the line
+		line := scanner.Text()
+
+		// Perform any search-replace operation within the line
+		line = term.ReplaceAllString(line, replace)
+
+		// Write the (updated) line to the temporary file
+		_, er := tmpfile.WriteString(line + "\n")
+		if er != nil {
+			return false, er
+		}
+	}
+
+	// Now see if the content we wrote differs from the
+	// original input so we can signal a change, or not.
 	identical, err := file.Identical(tmpfile.Name(), path)
 	if err != nil {
 		return false, err
