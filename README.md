@@ -396,7 +396,19 @@ The following keys are supported:
 * `target` - Mandatory filename to edit.
 * `remove_lines` - Remove any lines of the file matching the specified regular expression.
 * `append_if_missing` - Append the given text if not already present in the file.
+* `search`
+* `replace`
+  * If both `search` and `replace` are non-empty then they will be used to update the content of the specified file.
+  * `search` is treated as a regular expression, for added flexibility.
 
+An example of changing a file might look like this:
+
+```
+edit { target  => "/etc/ssh/sshd_config",
+       search  => "PasswordAuthentication",
+       replace => "# PasswordAuthentication",
+}
+```
 
 
 ## `fail`
