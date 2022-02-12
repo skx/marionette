@@ -23,6 +23,7 @@
    * [log](#log)
    * [package](#package)
    * [shell](#shell)
+   * [sql](#sql)
    * [user](#user)
 * [Future Plans](#future-plans)
   * [See also](#see-also)
@@ -574,6 +575,34 @@ Valid parameters are:
   * In the case of a Debian system, for example, `apt-get update` will be executed.
 
 
+
+## `sql`
+
+The SQL-module allows you to run arbitrary SQL against a database.  Currently we support MySQL and SQLite3.  Two parameters are required `driver` and `dsn`, which are used to open the database connection.  For example:
+
+```
+sql {
+       driver => "sqlite3",
+       dsn    => "/tmp/sql.db",
+
+       # Memory based-SQLite could be used like so:
+       #  dsn   => "/tmp/foo.db?mode=memory",
+
+       # MySQL connection would look like this:
+       #
+       #   driver => "mysql",
+       #   dsn    => "user:password@(127.0.0.1:3306)/",
+}
+```
+
+To specify the query to run you should set one of the following two parameters:
+
+* `sql`
+  * Literal SQL to execute.
+* `sql_file`
+  * A file to read and execute in one execution.
+
+NOTE: You may find you need to append `multiStatements=true` to your DSN to ensure correct operation when reading SQL from a file.
 
 
 ## `shell`
