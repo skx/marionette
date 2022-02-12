@@ -21,6 +21,17 @@ func TestSqlArgs(t *testing.T) {
 	}
 
 	// setup a driver
+	args["driver"] = "moi"
+
+	err = s.Check(args)
+	if err == nil {
+		t.Fatalf("expected error due to unknown driver")
+	}
+	if !strings.Contains(err.Error(), "unknown driver") {
+		t.Fatalf("got error - but wrong one : %s", err)
+	}
+
+	// now we have a good driver
 	args["driver"] = "mysql"
 
 	// Missing 'dsn'

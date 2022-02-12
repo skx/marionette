@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"strings"
 
 	"github.com/skx/marionette/config"
 	"github.com/skx/marionette/environment"
@@ -24,13 +25,29 @@ type SQLModule struct {
 // Check is part of the module-api, and checks arguments.
 func (f *SQLModule) Check(args map[string]interface{}) error {
 
-	// Ensure we have a "driver" and a "dsn"
-	for _, arg := range []string{"driver", "dsn"} {
+	// Ensure we have a driver-name
+	driver, ok := args["driver"]
+	if !ok {
+		return fmt.Errorf("missing 'driver' parameter")
+	}
 
-		_, ok := args[arg]
-		if !ok {
-			return fmt.Errorf("missing '%s' parameter", arg)
+	// Ensure the driver is known to us.
+	drivers := []string{"mysql", "sqlite3"}
+
+	found := false
+	for _, d := range drivers {
+		if driver == d {
+			found = true
 		}
+	}
+	if !found {
+		return fmt.Errorf("unknown driver: %s - valid options are %s", driver, strings.Join(drivers, ","))
+	}
+
+	// Ensure we have a dsn-name
+	_, ok = args["dsn"]
+	if !ok {
+		return fmt.Errorf("missing 'dsn' parameter")
 	}
 
 	// We must have one of "sql" or "sql_file"
