@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"io/ioutil"
+	"log"
 
 	"github.com/skx/marionette/config"
 	"github.com/skx/marionette/environment"
@@ -83,9 +84,31 @@ func (f *SQLModule) Execute(env *environment.Environment, args map[string]interf
 	}
 
 	// Now actually run the SQL
-	_, execErr := db.Exec(sqlText)
+	res, execErr := db.Exec(sqlText)
 	if execErr != nil {
 		return false, execErr
+	}
+
+	// Try to see if we can get a useful output.
+	rows, rErr := res.RowsAffected()
+	ins, iErr := res.LastInsertId()
+
+	// Show rows-affected, or the appropriate error.
+	//
+	// NOTE: An error here doesn't break our module invocation.
+	if rErr == nil {
+		log.Printf("[DEBUG] sql - affected rows  %d", rows)
+	} else {
+		log.Printf("[DEBUG] sql - affected rows error %s", rErr)
+	}
+
+	// Show the last insert-id, or the appropriate error.
+	//
+	// NOTE: An error here doesn't break our module invocation.
+	if iErr == nil {
+		log.Printf("[DEBUG] sql - last insert id %d", ins)
+	} else {
+		log.Printf("[DEBUG] sql - last insert error %s", iErr)
 	}
 
 	// Return no error.
