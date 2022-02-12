@@ -578,7 +578,7 @@ Valid parameters are:
 
 ## `sql`
 
-The SQL-module allows you to run arbitrary SQL against a database.  Currently we support MySQL and SQLite3.  Two parameters are required `driver` and `dsn`, which are used to open the database connection.  For example:
+The SQL-module allows you to run arbitrary SQL against a database.  Two parameters are required `driver` and `dsn`, which are used to open the database connection.  For example:
 
 ```
 sql {
@@ -594,6 +594,12 @@ sql {
        #   dsn    => "user:password@(127.0.0.1:3306)/",
 }
 ```
+
+We support the following drivers:
+
+* `mysql`
+* `postgres`
+* `sqlite3`
 
 To specify the query to run you should set one of the following two parameters:
 

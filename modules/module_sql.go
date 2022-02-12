@@ -12,6 +12,7 @@ import (
 
 	// TODO - more?
 	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -32,7 +33,7 @@ func (f *SQLModule) Check(args map[string]interface{}) error {
 	}
 
 	// Ensure the driver is known to us.
-	drivers := []string{"mysql", "sqlite3"}
+	drivers := []string{"mysql", "postgres", "sqlite3"}
 
 	found := false
 	for _, d := range drivers {
