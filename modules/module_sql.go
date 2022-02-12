@@ -43,7 +43,7 @@ func (f *SQLModule) Check(args map[string]interface{}) error {
 	}
 
 	if count != 1 {
-		return fmt.Errorf("You must specify one of 'sql' or 'sql_file'")
+		return fmt.Errorf("you must specify one of 'sql' or 'sql_file'")
 	}
 
 	return nil
