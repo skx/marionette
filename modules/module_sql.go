@@ -38,7 +38,7 @@ func (f *SQLModule) Check(args map[string]interface{}) error {
 	for _, arg := range []string{"sql", "sql_file"} {
 		_, ok := args[arg]
 		if ok {
-			count += 1
+			count++
 		}
 	}
 
@@ -57,8 +57,8 @@ func (f *SQLModule) Execute(env *environment.Environment, args map[string]interf
 	driver := StringParam(args, "driver")
 
 	// One of these will be valid
-	sql_text := StringParam(args, "sql")
-	sql_file := StringParam(args, "file")
+	sqlText := StringParam(args, "sql")
+	sqlFile := StringParam(args, "file")
 
 	// Open the database
 	db, err := sql.Open(driver, dsn)
@@ -71,21 +71,21 @@ func (f *SQLModule) Execute(env *environment.Environment, args map[string]interf
 
 	// We're either running a query with a literal string,
 	// or reading from a file.
-	if sql_file != "" {
+	if sqlFile != "" {
 
 		// If reading from a file then do so.
-		data, err := ioutil.ReadFile(sql_file)
+		data, err := ioutil.ReadFile(sqlFile)
 		if err != nil {
 			return false, err
 		}
 
-		sql_text = string(data)
+		sqlText = string(data)
 	}
 
 	// Now actually run the SQL
-	_, err := db.Exec(sql_text)
-	if err != nil {
-		return false, err
+	_, execErr := db.Exec(sqlText)
+	if execErr != nil {
+		return false, execErr
 	}
 
 	// Return no error.
