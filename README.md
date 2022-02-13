@@ -19,6 +19,7 @@
    * [file](#file)
    * [git](#git)
    * [group](#group)
+   * [http](#http)
    * [link](#link)
    * [log](#log)
    * [package](#package)
@@ -514,6 +515,34 @@ group { group => "sysadmin",
 * `state` should be one of `absent` or `present`, depending upon whether you want to add or remove the group.
 
 
+
+## `http`
+
+The `http` module allows you to make HTTP requests.
+
+Example:
+
+```
+http { url => "https://api.github.com/user",
+       method => "PATCH",
+       headers => [
+         "Authorization: token ${AUTH_TOKEN}",
+         "Accept: application/vnd.github.v3+json",
+       ],
+       body => "{\"name\":\"new name\"}",
+       expect => "200" }
+```
+
+Valid parameters are:
+
+* `url` is a mandatory parameter, and specifies the URL to make the HTTP request to.
+* `method` - If this is set, the HTTP request will use this method, otherwise a `GET` request is made.
+* `headers` - If this is set, the headers provided will be sent with the request.
+* `body` - If this is set, this will be the body of the HTTP request.
+* `expect` - If this is set, an error will be triggered if the response status code does not match the expected status code.
+  * If `expect` is not set, an error will be triggered for any non 2xx response status code.
+
+The `http` module is always regarded as having made a change on a successful request.
 
 ## `link`
 
