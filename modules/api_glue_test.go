@@ -24,7 +24,7 @@ func TestModules(t *testing.T) {
 	}
 
 	count := len(modules)
-	if count != 15 {
+	if count != 16 {
 		t.Fatalf("unexpected number of modules: %d", len(modules))
 	}
 
