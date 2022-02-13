@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"database/sql"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -505,5 +506,112 @@ func WriteContent(input string) (string, error) {
 		return "", err
 	}
 	return tmpfile.Name(), nil
+
+}
+
+// TestSQLRun executes a marionette file, and will confirm it creates
+// what we expect
+func TestSQLRun(t *testing.T) {
+
+	// Create a temporary file-name
+	tmpfile, err := ioutil.TempFile("", "marionette-")
+	if err != nil {
+		t.Fatalf("create a temporary file failed")
+	}
+	os.Remove(tmpfile.Name())
+
+	// Ensure that the file doesn't exist
+	if file.Exists(tmpfile.Name()) {
+		t.Fatalf("the file we removed is present still?")
+	}
+
+	//
+	// Module source we're gonna execute.
+	//
+	src := `
+sql {
+     driver   => "sqlite3",
+     dsn      => "file:#PATH#",
+     sql      => "
+
+CREATE TABLE IF NOT EXISTS contacts (
+        contact_id INTEGER PRIMARY KEY,
+        first_name TEXT NOT NULL,
+        last_name TEXT NOT NULL,
+        email TEXT NOT NULL
+);
+
+INSERT INTO contacts( first_name, last_name, email ) VALUES( 'steve', 'kemp', 'steve@steve.fi');
+INSERT INTO contacts( first_name, last_name, email ) VALUES( 'nobody', 'special', 'steve@example.com');
+",
+}
+`
+
+	// FILE -> the temporary filename
+	src = strings.ReplaceAll(src, "#PATH#", tmpfile.Name())
+
+	// Create a new parser with our content.
+	p := parser.New(string(src))
+
+	// Parse the rules
+	out, err := p.Parse()
+	if err != nil {
+		t.Fatalf("failed to parse: %s", err)
+	}
+
+	// Execute
+	ex := New(out.Recipe)
+
+	// Check for broken dependencies
+	err = ex.Check()
+	if err != nil {
+		t.Fatalf("failed to check rules:%s", err)
+	}
+
+	// Now execute!
+	err = ex.Execute()
+	if err != nil {
+		t.Fatalf("failed to run rules:%s", err)
+	}
+
+	// Ensure that we now have a generated SQLite file
+	if !file.Exists(tmpfile.Name()) {
+		t.Fatalf("we expected SQLite file to be created")
+	}
+
+	// Right now open and find the contents.
+	db, err := sql.Open("sqlite3", tmpfile.Name())
+	if err != nil {
+		t.Fatalf("failed to open sqlite3 file")
+	}
+
+	row, err := db.Query("SELECT * FROM contacts WHERE email NOT LIKE '%exampl%'")
+	if err != nil {
+		t.Fatalf("failed to prepare SQL query")
+	}
+	defer row.Close()
+
+	for row.Next() {
+
+		var id string
+		var first string
+		var last string
+		var mail string
+
+		row.Scan(&id, &first, &last, &mail)
+
+		if first != "steve" {
+			t.Fatalf("unexpected SQL result:%s", first)
+		}
+		if last != "kemp" {
+			t.Fatalf("unexpected SQL result:%s", last)
+		}
+		if mail != "steve@steve.fi" {
+			t.Fatalf("unexpected SQL result:%s", mail)
+		}
+	}
+
+	db.Close()
+	os.Remove(tmpfile.Name())
 
 }
