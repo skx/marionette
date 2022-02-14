@@ -439,7 +439,7 @@ func (p *Parser) readValue(name string) (interface{}, error) {
 	}
 
 	// If we got a single string or backtick we're good
-	if tok.Type == token.STRING || tok.Type == token.BACKTICK {
+	if tok.Type == token.BOOLEAN || tok.Type == token.NUMBER || tok.Type == token.STRING || tok.Type == token.BACKTICK {
 		return tok, nil
 	}
 
