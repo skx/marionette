@@ -15,6 +15,8 @@ package lexer
 
 import (
 	"errors"
+	"fmt"
+	"os"
 	"strings"
 	"unicode"
 
@@ -23,6 +25,7 @@ import (
 
 // Lexer is used as the lexer for our deployr "language".
 type Lexer struct {
+	debug        bool                 // dump tokens as they're read?
 	position     int                  // current character position
 	readPosition int                  // next character position
 	ch           rune                 // current character
@@ -32,9 +35,16 @@ type Lexer struct {
 
 // New a Lexer instance from string input.
 func New(input string) *Lexer {
-	l := &Lexer{characters: []rune(input),
-		lookup: make(map[rune]token.Token)}
+	l := &Lexer{
+		characters: []rune(input),
+		debug:      false,
+		lookup:     make(map[rune]token.Token),
+	}
 	l.readChar()
+
+	if os.Getenv("DEBUG_LEXER") == "true" {
+		l.debug = true
+	}
 
 	//
 	// Lookup map of simple token-types.
@@ -62,9 +72,23 @@ func (l *Lexer) readChar() {
 	l.readPosition++
 }
 
-// NextToken to read next token, skipping the white space.
+// NextToken consumes and returns the next token from our input.
+//
+// It is a simple method which can optionally dump the tokens to the console
+// if $DEBUG_LEXER is non-empty.
 func (l *Lexer) NextToken() token.Token {
 
+	tok := l.nextTokenReal()
+	if l.debug {
+		fmt.Printf("%v\n", tok)
+	}
+
+	return tok
+}
+
+// nextTokenReal does the real work of consuming and returning the next
+// token from our input string.
+func (l *Lexer) nextTokenReal() token.Token {
 	var tok token.Token
 	l.skipWhitespace()
 

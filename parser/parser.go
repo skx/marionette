@@ -18,6 +18,7 @@ package parser
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/google/uuid"
 	"github.com/skx/marionette/ast"
@@ -28,6 +29,9 @@ import (
 
 // Parser holds our state.
 type Parser struct {
+	// Should we output our program?
+	debug bool
+
 	// l is the handle to our lexer
 	l *lexer.Lexer
 
@@ -45,6 +49,12 @@ func New(input string) *Parser {
 
 	// Create our object, and lexer
 	p := &Parser{}
+
+	// Should we output things to the console?
+	if os.Getenv("DEBUG_PARSER") == "true" {
+		p.debug = true
+	}
+
 	p.l = lexer.New(input)
 
 	// Ensure we're ready to process tokens.
@@ -86,6 +96,10 @@ func (p *Parser) Parse() (ast.Program, error) {
 				return program, err
 			}
 
+			if p.debug {
+				fmt.Printf("%v\n", let)
+			}
+
 			// Add our rule onto the program, and continue
 			program.Recipe = append(program.Recipe, let)
 			continue
@@ -101,6 +115,10 @@ func (p *Parser) Parse() (ast.Program, error) {
 				return program, err
 			}
 
+			if p.debug {
+				fmt.Printf("%v\n", inc)
+			}
+
 			// Add our rule onto the program, and continue
 			program.Recipe = append(program.Recipe, inc)
 			continue
@@ -112,6 +130,10 @@ func (p *Parser) Parse() (ast.Program, error) {
 		tmp, err = p.parseBlock(tok.Literal)
 		if err != nil {
 			return program, err
+		}
+
+		if p.debug {
+			fmt.Printf("%v\n", tmp)
 		}
 
 		// Add our rule onto the program, and continue
@@ -131,6 +153,11 @@ func (p *Parser) parseLet() (*ast.Assign, error) {
 
 	// name
 	name := p.nextToken()
+
+	// name must be an identifier - not a string, number, boolean, etc.
+	if name.Type != token.IDENT {
+		return let, fmt.Errorf("assignment can only be made to identifiers, got %v", name)
+	}
 
 	// =
 	t := p.nextToken()
