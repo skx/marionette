@@ -665,6 +665,12 @@ func (e *Executor) expandToken(tok token.Token) (string, error) {
 	switch tok.Type {
 	case token.STRING:
 		ret = e.env.ExpandVariables(tok.Literal)
+	case token.NUMBER:
+		// A number returns the string-value of the token
+		ret = tok.Literal
+	case token.BOOLEAN:
+		// A boolean returns the string-value of itself
+		ret = tok.Literal
 	case token.BACKTICK:
 		ret, err = e.env.ExpandTokenVariables(tok)
 		if err != nil {
