@@ -15,6 +15,7 @@ package lexer
 
 import (
 	"errors"
+	"strings"
 	"unicode"
 
 	"github.com/skx/marionette/token"
@@ -86,7 +87,7 @@ func (l *Lexer) NextToken() token.Token {
 	val, ok := l.lookup[l.ch]
 	if ok {
 		// Yes, then skip the character itself, and return the
-		// value we found
+		// value we found.
 		l.readChar()
 		return val
 
@@ -124,14 +125,59 @@ func (l *Lexer) NextToken() token.Token {
 			tok.Literal = err.Error()
 		}
 	default:
+		// is it a number?
+		if isDigit(l.ch) {
+			// Read it.
+			tok = l.readDecimal()
+			return tok
+		}
+
+		// is it an ident?
 		tok.Literal = l.readIdentifier()
 		tok.Type = token.IDENT
+
+		// We don't have keywords, but we'll convert
+		// the ident "true" or "false" into a boolean-type.
+		if tok.Literal == "true" || tok.Literal == "false" {
+			tok.Type = token.BOOLEAN
+		}
+
 		return tok
 	}
 
 	// skip the character we've processed, and return the value
 	l.readChar()
 	return tok
+}
+
+// readDecimal returns a token consisting of decimal numbers, base 10, 2, or
+// 16.
+func (l *Lexer) readDecimal() token.Token {
+
+	str := ""
+
+	// We usually just accept digits.
+	accept := "0123456789"
+
+	// But if we have `0x` as a prefix we accept hexadecimal instead.
+	if l.ch == '0' && l.peekChar() == 'x' {
+		accept = "0x123456789abcdefABCDEF"
+	}
+
+	// If we have `0b` as a prefix we accept binary digits only.
+	if l.ch == '0' && l.peekChar() == 'b' {
+		accept = "b01"
+	}
+
+	// While we have a valid character append it to our
+	// result and keep reading/consuming characters.
+	for strings.Contains(accept, string(l.ch)) {
+		str += string(l.ch)
+		l.readChar()
+	}
+
+	// Return the number.
+	return token.Token{Literal: str, Type: token.NUMBER}
 }
 
 // read Identifier
@@ -238,6 +284,8 @@ func (l *Lexer) peekChar() rune {
 }
 
 // determinate whether the given character is legal within an identifier or not.
+//
+// This is very permissive.
 func isIdentifier(ch rune) bool {
 	return !isWhitespace(ch) &&
 		ch != rune(',') &&
@@ -249,12 +297,17 @@ func isIdentifier(ch rune) bool {
 		!isEmpty(ch)
 }
 
-// is the character white space?
+// Is the character white space?
 func isWhitespace(ch rune) bool {
 	return unicode.IsSpace(ch)
 }
 
-// is the given character empty?
+// Is the given character empty?
 func isEmpty(ch rune) bool {
 	return rune(0) == ch
+}
+
+// Is the given character a digit?
+func isDigit(ch rune) bool {
+	return unicode.IsDigit(ch)
 }
