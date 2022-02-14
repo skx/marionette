@@ -173,7 +173,7 @@ func (p *Parser) parseLet() (*ast.Assign, error) {
 		return let, fmt.Errorf("unterminated assignment")
 	}
 
-	// assignment only handles strings/command-ouptut
+	// assignment only handles strings/command-output
 	if val.Type != token.STRING && val.Type != token.BACKTICK {
 		return let, fmt.Errorf("unexpected value for variable assignment; expected string or backtick, got %v", val)
 	}
@@ -465,7 +465,7 @@ func (p *Parser) readValue(name string) (interface{}, error) {
 		return nil, fmt.Errorf("found end of file processing block %s", name)
 	}
 
-	// If we got a single string or backtick we're good
+	// If we got a simple type we're good
 	if tok.Type == token.BOOLEAN || tok.Type == token.NUMBER || tok.Type == token.STRING || tok.Type == token.BACKTICK {
 		return tok, nil
 	}
@@ -493,8 +493,11 @@ func (p *Parser) readValue(name string) (interface{}, error) {
 			continue
 		}
 
-		// If this is a string/backtick-string then append the token
-		if tok.Type == token.STRING || tok.Type == token.BACKTICK {
+		// If this is a simple type then append the token
+		if tok.Type == token.STRING ||
+			tok.Type == token.NUMBER ||
+			tok.Type == token.BOOLEAN ||
+			tok.Type == token.BACKTICK {
 			result = append(result, tok)
 		}
 

@@ -18,16 +18,10 @@ type LogModule struct {
 // Check is part of the module-api, and checks arguments.
 func (f *LogModule) Check(args map[string]interface{}) error {
 
-	// Ensure we have a message to log.
+	// Ensure we have a message, or messages, to log.
 	_, ok := args["message"]
 	if !ok {
 		return fmt.Errorf("missing 'message' parameter")
-	}
-
-	// Ensure the message is a string
-	msg := StringParam(args, "message")
-	if msg == "" {
-		return fmt.Errorf("failed to convert 'message' to string")
 	}
 
 	return nil
@@ -37,17 +31,24 @@ func (f *LogModule) Check(args map[string]interface{}) error {
 func (f *LogModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
 
 	// Get the message
-	str := StringParam(args, "message")
-	if str == "" {
-		return false, fmt.Errorf("missing 'message' parameter")
+	arg := args["message"]
+
+	// string?
+	str, ok := arg.(string)
+	if ok {
+		log.Print("[USER] " + str)
+		return true, nil
 	}
 
-	// Show the message
-	log.Print("[USER] " + str)
+	// otherwise we assume it is an array of commands
+	strs := arg.([]string)
 
-	// Log always results in a change
+	// process each argument
+	for _, str = range strs {
+		log.Print("[USER] " + str)
+	}
+
 	return true, nil
-
 }
 
 // init is used to dynamically register our module.

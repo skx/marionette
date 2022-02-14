@@ -573,7 +573,7 @@ Example usage:
 log { message => "I'm ${USER} running on ${HOSTNAME}" }
 ```
 
-The only valid parameter is `message`, which must be a single string.
+The only valid parameter is `message`, which may be either a single value, or an array of values.
 
 See also [fail](#fail), which will log a message but then terminate execution.
 
