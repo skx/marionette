@@ -30,8 +30,13 @@ func (f *LogModule) Check(args map[string]interface{}) error {
 // Execute is part of the module-api, and is invoked to run a rule.
 func (f *LogModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
 
-	// Get the message
-	arg := args["message"]
+	// Get the message/messages to log.
+	arg, ok := args["message"]
+
+	// Ensure that we've got something
+	if !ok {
+		return false, fmt.Errorf("missing 'message' parameter")
+	}
 
 	// string?
 	str, ok := arg.(string)
