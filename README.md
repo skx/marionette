@@ -374,7 +374,8 @@ docker { image => "alpine:latest" }
 The following keys are supported:
 
 * `image` - The image/images to fetch.
-* `force` - If this is set to "yes" then we fetch the image even if it appears to be available locally already.
+* `force`
+  * If this is set to `true` then we fetch the image even if it appears to be available locally already.
 
 **NOTE**: We don't support private registries, or the use of authentication.
 
@@ -600,7 +601,7 @@ Valid parameters are:
 
 * `package` is a mandatory parameter, containing the package, or list of packages.
 * `state` - Should be one of `installed` or `absent`, depending upon whether you want to install or uninstall the named package(s).
-* `update` - If this is set to `yes` then the system will be updated prior to installation.
+* `update` - If this is set to `true` then the system will be updated prior to installation.
   * In the case of a Debian system, for example, `apt-get update` will be executed.
 
 
@@ -667,10 +668,10 @@ By default commands are executed directly, unless they contain redirection-chara
 
 * `bash -c "${command}"`
 
-You may specify `shell => "true"` to force the use of a shell, despite the lack of redirection/pipe characters:
+You may specify `shell => true` to force the use of a shell, despite the lack of redirection/pipe characters:
 
 ```
-shell { shell   => "true",
+shell { shell   => true,
         command => "sed .. /etc/file.txt"
       }
 ```

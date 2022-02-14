@@ -47,7 +47,7 @@ docker {
                      "grafana/grafana:latest",
                      "hertzg/rtl_433:latest",
                    ],
-          force => "yes",
+          force  => true,
           notify => "temperature:restart"
 }
 
