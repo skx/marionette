@@ -17,6 +17,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -26,6 +27,7 @@ import (
 // Lexer is used as the lexer for our deployr "language".
 type Lexer struct {
 	debug        bool                 // dump tokens as they're read?
+	decimal      bool                 // convert numbers to decimal?
 	position     int                  // current character position
 	readPosition int                  // next character position
 	ch           rune                 // current character
@@ -38,12 +40,16 @@ func New(input string) *Lexer {
 	l := &Lexer{
 		characters: []rune(input),
 		debug:      false,
+		decimal:    false,
 		lookup:     make(map[rune]token.Token),
 	}
 	l.readChar()
 
 	if os.Getenv("DEBUG_LEXER") == "true" {
 		l.debug = true
+	}
+	if os.Getenv("DECIMAL_NUMBERS") == "true" {
+		l.decimal = true
 	}
 
 	//
@@ -200,8 +206,22 @@ func (l *Lexer) readDecimal() token.Token {
 		l.readChar()
 	}
 
-	// Return the number.
-	return token.Token{Literal: str, Type: token.NUMBER}
+	// Don't convert the number to decimal - just use the literal value.
+	if !l.decimal {
+		return token.Token{Type: token.NUMBER, Literal: str}
+	}
+
+	// OK convert to an integer, which we'll later turn to a string.
+	//
+	// We do this so we can convert 0xff -> "255", or "0b0011" to "3".
+	val, err := strconv.ParseInt(str, 0, 64)
+	if err != nil {
+		tok := token.Token{Type: token.ILLEGAL, Literal: err.Error()}
+		return tok
+	}
+
+	// Now return that number as a string.
+	return token.Token{Type: token.NUMBER, Literal: fmt.Sprintf("%d", val)}
 }
 
 // read Identifier

@@ -68,6 +68,7 @@ func main() {
 	dL := flag.Bool("dl", false, "Debug the lexer?")
 	dP := flag.Bool("dp", false, "Debug the parser?")
 
+	decimal := flag.Bool("decimal", true, "Convert numbers to decimal, automatically.")
 	debug := flag.Bool("debug", false, "Be very verbose in logging.")
 	verbose := flag.Bool("verbose", false, "Show logs when executing.")
 	version := flag.Bool("version", false, "Show our version number.")
@@ -90,6 +91,9 @@ func main() {
 	}
 	if *dP {
 		os.Setenv("DEBUG_PARSER", "true")
+	}
+	if *decimal {
+		os.Setenv("DECIMAL_NUMBERS", "true")
 	}
 
 	//

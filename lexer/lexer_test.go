@@ -295,3 +295,28 @@ func Test15Assignment(t *testing.T) {
 		i++
 	}
 }
+
+// TestInteger tests that we parse integers appropriately.
+func TestInteger(t *testing.T) {
+
+	type TestCase struct {
+		input  string
+		output string
+	}
+
+	tests := []TestCase{
+		{input: "3", output: "3"},
+		{input: "0xff", output: "255"},
+		{input: "0b11111111", output: "255"},
+	}
+
+	for _, tst := range tests {
+
+		lex := New(tst.input)
+		tok := lex.NextToken()
+
+		if tok.Literal != tst.output {
+			t.Fatalf("error lexing %s - expected:%s got:%s", tst.input, tst.output, tok.Literal)
+		}
+	}
+}
