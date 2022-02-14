@@ -1,6 +1,7 @@
 package lexer
 
 import (
+	"os"
 	"testing"
 
 	"github.com/skx/marionette/token"
@@ -298,6 +299,7 @@ func Test15Assignment(t *testing.T) {
 
 // TestInteger tests that we parse integers appropriately.
 func TestInteger(t *testing.T) {
+	os.Setenv("DECIMAL_NUMBERS", "true")
 
 	type TestCase struct {
 		input  string
