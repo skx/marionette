@@ -16,13 +16,18 @@ func FuzzParser(f *testing.F) {
 	// invalid entries
 	f.Add([]byte("let"))
 	f.Add([]byte("3="))
+	f.Add([]byte("let false=\"steve\" "))
 
 	// assignments
 	f.Add([]byte("let foo=\"bar\""))
+	f.Add([]byte("let foo=3"))
+	f.Add([]byte("let foo=true"))
+	f.Add([]byte("let foo=false"))
 	f.Add([]byte("let id=`/usr/bin/id -u`"))
 
 	// blocks
-	f.Add([]byte(`shell { command => "/usr/bin/uptime" } `))
+	f.Add([]byte(`shell { command => "/usr/bin/uptime", shell => true } `))
+	f.Add([]byte(`shell { command => "/usr/bin/uptime", shell => "true" } `))
 	f.Add([]byte(`shell { command => [ "/usr/bin/uptime", "/usr/bin/id" ] } `))
 
 	// block with conditions
@@ -37,6 +42,8 @@ func FuzzParser(f *testing.F) {
 	// report those known-bad things.
 	known := []string{
 		"expected",
+		"expected identifier name after conditional",
+		"assignment can only be made to identifiers",
 		"illegal token",
 		"end of file",
 		"unterminated assignment",

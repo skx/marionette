@@ -333,5 +333,5 @@ func isEmpty(ch rune) bool {
 
 // Is the given character a digit?
 func isDigit(ch rune) bool {
-	return unicode.IsDigit(ch)
+	return rune('0') <= ch && ch <= rune('9')
 }
