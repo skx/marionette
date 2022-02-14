@@ -30,6 +30,9 @@ func TestAssignment(t *testing.T) {
 		"let a=\"3\" if     true(",
 		"let a=\"3\" if     true(/bin/ls",
 		"let a=\"3\" if     true(/bin/ls,",
+		"let 3=\"3\"",
+		"let false=\"3\"",
+		"let true=\"3\"",
 	}
 
 	// Ensure each one fails
@@ -48,6 +51,8 @@ func TestAssignment(t *testing.T) {
 		"let x = `/bin/true`",
 		"let x = `/bin/true` if equal(\"a\",\"a\")",
 		"let a = \"boo\"",
+		"let _false_ = \"ok\"",
+		"let _true_like = \"ok\"",
 	}
 
 	// Ensure each one succeeds
