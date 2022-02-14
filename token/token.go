@@ -4,10 +4,10 @@ package token
 
 import "fmt"
 
-// Type is a string
+// Type is a string.
 type Type string
 
-// Token struct represent the lexer token
+// Token struct represent the token which is returned from the lexer.
 type Token struct {
 	Type    Type
 	Literal string
@@ -15,20 +15,25 @@ type Token struct {
 
 // pre-defined TokenTypes
 const (
+	// Things
 	ASSIGN   = "="
 	BACKTICK = "`"
 	COMMA    = ","
 	EOF      = "EOF"
-	IDENT    = "IDENT"
-	ILLEGAL  = "ILLEGAL"
 	LASSIGN  = "=>"
 	LBRACE   = "{"
+	LPAREN   = "("
 	LSQUARE  = "["
 	RBRACE   = "}"
-	RSQUARE  = "]"
-	LPAREN   = "("
 	RPAREN   = ")"
-	STRING   = "STRING"
+	RSQUARE  = "]"
+
+	// types
+	BOOLEAN = "BOOLEAN"
+	IDENT   = "IDENT"
+	ILLEGAL = "ILLEGAL"
+	NUMBER  = "NUMBER"
+	STRING  = "STRING"
 )
 
 // String turns the token into a readable string
