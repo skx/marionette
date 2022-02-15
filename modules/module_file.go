@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"text/template"
 
 	"github.com/skx/marionette/config"
@@ -50,6 +51,12 @@ func (f *FileModule) Execute(env *environment.Environment, args map[string]inter
 
 	// Get the target (i.e. file/directory we're operating upon.)
 	target := StringParam(args, "target")
+
+	// Get the directory-name
+	dir := filepath.Dir(target)
+	if !file.Exists(dir) {
+		return false, fmt.Errorf("error: directory %s does not exist, when processing %s", dir, target)
+	}
 
 	// We assume we're creating the file, but we might be removing it.
 	state := StringParam(args, "state")
