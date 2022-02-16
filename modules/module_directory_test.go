@@ -109,4 +109,68 @@ func TestDirectoryMultiple(t *testing.T) {
 		t.Fatalf("expected to see no change when removing absent directories")
 	}
 
+	// cleanup
+	os.RemoveAll(dir)
+}
+
+// Issue 104
+func TestDirectoryMkdirP(t *testing.T) {
+
+	// Create a temporary directory
+	dir, err := os.MkdirTemp("", "t_d_m_p")
+	if err != nil {
+		t.Fatalf("failed to make temporary directory")
+	}
+
+	// the nested directory we'll create
+	a := filepath.Join(dir, "one", "two", "three", "four")
+
+	// Create a bunch of directories
+	args := make(map[string]interface{})
+	args["target"] = []string{
+		a,
+	}
+
+	d := &DirectoryModule{}
+	env := environment.New()
+	changed, err := d.Execute(env, args)
+
+	if err != nil {
+		t.Fatalf("error making nested-directories:%s", err)
+	}
+	if !changed {
+		t.Fatalf("expected to see a change")
+	}
+
+	// Ensure the directories exist
+	if !file.Exists(a) {
+		t.Fatalf("expected to see directory present!")
+	}
+
+	// Now remove them
+	args["state"] = "absent"
+	changed, err = d.Execute(env, args)
+
+	if err != nil {
+		t.Fatalf("error removing nested-directories:%s", err)
+	}
+	if !changed {
+		t.Fatalf("expected to see a change when removing directories")
+	}
+
+	if file.Exists(a) {
+		t.Fatalf("expected to see no directory present after removal!")
+	}
+
+	// remove them again - should be no change
+	changed, err = d.Execute(env, args)
+	if err != nil {
+		t.Fatalf("error removing multiple directories:%s", err)
+	}
+	if changed {
+		t.Fatalf("expected to see no change when removing absent directories")
+	}
+
+	// cleanup
+	os.RemoveAll(dir)
 }
