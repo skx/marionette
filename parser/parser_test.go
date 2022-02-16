@@ -5,6 +5,7 @@
 package parser
 
 import (
+	"os"
 	"strings"
 	"testing"
 
@@ -20,7 +21,6 @@ func TestAssignment(t *testing.T) {
 		"let foo",
 		"let foo=",
 		"let foo=bar",
-		"let foo=1",
 		"let a=\"b\" unless",
 		"let a=\"b\" unless false",
 		"let a=\"b\" unless false(",
@@ -260,6 +260,30 @@ func TestModuleSpace(t *testing.T) {
 
 	// We should have one result
 	if len(out.Recipe) != 1 {
+		t.Errorf("unexpected number of results")
+	}
+}
+
+// Test that we can output debug-strings
+func TestDebug(t *testing.T) {
+
+	// One example of each rule-type
+	input := `
+include "foo.txt"
+let a = 3
+shell{command=>"id"}
+`
+	os.Setenv("DEBUG_PARSER", "true")
+	p := New(input)
+	out, err := p.Parse()
+
+	// This should be error-free
+	if err != nil {
+		t.Errorf("unexpected error parsing input '%s': %s", input, err.Error())
+	}
+
+	// We should have three results
+	if len(out.Recipe) != 3 {
 		t.Errorf("unexpected number of results")
 	}
 }

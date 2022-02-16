@@ -174,7 +174,10 @@ func (p *Parser) parseLet() (*ast.Assign, error) {
 	}
 
 	// assignment only handles strings/command-output
-	if val.Type != token.STRING && val.Type != token.BACKTICK {
+	if val.Type != token.BOOLEAN &&
+		val.Type != token.BACKTICK &&
+		val.Type != token.NUMBER &&
+		val.Type != token.STRING {
 		return let, fmt.Errorf("unexpected value for variable assignment; expected string or backtick, got %v", val)
 	}
 
