@@ -37,12 +37,12 @@ type Executor struct {
 	// their index.
 	index map[string]int
 
-	// Keep track of which rules we've executed
+	// Keep track of which rules we've executed.
 	executed map[string]bool
 
 	// included keeps track of which files we've already included.
 	//
-	// We use this to avoid issues with recursive file inclusions
+	// We use this to avoid issues with recursive file inclusions.
 	included map[string]bool
 
 	// cfg holds our configuration options.
@@ -258,6 +258,7 @@ func (e *Executor) Execute() error {
 		switch r := r.(type) {
 
 		case *ast.Assign:
+
 			log.Printf("[DEBUG] Processing assignment: %s", r)
 
 			// variable assignment
@@ -277,9 +278,10 @@ func (e *Executor) Execute() error {
 			}
 
 		case *ast.Rule:
-			// rule execution
+
 			log.Printf("[DEBUG] Processing rule: %s", r)
 
+			// rule execution
 			err := e.executeSingleRule(r)
 			if err != nil {
 				return err

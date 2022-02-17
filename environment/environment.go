@@ -97,8 +97,8 @@ func (e *Environment) ExpandVariables(input string) string {
 // ExpandTokenVariables is similar to the ExpandVariables, the
 // difference is that it uses a token as an input, rather than a string.
 //
-// This is specifically so that if a token is used of type `BACKTICK`
-// we can execute shell commands.
+// This is done so that if a token is used of type `BACKTICK` we can
+// execute the appropriate shell command(s).
 func (e *Environment) ExpandTokenVariables(tok token.Token) (string, error) {
 
 	// Expand any variables
