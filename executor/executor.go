@@ -376,7 +376,7 @@ func (e *Executor) executeInclude(inc *ast.Include) error {
 // setting up the include-file history & etc.
 func (e *Executor) executeIncludeReal(source string) error {
 
-	// Now run the inclusion
+	// Read the source we're to include
 	data, err := ioutil.ReadFile(source)
 	if err != nil {
 		return fmt.Errorf("failed to read include-source %s: %s", source, err)
