@@ -55,6 +55,10 @@ func (a *Assign) String() string {
 	switch a.Value.Type {
 	case token.BACKTICK:
 		t = "backtick"
+	case token.BOOLEAN:
+		t = "boolean"
+	case token.NUMBER:
+		t = "number"
 	case token.STRING:
 		t = "string"
 	}
