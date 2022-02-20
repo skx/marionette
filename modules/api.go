@@ -7,10 +7,13 @@ import (
 	"github.com/skx/marionette/environment"
 )
 
-// ModuleAPI is the interface to which all of our modules must conform.
+// ModuleAPI is the interface which all of our modules must implement.
 //
 // There are only two methods, one to check if the supplied parameters
 // make sense, the other to actually execute the rule.
+//
+// If a module wishes to setup a variable in the environment then they
+// can optionally implement the `ModuleOutput` interface too.
 type ModuleAPI interface {
 
 	// Check allows a module to ensures that any mandatory parameters
@@ -25,6 +28,21 @@ type ModuleAPI interface {
 	// The return value is true if the module made a change
 	// and false otherwise.
 	Execute(*environment.Environment, map[string]interface{}) (bool, error)
+}
+
+// ModuleOutput is an optional interface that may be implemented by any of
+// our internal modules.
+//
+// If this interface is implemented it is possible for modules to set
+// values in the environment after they've been executed.
+//
+type ModuleOutput interface {
+
+	// GetOutputs will return a set of key-value pairs.
+	//
+	// These will be set in the environment, scoped by the rule-name,
+	// if the module is successfully executed.
+	GetOutputs() map[string]string
 }
 
 // StringParam returns the named parameter, as a string, from the map.
