@@ -167,8 +167,8 @@ func (f *ShellModule) GetOutputs() map[string]string {
 	m := make(map[string]string)
 
 	// Populate with information from our execution.
-	m["stdout"] = string(f.stdout)
-	m["stderr"] = string(f.stderr)
+	m["stdout"] = strings.TrimSpace(string(f.stdout))
+	m["stderr"] = strings.TrimSpace(string(f.stderr))
 
 	return m
 }
