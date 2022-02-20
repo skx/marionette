@@ -15,6 +15,10 @@ package lexer
 
 import (
 	"errors"
+	"fmt"
+	"os"
+	"strconv"
+	"strings"
 	"unicode"
 
 	"github.com/skx/marionette/token"
@@ -22,6 +26,8 @@ import (
 
 // Lexer is used as the lexer for our deployr "language".
 type Lexer struct {
+	debug        bool                 // dump tokens as they're read?
+	decimal      bool                 // convert numbers to decimal?
 	position     int                  // current character position
 	readPosition int                  // next character position
 	ch           rune                 // current character
@@ -31,9 +37,20 @@ type Lexer struct {
 
 // New a Lexer instance from string input.
 func New(input string) *Lexer {
-	l := &Lexer{characters: []rune(input),
-		lookup: make(map[rune]token.Token)}
+	l := &Lexer{
+		characters: []rune(input),
+		debug:      false,
+		decimal:    false,
+		lookup:     make(map[rune]token.Token),
+	}
 	l.readChar()
+
+	if os.Getenv("DEBUG_LEXER") == "true" {
+		l.debug = true
+	}
+	if os.Getenv("DECIMAL_NUMBERS") == "true" {
+		l.decimal = true
+	}
 
 	//
 	// Lookup map of simple token-types.
@@ -61,9 +78,23 @@ func (l *Lexer) readChar() {
 	l.readPosition++
 }
 
-// NextToken to read next token, skipping the white space.
+// NextToken consumes and returns the next token from our input.
+//
+// It is a simple method which can optionally dump the tokens to the console
+// if $DEBUG_LEXER is non-empty.
 func (l *Lexer) NextToken() token.Token {
 
+	tok := l.nextTokenReal()
+	if l.debug {
+		fmt.Printf("%v\n", tok)
+	}
+
+	return tok
+}
+
+// nextTokenReal does the real work of consuming and returning the next
+// token from our input string.
+func (l *Lexer) nextTokenReal() token.Token {
 	var tok token.Token
 	l.skipWhitespace()
 
@@ -86,7 +117,7 @@ func (l *Lexer) NextToken() token.Token {
 	val, ok := l.lookup[l.ch]
 	if ok {
 		// Yes, then skip the character itself, and return the
-		// value we found
+		// value we found.
 		l.readChar()
 		return val
 
@@ -124,14 +155,73 @@ func (l *Lexer) NextToken() token.Token {
 			tok.Literal = err.Error()
 		}
 	default:
+		// is it a number?
+		if isDigit(l.ch) {
+			// Read it.
+			tok = l.readDecimal()
+			return tok
+		}
+
+		// is it an ident?
 		tok.Literal = l.readIdentifier()
 		tok.Type = token.IDENT
+
+		// We don't have keywords, but we'll convert
+		// the ident "true" or "false" into a boolean-type.
+		if tok.Literal == "true" || tok.Literal == "false" {
+			tok.Type = token.BOOLEAN
+		}
+
 		return tok
 	}
 
 	// skip the character we've processed, and return the value
 	l.readChar()
 	return tok
+}
+
+// readDecimal returns a token consisting of decimal numbers, base 10, 2, or
+// 16.
+func (l *Lexer) readDecimal() token.Token {
+
+	str := ""
+
+	// We usually just accept digits.
+	accept := "0123456789"
+
+	// But if we have `0x` as a prefix we accept hexadecimal instead.
+	if l.ch == '0' && l.peekChar() == 'x' {
+		accept = "0x123456789abcdefABCDEF"
+	}
+
+	// If we have `0b` as a prefix we accept binary digits only.
+	if l.ch == '0' && l.peekChar() == 'b' {
+		accept = "b01"
+	}
+
+	// While we have a valid character append it to our
+	// result and keep reading/consuming characters.
+	for strings.Contains(accept, string(l.ch)) {
+		str += string(l.ch)
+		l.readChar()
+	}
+
+	// Don't convert the number to decimal - just use the literal value.
+	if !l.decimal {
+		return token.Token{Type: token.NUMBER, Literal: str}
+	}
+
+	// OK convert to an integer, which we'll later turn to a string.
+	//
+	// We do this so we can convert 0xff -> "255", or "0b0011" to "3".
+	val, err := strconv.ParseInt(str, 0, 64)
+	if err != nil {
+		tok := token.Token{Type: token.ILLEGAL, Literal: err.Error()}
+		return tok
+	}
+
+	// Now return that number as a string.
+	return token.Token{Type: token.NUMBER, Literal: fmt.Sprintf("%d", val)}
 }
 
 // read Identifier
@@ -194,9 +284,6 @@ func (l *Lexer) readString() (string, error) {
 			if l.ch == rune('t') {
 				l.ch = '\t'
 			}
-			if l.ch == rune('\'') {
-				l.ch = '\''
-			}
 			if l.ch == rune('"') {
 				l.ch = '"'
 			}
@@ -238,6 +325,8 @@ func (l *Lexer) peekChar() rune {
 }
 
 // determinate whether the given character is legal within an identifier or not.
+//
+// This is very permissive.
 func isIdentifier(ch rune) bool {
 	return !isWhitespace(ch) &&
 		ch != rune(',') &&
@@ -246,15 +335,21 @@ func isIdentifier(ch rune) bool {
 		ch != rune('{') &&
 		ch != rune('}') &&
 		ch != rune('=') &&
+		ch != rune(';') &&
 		!isEmpty(ch)
 }
 
-// is the character white space?
+// Is the character white space?
 func isWhitespace(ch rune) bool {
 	return unicode.IsSpace(ch)
 }
 
-// is the given character empty?
+// Is the given character empty?
 func isEmpty(ch rune) bool {
 	return rune(0) == ch
+}
+
+// Is the given character a digit?
+func isDigit(ch rune) bool {
+	return rune('0') <= ch && ch <= rune('9')
 }

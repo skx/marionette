@@ -36,16 +36,6 @@ func TestLogArguments(t *testing.T) {
 		t.Fatalf("got error - but wrong one : %s", err)
 	}
 
-	// Wrong kind of argument
-	args["message"] = 3
-	err = l.Check(args)
-	if err == nil {
-		t.Fatalf("expected error due to missing message-parameter")
-	}
-	if !strings.Contains(err.Error(), "failed to convert") {
-		t.Fatalf("got error - but wrong one : %s", err)
-	}
-
 	// Valid argument
 	args["message"] = "Hello, world"
 	err = l.Check(args)

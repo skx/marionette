@@ -163,7 +163,7 @@ func (dm *DockerModule) Execute(env *environment.Environment, args map[string]in
 		}
 
 		// Not installed; fetch.
-		if !present || (force == "yes") {
+		if !present || (force == "yes") || (force == "true") {
 
 			// Show what we're doing
 			log.Printf("[INFO] Pulling docker image %s\n", img)

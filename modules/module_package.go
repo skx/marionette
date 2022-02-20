@@ -86,7 +86,7 @@ func (pm *PackageModule) Execute(env *environment.Environment, args map[string]i
 	// we'll accept it for the module globally as there is no
 	// harm in it.
 	p := StringParam(args, "update")
-	if p == "yes" {
+	if p == "yes" || p == "true" {
 		err := pkg.Update()
 		if err != nil {
 			return false, err

@@ -37,12 +37,12 @@ type Executor struct {
 	// their index.
 	index map[string]int
 
-	// Keep track of which rules we've executed
+	// Keep track of which rules we've executed.
 	executed map[string]bool
 
 	// included keeps track of which files we've already included.
 	//
-	// We use this to avoid issues with recursive file inclusions
+	// We use this to avoid issues with recursive file inclusions.
 	included map[string]bool
 
 	// cfg holds our configuration options.
@@ -258,6 +258,7 @@ func (e *Executor) Execute() error {
 		switch r := r.(type) {
 
 		case *ast.Assign:
+
 			log.Printf("[DEBUG] Processing assignment: %s", r)
 
 			// variable assignment
@@ -277,9 +278,10 @@ func (e *Executor) Execute() error {
 			}
 
 		case *ast.Rule:
-			// rule execution
+
 			log.Printf("[DEBUG] Processing rule: %s", r)
 
+			// rule execution
 			err := e.executeSingleRule(r)
 			if err != nil {
 				return err
@@ -374,7 +376,7 @@ func (e *Executor) executeInclude(inc *ast.Include) error {
 // setting up the include-file history & etc.
 func (e *Executor) executeIncludeReal(source string) error {
 
-	// Now run the inclusion
+	// Read the source we're to include
 	data, err := ioutil.ReadFile(source)
 	if err != nil {
 		return fmt.Errorf("failed to read include-source %s: %s", source, err)
@@ -665,6 +667,12 @@ func (e *Executor) expandToken(tok token.Token) (string, error) {
 	switch tok.Type {
 	case token.STRING:
 		ret = e.env.ExpandVariables(tok.Literal)
+	case token.NUMBER:
+		// A number returns the string-value of the token
+		ret = tok.Literal
+	case token.BOOLEAN:
+		// A boolean returns the string-value of itself
+		ret = tok.Literal
 	case token.BACKTICK:
 		ret, err = e.env.ExpandTokenVariables(tok)
 		if err != nil {

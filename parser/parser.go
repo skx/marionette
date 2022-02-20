@@ -18,6 +18,7 @@ package parser
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/google/uuid"
 	"github.com/skx/marionette/ast"
@@ -28,6 +29,9 @@ import (
 
 // Parser holds our state.
 type Parser struct {
+	// Should we output our program?
+	debug bool
+
 	// l is the handle to our lexer
 	l *lexer.Lexer
 
@@ -45,6 +49,12 @@ func New(input string) *Parser {
 
 	// Create our object, and lexer
 	p := &Parser{}
+
+	// Should we output things to the console?
+	if os.Getenv("DEBUG_PARSER") == "true" {
+		p.debug = true
+	}
+
 	p.l = lexer.New(input)
 
 	// Ensure we're ready to process tokens.
@@ -86,6 +96,10 @@ func (p *Parser) Parse() (ast.Program, error) {
 				return program, err
 			}
 
+			if p.debug {
+				fmt.Printf("%v\n", let)
+			}
+
 			// Add our rule onto the program, and continue
 			program.Recipe = append(program.Recipe, let)
 			continue
@@ -101,6 +115,10 @@ func (p *Parser) Parse() (ast.Program, error) {
 				return program, err
 			}
 
+			if p.debug {
+				fmt.Printf("%v\n", inc)
+			}
+
 			// Add our rule onto the program, and continue
 			program.Recipe = append(program.Recipe, inc)
 			continue
@@ -112,6 +130,10 @@ func (p *Parser) Parse() (ast.Program, error) {
 		tmp, err = p.parseBlock(tok.Literal)
 		if err != nil {
 			return program, err
+		}
+
+		if p.debug {
+			fmt.Printf("%v\n", tmp)
 		}
 
 		// Add our rule onto the program, and continue
@@ -132,6 +154,11 @@ func (p *Parser) parseLet() (*ast.Assign, error) {
 	// name
 	name := p.nextToken()
 
+	// name must be an identifier - not a string, number, boolean, etc.
+	if name.Type != token.IDENT {
+		return let, fmt.Errorf("assignment can only be made to identifiers, got %v", name)
+	}
+
 	// =
 	t := p.nextToken()
 	if t.Type != token.ASSIGN {
@@ -146,8 +173,11 @@ func (p *Parser) parseLet() (*ast.Assign, error) {
 		return let, fmt.Errorf("unterminated assignment")
 	}
 
-	// assignment only handles strings/command-ouptut
-	if val.Type != token.STRING && val.Type != token.BACKTICK {
+	// assignment only handles strings/command-output
+	if val.Type != token.BOOLEAN &&
+		val.Type != token.BACKTICK &&
+		val.Type != token.NUMBER &&
+		val.Type != token.STRING {
 		return let, fmt.Errorf("unexpected value for variable assignment; expected string or backtick, got %v", val)
 	}
 
@@ -438,8 +468,8 @@ func (p *Parser) readValue(name string) (interface{}, error) {
 		return nil, fmt.Errorf("found end of file processing block %s", name)
 	}
 
-	// If we got a single string or backtick we're good
-	if tok.Type == token.STRING || tok.Type == token.BACKTICK {
+	// If we got a simple type we're good
+	if tok.Type == token.BOOLEAN || tok.Type == token.NUMBER || tok.Type == token.STRING || tok.Type == token.BACKTICK {
 		return tok, nil
 	}
 
@@ -466,8 +496,11 @@ func (p *Parser) readValue(name string) (interface{}, error) {
 			continue
 		}
 
-		// If this is a string/backtick-string then append the token
-		if tok.Type == token.STRING || tok.Type == token.BACKTICK {
+		// If this is a simple type then append the token
+		if tok.Type == token.STRING ||
+			tok.Type == token.NUMBER ||
+			tok.Type == token.BOOLEAN ||
+			tok.Type == token.BACKTICK {
 			result = append(result, tok)
 		}
 

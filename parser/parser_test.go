@@ -5,6 +5,7 @@
 package parser
 
 import (
+	"os"
 	"strings"
 	"testing"
 
@@ -20,7 +21,6 @@ func TestAssignment(t *testing.T) {
 		"let foo",
 		"let foo=",
 		"let foo=bar",
-		"let foo=1",
 		"let a=\"b\" unless",
 		"let a=\"b\" unless false",
 		"let a=\"b\" unless false(",
@@ -30,6 +30,9 @@ func TestAssignment(t *testing.T) {
 		"let a=\"3\" if     true(",
 		"let a=\"3\" if     true(/bin/ls",
 		"let a=\"3\" if     true(/bin/ls,",
+		"let 3=\"3\"",
+		"let false=\"3\"",
+		"let true=\"3\"",
 	}
 
 	// Ensure each one fails
@@ -48,6 +51,8 @@ func TestAssignment(t *testing.T) {
 		"let x = `/bin/true`",
 		"let x = `/bin/true` if equal(\"a\",\"a\")",
 		"let a = \"boo\"",
+		"let _false_ = \"ok\"",
+		"let _true_like = \"ok\"",
 	}
 
 	// Ensure each one succeeds
@@ -224,8 +229,8 @@ func TestInclude(t *testing.T) {
 	// Now test valid includes
 	valid := []string{
 		"include \"test.inc\"",
-		"include \"test.inc\" unless false(/bin/ls)",
-		"include \"test.inc\" if true(/bin/ls)",
+		"include \"test.inc\" unless failure(/bin/ls)",
+		"include \"test.inc\" if success(/bin/ls)",
 	}
 
 	// Ensure each one succeeds
@@ -255,6 +260,30 @@ func TestModuleSpace(t *testing.T) {
 
 	// We should have one result
 	if len(out.Recipe) != 1 {
+		t.Errorf("unexpected number of results")
+	}
+}
+
+// Test that we can output debug-strings
+func TestDebug(t *testing.T) {
+
+	// One example of each rule-type
+	input := `
+include "foo.txt"
+let a = 3
+shell{command=>"id"}
+`
+	os.Setenv("DEBUG_PARSER", "true")
+	p := New(input)
+	out, err := p.Parse()
+
+	// This should be error-free
+	if err != nil {
+		t.Errorf("unexpected error parsing input '%s': %s", input, err.Error())
+	}
+
+	// We should have three results
+	if len(out.Recipe) != 3 {
 		t.Errorf("unexpected number of results")
 	}
 }

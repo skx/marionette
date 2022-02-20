@@ -1,6 +1,8 @@
 package lexer
 
 import (
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/skx/marionette/token"
@@ -28,7 +30,13 @@ func TestEmpty(t *testing.T) {
 
 // TestAssign tests we can assign something.
 func TestAssign(t *testing.T) {
-	input := `let foo = "steve";`
+
+	// Setup debugging
+	old := os.Getenv("DEBUG_LEXER")
+	os.Setenv("DEBUG_LEXER", "true")
+	input := `let foo = "steve";
+let bar = true;
+let baz = false;`
 
 	tests := []struct {
 		expectedType    token.Type
@@ -38,18 +46,28 @@ func TestAssign(t *testing.T) {
 		{token.IDENT, "foo"},
 		{token.ASSIGN, "="},
 		{token.STRING, "steve"},
+		{token.IDENT, "let"},
+		{token.IDENT, "bar"},
+		{token.ASSIGN, "="},
+		{token.BOOLEAN, "true"},
+		{token.IDENT, "let"},
+		{token.IDENT, "baz"},
+		{token.ASSIGN, "="},
+		{token.BOOLEAN, "false"},
 		{token.EOF, ""},
 	}
 	l := New(input)
 	for i, tt := range tests {
 		tok := l.NextToken()
-		if tok.Type != tt.expectedType {
-			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
-		}
 		if tok.Literal != tt.expectedLiteral {
 			t.Fatalf("tests[%d] - Literal wrong, expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
 		}
+		if tok.Type != tt.expectedType {
+			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
+
+		}
 	}
+	os.Setenv("DEBUG_LEXER", old)
 }
 
 // TestEscape ensures that strings have escape-characters processed.
@@ -294,4 +312,63 @@ func Test15Assignment(t *testing.T) {
 		}
 		i++
 	}
+}
+
+// TestParseNumber ensures we can catch errors in numbers
+func TestParseNumber(t *testing.T) {
+
+	// Parsing a number
+	lex := New("449691189")
+	tok := lex.NextToken()
+
+	if tok.Type != token.NUMBER {
+		t.Fatalf("parsed number as wrong type")
+	}
+	if tok.Literal != "449691189" {
+		t.Fatalf("error lexing got:%s", tok.Literal)
+	}
+
+	// Now a number that's out of range.
+	lex = New("18446744073709551620")
+	lex.decimal = true
+
+	tok = lex.NextToken()
+
+	if tok.Type != token.ILLEGAL {
+		t.Fatalf("parsed number as wrong type")
+	}
+	if !strings.Contains(tok.Literal, "out of range") {
+		t.Fatalf("got error, but wrong one: %s", tok.Literal)
+	}
+
+}
+
+// TestInteger tests that we parse integers appropriately.
+func TestInteger(t *testing.T) {
+
+	old := os.Getenv("DECIMAL_NUMBERS")
+	os.Setenv("DECIMAL_NUMBERS", "true")
+
+	type TestCase struct {
+		input  string
+		output string
+	}
+
+	tests := []TestCase{
+		{input: "3", output: "3"},
+		{input: "0xff", output: "255"},
+		{input: "0b11111111", output: "255"},
+	}
+
+	for _, tst := range tests {
+
+		lex := New(tst.input)
+		tok := lex.NextToken()
+
+		if tok.Literal != tst.output {
+			t.Fatalf("error lexing %s - expected:%s got:%s", tst.input, tst.output, tok.Literal)
+		}
+	}
+
+	os.Setenv("DECIMAL_NUMBERS", old)
 }
