@@ -584,6 +584,19 @@ Valid parameters are:
 
 The `http` module is always regarded as having made a change on a successful request.
 
+### `http` Outputs
+
+The following [outputs](#outputs) will be set:
+
+* `body`
+  * The body returned from the request.
+* `code`
+  * The HTTP-status code of the response.
+* `status`
+  * The HTTP-status line of the response.
+
+
+
 ## `link`
 
 The `link` module allows you to create a symbolic link.
@@ -599,18 +612,6 @@ Valid parameters are:
 
 * `target` is a mandatory parameter, and specifies the location of the symlink to create.
 * `source` is a mandatory parameter, and specifies the item the symlink should point to.
-
-### Outputs
-
-The following [outputs](#outputs) will be set:
-
-* `body`
-  * The body returned from the request.
-* `code`
-  * The HTTP-status code of the response.
-* `status`
-  * The HTTP-status line of the response.
-
 
 
 
@@ -727,7 +728,7 @@ shell { shell   => true,
       }
 ```
 
-### Outputs
+### `shell` Outputs
 
 The following [outputs](#outputs) will be set:
 
