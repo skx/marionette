@@ -637,20 +637,61 @@ func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (
 		}
 	}
 
-	// Check the arguments
+	// Check the arguments, using the module-specific Check method.
 	err = helper.Check(params)
 	if err != nil {
 		return false, fmt.Errorf("error validating %s-module rule '%s' %s",
 			rule.Type, rule.Name, err.Error())
 	}
 
-	// Run the change
+	// Execute the module.
 	changed, err := helper.Execute(e.env, params)
 	if err != nil {
 		return false, fmt.Errorf("error running %s-module rule '%s' %s",
 			rule.Type, rule.Name, err.Error())
 	}
 
+	// Now that execution is complete it might be that the module
+	// wishes to store variables in the environment.
+	//
+	// If the  module implements the "ModuleOutput" interface then invoke
+	// it, and update the environment appropriately.
+	if outputs, ok := helper.(modules.ModuleOutput); ok {
+
+		// Logging.
+		log.Printf("[DEBUG] Rule %s [%s] implements ModuleOutput\n",
+			rule.Name, rule.Type)
+
+		// Get any output-variables which should be set.
+		out := outputs.GetOutputs()
+
+		// For each one then set variable
+		for key, val := range out {
+
+			//
+			// NOTE: We set the variable scoped by the
+			//       rule name.
+			//
+			name := rule.Name + "." + key
+
+			log.Printf("[DEBUG] SetOutputVariable (%s) => %s\n",
+				name, val)
+			e.env.Set(name, val)
+		}
+	}
+
+	// If the module resulted in a change record that too.
+	//
+	// Note this doesn't require the module to implement the
+	// ModuleOutput interface - it is global, for all rule-types
+	key := rule.Name + ".changed"
+	val := "false"
+	if changed {
+		val = "true"
+	}
+	e.env.Set(key, val)
+
+	// Finally return the value to the caller.
 	return changed, nil
 }
 

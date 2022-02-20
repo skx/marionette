@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"os"
 	"os/exec"
 	"strings"
 
@@ -17,6 +16,12 @@ type ShellModule struct {
 
 	// cfg contains our configuration object.
 	cfg *config.Config
+
+	// Saved copy of STDOUT.
+	stdout []byte
+
+	// Saved copy of STDERR.
+	stderr []byte
 }
 
 // Check is part of the module-api, and checks arguments.
@@ -128,19 +133,18 @@ func (f *ShellModule) executeSingle(command string, args map[string]interface{})
 	// Now run
 	cmd := exec.Command(bits[0], bits[1:]...)
 
-	// If we're hiding the output we'll write it here.
+	// Setup buffers for saving STDOUT/STDERR.
 	var execOut bytes.Buffer
 	var execErr bytes.Buffer
 
-	// Show to the console if we should
-	if f.cfg.Debug {
-		cmd.Stderr = os.Stderr
-		cmd.Stdout = os.Stdout
-	} else {
-		// Otherwise pipe to the buffer, and ignore it.
-		cmd.Stdout = &execOut
-		cmd.Stderr = &execErr
-	}
+	// Wire up the output buffers.
+	//
+	// In the past we'd output these to the console, but now we're
+	// implementing the GetOutput interface they'll be shown when
+	// running with -debug anyway.
+	//
+	cmd.Stdout = &execOut
+	cmd.Stderr = &execErr
 
 	// Run the command
 	err := cmd.Run()
@@ -148,7 +152,25 @@ func (f *ShellModule) executeSingle(command string, args map[string]interface{})
 		return fmt.Errorf("error running command '%s' %s", command, err.Error())
 	}
 
+	// Save the outputs
+	f.stdout = execOut.Bytes()
+	f.stderr = execErr.Bytes()
+
 	return nil
+}
+
+// GetOutputs is an optional interface method which allows the
+// module to return values to the caller - prefixed by the rule-name.
+func (f *ShellModule) GetOutputs() map[string]string {
+
+	// Prepare a map of key->values to return
+	m := make(map[string]string)
+
+	// Populate with information from our execution.
+	m["stdout"] = strings.TrimSpace(string(f.stdout))
+	m["stderr"] = strings.TrimSpace(string(f.stderr))
+
+	return m
 }
 
 // init is used to dynamically register our module.

@@ -12,6 +12,7 @@
     * [Command Execution](#command-execution)
     * [File Inclusion](#include-files)
     * [Pre-Declared Variables](#pre-declared-variables)
+    * [Outputs](#outputs)
 * [Module Types](#module-types)
    * [directory](#directory)
    * [docker](#docker)
@@ -20,10 +21,12 @@
    * [git](#git)
    * [group](#group)
    * [http](#http)
+     * [Outputs](#http-outputs)
    * [link](#link)
    * [log](#log)
    * [package](#package)
    * [shell](#shell)
+     * [Outputs](#shell-outputs)
    * [sql](#sql)
    * [user](#user)
 * [Future Plans](#future-plans)
@@ -333,6 +336,44 @@ There are additionally two "magic" variables available which will always have va
 
 
 
+### Outputs
+
+Some modules will set "outputs" after they've executed, and those outputs will be documented explicitly in the later list of available modules.
+
+When a module creates an output it will be available for subsequent modules to use, prefixed with the name of the rule which created it.
+
+Here is an example showing the use of the `stdout` output which the [shell](#shell) module produces:
+
+```
+# Run a command - This will produce "${user.stdout}" and "${user.stderr}"
+# variables which can be used later.
+shell {
+           name => "user",
+        command => "/usr/bin/whoami"
+}
+
+
+log {
+    message => "STEVE!",
+    if      => equal( "${user.stdout}", "skx" )
+}
+log {
+    message => "ROOT!",
+    if      => equal( "${user.stdout}", "root" )
+}
+```
+
+**NOTE:** The output `stdout` is available here as `${user.stdout}` - the "`user.`" prefix comes from the name of the rule which invoked the shell.  So here we'd be able to process the result of `${kernel-version.output}`
+
+```
+shell {
+          name => "kernel-version",
+          command => "uname -r",
+}
+```
+
+
+
 # Module Types
 
 Our primitives are implemented in 100% pure golang, and are included with our binary, these are now described briefly:
@@ -545,6 +586,19 @@ Valid parameters are:
 
 The `http` module is always regarded as having made a change on a successful request.
 
+### `http` Outputs
+
+The following [outputs](#outputs) will be set:
+
+* `body`
+  * The body returned from the request.
+* `code`
+  * The HTTP-status code of the response.
+* `status`
+  * The HTTP-status line of the response.
+
+
+
 ## `link`
 
 The `link` module allows you to create a symbolic link.
@@ -675,6 +729,15 @@ shell { shell   => true,
         command => "sed .. /etc/file.txt"
       }
 ```
+
+### `shell` Outputs
+
+The following [outputs](#outputs) will be set:
+
+* `stdout`
+  * Anything the command wrote to STDOUT.
+* `stderr`
+  * Anything the command wrote to STDERR.
 
 
 ## `user`
