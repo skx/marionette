@@ -679,6 +679,19 @@ func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (
 			e.env.Set(name, val)
 		}
 	}
+
+	// If the module resulted in a change record that too.
+	//
+	// Note this doesn't require the module to implement the
+	// ModuleOutput interface - it is global, for all rule-types
+	key := rule.Name + ".changed"
+	val := "false"
+	if changed {
+		val = "true"
+	}
+	e.env.Set(key, val)
+
+	// Finally return the value to the caller.
 	return changed, nil
 }
 
