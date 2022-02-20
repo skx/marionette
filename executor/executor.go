@@ -675,7 +675,7 @@ func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (
 			name := rule.Name + "." + key
 
 			log.Printf("[DEBUG] SetOutputVariable (%s) => %s\n",
-				rule.Name, name, val)
+				name, val)
 			e.env.Set(name, val)
 		}
 	}
