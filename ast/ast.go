@@ -24,6 +24,8 @@ type BuiltIn func(env *environment.Environment, args []string) (Node, error)
 // function which is used to implement it.
 var FUNCTIONS map[string]BuiltIn
 
+// init is called on startup, and creates the FUNCTIONS map which will
+// hold our built-in functions.
 func init() {
 	FUNCTIONS = make(map[string]BuiltIn)
 }
