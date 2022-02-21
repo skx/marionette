@@ -16,6 +16,20 @@ import (
 	"github.com/skx/marionette/token"
 )
 
+// BuiltIn is the signature of a built-in function
+type BuiltIn func(env *environment.Environment, args []Node) (Node, error)
+
+// FUNCTIONS contains our list of built-in functions, as a map.
+//
+// The key is the name of the function, and the value is the pointer to the
+// function which is used to implement it.
+var FUNCTIONS map[string]BuiltIn
+
+func init() {
+	FUNCTIONS = make(map[string]BuiltIn)
+}
+
+//
 // Node represents a node that we can process.
 type Node interface {
 
@@ -49,7 +63,7 @@ type Backtick struct {
 	Value string
 }
 
-// String returns our object as a string
+// String returns our object as a string.
 func (b *Backtick) String() string {
 	return fmt.Sprintf("Backtick{Command:%s}", b.Value)
 }
@@ -69,7 +83,7 @@ type Boolean struct {
 	Value bool
 }
 
-// String returns our object as a string
+// String returns our object as a string.
 func (b *Boolean) String() string {
 	if b.Value {
 		return ("Boolean{true}")
@@ -83,6 +97,54 @@ func (b *Boolean) Evaluate(env *environment.Environment) (string, error) {
 		return "true", nil
 	}
 	return "false", nil
+}
+
+// Funcall represents a function-call.
+type Funcall struct {
+	// Node is our parent object.
+	Node
+
+	// Name is the name of the function to be invoked.
+	Name string
+
+	// Arguments are the arguments to be passed to the call.
+	Args []Node
+}
+
+// Evaluate returns the value of the function call.
+func (f *Funcall) Evaluate(env *environment.Environment) (string, error) {
+
+	// Lookup the function
+	fn, ok := FUNCTIONS[f.Name]
+	if !ok {
+		return "", fmt.Errorf("function %s not defined", f.Name)
+	}
+
+	// Call the function
+	ret, err := fn(env, f.Args)
+	if err != nil {
+		return "", err
+	}
+
+	// convert the result to a string
+	// Is it a single node, which we can convert?
+	obj, ok2 := ret.(Literal)
+	if ok2 {
+		val, err2 := obj.Evaluate(env)
+		if err2 != nil {
+			return "", err2
+		}
+
+		return val, nil
+	}
+
+	return "", fmt.Errorf("return value wasn't a literal")
+
+}
+
+// String returns our object as a string
+func (f *Funcall) String() string {
+	return fmt.Sprintf("Function{%s}", f.Name)
 }
 
 // Number represents an integer/hexadecimal/octal number.

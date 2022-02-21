@@ -529,8 +529,38 @@ func (p *Parser) parsePrimitive(tok token.Token) (ast.Node, error) {
 	case token.IDENT:
 		// if this is an identifier and the next token is "("
 		// then we've got a function-call
+		name := tok.Literal
+
 		if p.peekTokenIs(token.LPAREN) {
-			return nil, fmt.Errorf("TODO: Implement function call %s", tok.Literal)
+
+			// Arguments we'll build up
+			var args []ast.Node
+
+			// skip "("
+			p.nextToken()
+
+			// look for arguments
+			t := p.nextToken()
+			for t.Literal != ")" && t.Type != token.EOF {
+
+				if t.Type != token.COMMA {
+
+					val, err := p.parsePrimitive(t)
+					if err != nil {
+						return nil, err
+					}
+					args = append(args, val)
+				}
+
+				t = p.nextToken()
+			}
+
+			if t.Type == token.EOF {
+				return nil, fmt.Errorf("unexpected EOF in function-call")
+			}
+
+			return &ast.Funcall{Name: name, Args: args}, nil
+
 		}
 
 	case token.NUMBER:
