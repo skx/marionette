@@ -1,6 +1,8 @@
 package ast
 
 import (
+	"crypto/md5"
+	"crypto/sha1"
 	"errors"
 	"fmt"
 	"log"
@@ -136,6 +138,19 @@ func fnLower(env *environment.Environment, args []string) (Node, error) {
 	return &String{Value: strings.ToLower(args[0])}, nil
 }
 
+// fnMD5Sum returns the MD5 digest of the given input
+func fnMD5Sum(env *environment.Environment, args []string) (Node, error) {
+
+	if len(args) != 1 {
+		return nil, fmt.Errorf("wrong number of args for 'md5sum': %d != 1", len(args))
+	}
+
+	h := md5.New()
+	h.Write([]byte(args[0]))
+	bs := h.Sum(nil)
+	return &String{Value: fmt.Sprintf("%x", bs)}, nil
+}
+
 // fnNonEmpty returns true if the given string is not unset/empty
 func fnNonEmpty(env *environment.Environment, args []string) (Node, error) {
 	if len(args) != 1 {
@@ -178,6 +193,19 @@ func fnOnPath(env *environment.Environment, args []string) (Node, error) {
 
 	// Not found
 	return &Boolean{Value: false}, nil
+}
+
+// fnSha1Sum returns the SHA1 digest of the given input
+func fnSha1Sum(env *environment.Environment, args []string) (Node, error) {
+
+	if len(args) != 1 {
+		return nil, fmt.Errorf("wrong number of args for 'sha1sum': %d != 1", len(args))
+	}
+
+	h := sha1.New()
+	h.Write([]byte(args[0]))
+	bs := h.Sum(nil)
+	return &String{Value: fmt.Sprintf("%x", bs)}, nil
 }
 
 // fnSuccess returns true if executing the given command succeeds.
@@ -234,17 +262,21 @@ func fnUpper(env *environment.Environment, args []string) (Node, error) {
 
 func init() {
 	FUNCTIONS["contains"] = fnContains
-	FUNCTIONS["equal"] = fnEqual
 	FUNCTIONS["empty"] = fnEmpty
-	FUNCTIONS["nonempty"] = fnNonEmpty
-	FUNCTIONS["set"] = fnNonEmpty
-	FUNCTIONS["unset"] = fnEmpty
-	FUNCTIONS["exists"] = fnExists
+	FUNCTIONS["equal"] = fnEqual
 	FUNCTIONS["equals"] = fnEqual
+	FUNCTIONS["exists"] = fnExists
+	FUNCTIONS["failure"] = fnFailure
 	FUNCTIONS["len"] = fnLen
 	FUNCTIONS["lower"] = fnLower
-	FUNCTIONS["upper"] = fnUpper
-	FUNCTIONS["success"] = fnSuccess
-	FUNCTIONS["failure"] = fnFailure
+	FUNCTIONS["md5sum"] = fnMD5Sum
+	FUNCTIONS["md5"] = fnMD5Sum
+	FUNCTIONS["nonempty"] = fnNonEmpty
 	FUNCTIONS["on_path"] = fnOnPath
+	FUNCTIONS["set"] = fnNonEmpty
+	FUNCTIONS["sha1sum"] = fnSha1Sum
+	FUNCTIONS["sha1"] = fnSha1Sum
+	FUNCTIONS["success"] = fnSuccess
+	FUNCTIONS["unset"] = fnEmpty
+	FUNCTIONS["upper"] = fnUpper
 }

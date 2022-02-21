@@ -255,6 +255,10 @@ In addition to these conditional functions the following primitives are built in
   * Return the length of the given value.
 * `lower(txt)`
   * Converts the given string to lower-case.
+* `md5sum(txt)`
+  * Returns the MD5-digest of the given value.
+* `sha1sum(txt)`
+  * Returns the SHA1-digest of the given value.
 * `upper(txt)`
   * Converts the given string to upper-case.
 

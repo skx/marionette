@@ -26,19 +26,23 @@ func TestFunctionArgs(t *testing.T) {
 	// one arg functions
 	m := make(map[string]int)
 	m["contains"] = 2
-	m["equal"] = 2
 	m["empty"] = 1
-	m["nonempty"] = 1
-	m["set"] = 1
-	m["unset"] = 1
-	m["exists"] = 1
+	m["equal"] = 2
 	m["equals"] = 2
+	m["exists"] = 1
+	m["failure"] = 1
 	m["len"] = 1
 	m["lower"] = 1
-	m["upper"] = 1
-	m["success"] = 1
-	m["failure"] = 1
+	m["md5sum"] = 1
+	m["md5"] = 1
+	m["nonempty"] = 1
 	m["on_path"] = 1
+	m["set"] = 1
+	m["sha1"] = 1
+	m["sha1sum"] = 1
+	m["success"] = 1
+	m["unset"] = 1
+	m["upper"] = 1
 
 	one := []string{"one"}
 	two := []string{"one", "two"}
