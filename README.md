@@ -36,16 +36,17 @@
 
 # marionette
 
-`marionette` is a simple command-line application which is designed to carry out system automation tasks.  It was designed to resemble the well-known configuration-management application [puppet](https://puppet.com/).
+`marionette` is a simple command-line application which is designed to carry out system automation tasks.  It was designed to resemble the well-known configuration-management application [puppet](https://puppet.com/), albeit in a much simpler and more minimal manner.
 
 `marionette` contains a small number of built-in modules, providing enough primitives to turn a blank virtual machine into a host running a few services:
 
 * Cloning git repositories.
 * Creating/modifying files/directories.
-* Fetching Docker images.
+* Pulling Docker images from public container-registries.
 * Installing and removing packages.
-  * Debian GNU/Linux, and CentOS are supported, using `apt-get`, `dpkg`, and `yum` as appropriate..
+  * Debian GNU/Linux, and CentOS are supported, using `apt-get`, `dpkg`, and `yum` as appropriate.
 * Executing shell commands.
+* Making HTTP-requests.
 
 In the future it is possible that more modules will be added, but this will require users to file bug-reports requesting them, contribute code, or the author realizing something is necessary.
 
@@ -66,14 +67,19 @@ The main application can then be launched with the path to a set of rules, which
 marionette [flags] ./rules.txt ./rules2.txt ... ./rulesN.txt
 ```
 
-Currently there are two supported flags:
+The following flags are supported:
 
-* `-verbose`
-  * Show extra details when executing the supplied rules-file(s).
 * `-debug`
   * Show many low-level details when executing the supplied rules-file(s).
+* `-verbose`
+  * Show extra details when executing the supplied rules-file(s).
+* `-version`
+  * Show the released version number, and exit.
 
 Typically a user would run with `-verbose`, and a developer might examine the output produced when `-debug` is specified.
+
+In addition to the general-purpose flags `-dp` and `-dl` exist for developers, to dump the output of the parser and lexer, respectively.
+
 
 
 
@@ -191,7 +197,7 @@ The following example runs a command, using `apt-get`, only if a specific file e
 ```
 shell { name    => "Upgrade",
         command => "apt-get dist-upgrade --yes --force-yes",
-        if      => exists(/usr/bin/apt-get) }
+        if      => exists("/usr/bin/apt-get") }
 ```
 
 For the reverse, running a rule unless something is true, we can use the `unless` key:
@@ -231,7 +237,7 @@ The following list shows all the built-in functions that you may use (but only w
 
 More conditional primitives may be added if they appear to be necessary, or if users request them.
 
-**NOTE**: The conditionals are only supported when present in keys named `if` or `unless`.  This syntax is special for those two key-types, however conditionals may also be applied to variable assignments and file inclusion:
+Conditionals may also be applied to variable assignments and file inclusion:
 
 ```
 # Include a file of rules, on a per-arch basis
@@ -242,6 +248,15 @@ include "i386.rules"   if equal( "${ARCH}","i386" )
 let cmd = "curl --output ${dst} ${url}" if on_path("curl")
 let cmd = "wget -O ${dst} ${url}"       if on_path("wget")
 ```
+
+In addition to these conditional functions the following primitives are built in, and may be freely used:
+
+* `len(txt)`
+  * Return the length of the given value.
+* `lower(txt)`
+  * Converts the given string to lower-case.
+* `upper(txt)`
+  * Converts the given string to upper-case.
 
 
 ## Examples
