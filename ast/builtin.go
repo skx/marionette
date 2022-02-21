@@ -57,7 +57,7 @@ func fnLen(env *environment.Environment, args []Node) (Node, error) {
 
 		return &Number{Value: int64(utf8.RuneCountInString(val))}, nil
 	}
-	return nil, fmt.Errorf("Failed to convert %v to string", args[0])
+	return nil, fmt.Errorf("failed to convert %v to string", args[0])
 }
 
 // fnLower converts the given node to lower-case.
@@ -78,7 +78,7 @@ func fnLower(env *environment.Environment, args []Node) (Node, error) {
 
 		return &String{Value: strings.ToLower(val)}, nil
 	}
-	return nil, fmt.Errorf("Failed to convert %v to string", args[0])
+	return nil, fmt.Errorf("failed to convert %v to string", args[0])
 }
 
 // fnUpper converts the given node to upper-case.
@@ -99,7 +99,7 @@ func fnUpper(env *environment.Environment, args []Node) (Node, error) {
 
 		return &String{Value: strings.ToUpper(val)}, nil
 	}
-	return nil, fmt.Errorf("Failed to convert %v to string", args[0])
+	return nil, fmt.Errorf("failed to convert %v to string", args[0])
 }
 
 func init() {
