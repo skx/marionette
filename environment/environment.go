@@ -10,8 +10,6 @@ import (
 	"os/user"
 	"runtime"
 	"strings"
-
-	"github.com/skx/marionette/token"
 )
 
 // Environment stores our state
@@ -92,43 +90,6 @@ func (e *Environment) Variables() map[string]string {
 // result.
 func (e *Environment) ExpandVariables(input string) string {
 	return os.Expand(input, e.expandVariablesMapper)
-}
-
-// ExpandTokenVariables is similar to the ExpandVariables, the
-// difference is that it uses a token as an input, rather than a string.
-//
-// This is done so that if a token is used of type `BACKTICK` we can
-// execute the appropriate shell command(s).
-//
-// TODO: Delete Me.
-func (e *Environment) ExpandTokenVariables(tok token.Token) (string, error) {
-
-	// Expand any variables
-	value := tok.Literal
-	value = e.ExpandVariables(value)
-
-	// If we're not a backtick we're done here
-	if tok.Type != token.BACKTICK {
-		return value, nil
-	}
-
-	// Now we need to execute the command and return the value
-	// Build up the thing to run, using a shell so that
-	// we can handle pipes/redirection.
-	toRun := []string{"/bin/bash", "-c", value}
-
-	// Run the command
-	cmd := exec.Command(toRun[0], toRun[1:]...)
-
-	// Get the output
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("error running command '%s' %s", value, err.Error())
-	}
-
-	// Strip trailing newline.
-	ret := strings.TrimSuffix(string(output), "\n")
-	return ret, nil
 }
 
 // ExpandBacktick is similar to the ExpandVariables, it expands any
