@@ -11,13 +11,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/skx/marionette/conditionals"
 	"github.com/skx/marionette/environment"
 	"github.com/skx/marionette/token"
 )
 
 // BuiltIn is the signature of a built-in function
-type BuiltIn func(env *environment.Environment, args []Node) (Node, error)
+type BuiltIn func(env *environment.Environment, args []string) (Node, error)
 
 // FUNCTIONS contains our list of built-in functions, as a map.
 //
@@ -120,14 +119,31 @@ func (f *Funcall) Evaluate(env *environment.Environment) (string, error) {
 		return "", fmt.Errorf("function %s not defined", f.Name)
 	}
 
+	// Convert each argument to a string
+	args := []string{}
+
+	for _, arg := range f.Args {
+
+		// expand the argument
+		obj, ok := arg.(Literal)
+		if !ok {
+			return "", fmt.Errorf("failed to convert %v to string", arg)
+		}
+		val, err := obj.Evaluate(env)
+		if err != nil {
+			return "", err
+		}
+
+		args = append(args, val)
+	}
+
 	// Call the function
-	ret, err := fn(env, f.Args)
+	ret, err := fn(env, args)
 	if err != nil {
 		return "", err
 	}
 
-	// convert the result to a string
-	// Is it a single node, which we can convert?
+	// convert the result to an object
 	obj, ok2 := ret.(Literal)
 	if ok2 {
 		val, err2 := obj.Evaluate(env)
@@ -138,13 +154,12 @@ func (f *Funcall) Evaluate(env *environment.Environment) (string, error) {
 		return val, nil
 	}
 
-	return "", fmt.Errorf("return value wasn't a literal")
-
+	return "", fmt.Errorf("return value wasn't a literal object")
 }
 
 // String returns our object as a string
 func (f *Funcall) String() string {
-	return fmt.Sprintf("Function{%s}", f.Name)
+	return fmt.Sprintf("Funcall{%s}", f.Name)
 }
 
 // Number represents an integer/hexadecimal/octal number.
@@ -209,9 +224,9 @@ type Assign struct {
 	// action is to be carried out conditionally.
 	ConditionType string
 
-	// ConditionRule holds a conditional-rule to match,
-	// if the ConditionType is non-empty.
-	ConditionRule *conditionals.ConditionCall
+	// Function holds a function to call, if this is a conditional
+	// action.
+	Function Node
 }
 
 // String turns an Assign object into a decent string.
@@ -224,7 +239,7 @@ func (a *Assign) String() string {
 		return (fmt.Sprintf("Assign{Key:%s Value:%s}", a.Key, a.Value))
 	}
 
-	return (fmt.Sprintf("Assign{Key:%s Value:%s ConditionType:%s Condition:%s}", a.Key, a.Value, a.ConditionType, a.ConditionRule))
+	return (fmt.Sprintf("Assign{Key:%s Value:%s ConditionType:%s Condition:%s}", a.Key, a.Value, a.ConditionType, a.Function))
 }
 
 // Include represents a file inclusion.
@@ -241,9 +256,9 @@ type Include struct {
 	// be executed conditionally.
 	ConditionType string
 
-	// ConditionRule holds a conditional-rule to match, if
-	// ConditionType is non-empty.
-	ConditionRule *conditionals.ConditionCall
+	// Function holds a function to call, if this is a conditional
+	// action.
+	Function *Funcall
 }
 
 // String turns an Include object into a useful string.
@@ -255,7 +270,7 @@ func (i *Include) String() string {
 		return (fmt.Sprintf("Include{ Source:%s }", i.Source))
 	}
 	return (fmt.Sprintf("Include{ Source:%s  ConditionType:%s Condition:%s}",
-		i.Source, i.ConditionType, i.ConditionRule))
+		i.Source, i.ConditionType, i.Function))
 }
 
 // Rule represents a parsed rule.
@@ -286,9 +301,9 @@ type Rule struct {
 	// be executed only conditionally.
 	ConditionType string
 
-	// ConditionRule holds a conditional-rule to match, if
-	// ConditionType is non-empty.
-	ConditionRule *conditionals.ConditionCall
+	// Function holds a function to call, if this is a conditional
+	// action.
+	Function *Funcall
 }
 
 // String turns a Rule object into a useful string
@@ -328,7 +343,7 @@ func (r *Rule) String() string {
 		return fmt.Sprintf("Rule %s{%s}", r.Type, args)
 	}
 
-	return fmt.Sprintf("Rule %s{%s ConditionType:%s Condition:%s}", r.Type, args, r.ConditionType, r.ConditionRule)
+	return fmt.Sprintf("Rule %s{%s ConditionType:%s Condition:%s}", r.Type, args, r.ConditionType, r.Function)
 
 }
 

@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/skx/marionette/ast"
-	"github.com/skx/marionette/conditionals"
 	"github.com/skx/marionette/config"
 	"github.com/skx/marionette/file"
 	"github.com/skx/marionette/parser"
@@ -237,9 +236,11 @@ func TestIf(t *testing.T) {
 			Triggered:     false,
 			Params:        params,
 			ConditionType: "if",
-			ConditionRule: &conditionals.ConditionCall{
-				Name: "equals",
-				Args: []string{"foo", "bar"},
+			Function: &ast.Funcall{
+				Name: "equal",
+				Args: []ast.Node{&ast.String{Value: "foo"},
+					&ast.String{Value: "bar"},
+				},
 			},
 		},
 	}
@@ -256,7 +257,7 @@ func TestIf(t *testing.T) {
 	}
 	err = ex.Execute()
 	if err != nil {
-		t.Errorf("unexpected error running rules")
+		t.Errorf("unexpected error running rules: %s", err.Error())
 	}
 
 	//
@@ -282,9 +283,11 @@ func TestIf(t *testing.T) {
 	tmpt := r1[0].(*ast.Rule)
 	tmpt.Params = params
 	tmpt.ConditionType = "if"
-	tmpt.ConditionRule = &conditionals.ConditionCall{
+	tmpt.Function = &ast.Funcall{
 		Name: "agrees",
-		Args: []string{"foo", "bar"},
+		Args: []ast.Node{&ast.String{Value: "foo"},
+			&ast.String{Value: "bar"},
+		},
 	}
 
 	ex = New(r1)
@@ -292,7 +295,7 @@ func TestIf(t *testing.T) {
 	if err == nil {
 		t.Errorf("expected error running rules, got none")
 	}
-	if !strings.Contains(err.Error(), "not available") {
+	if !strings.Contains(err.Error(), "not defined") {
 		t.Errorf("got an error, but not the right kind: %s", err.Error())
 	}
 
@@ -310,9 +313,11 @@ func TestTriggered(t *testing.T) {
 			Name:          "bob",
 			Triggered:     false,
 			ConditionType: "if",
-			ConditionRule: &conditionals.ConditionCall{
+			Function: &ast.Funcall{
 				Name: "equal",
-				Args: []string{"foo", "bar"},
+				Args: []ast.Node{&ast.String{Value: "foo"},
+					&ast.String{Value: "bar"},
+				},
 			},
 			Params: map[string]interface{}{
 				"require": "test",
@@ -368,9 +373,11 @@ func TestUnless(t *testing.T) {
 			Triggered:     false,
 			Params:        params,
 			ConditionType: "unless",
-			ConditionRule: &conditionals.ConditionCall{
-				Name: "equals",
-				Args: []string{"bar", "bar"},
+			Function: &ast.Funcall{
+				Name: "equal",
+				Args: []ast.Node{&ast.String{Value: "bar"},
+					&ast.String{Value: "bar"},
+				},
 			},
 		},
 	}
@@ -411,9 +418,11 @@ func TestUnless(t *testing.T) {
 	//
 	// change params
 	tmpt := r1[0].(*ast.Rule)
-	tmpt.ConditionRule = &conditionals.ConditionCall{
-		Name: "agrees",
-		Args: []string{"foo", "bar"},
+	tmpt.Function = &ast.Funcall{
+		Name: "tervetulo",
+		Args: []ast.Node{&ast.String{Value: "foo"},
+			&ast.String{Value: "bar"},
+		},
 	}
 
 	ex = New(r1)
@@ -421,7 +430,7 @@ func TestUnless(t *testing.T) {
 	if err == nil {
 		t.Errorf("expected error running rules, got none")
 	}
-	if !strings.Contains(err.Error(), "not available") {
+	if !strings.Contains(err.Error(), "not defined") {
 		t.Errorf("got an error, but not the right kind: %s", err.Error())
 	}
 

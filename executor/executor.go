@@ -15,7 +15,6 @@ import (
 	"strings"
 
 	"github.com/skx/marionette/ast"
-	"github.com/skx/marionette/conditionals"
 	"github.com/skx/marionette/config"
 	"github.com/skx/marionette/environment"
 	"github.com/skx/marionette/modules"
@@ -310,7 +309,7 @@ func (e *Executor) executeAssign(assign *ast.Assign) error {
 	if assign.ConditionType != "" {
 
 		// Should we execute the assignment?
-		ret, err := e.shouldExecute(assign.ConditionType, assign.ConditionRule)
+		ret, err := e.shouldExecute(assign.ConditionType, assign.Function)
 
 		// Error?  Then return that
 		if err != nil {
@@ -353,7 +352,7 @@ func (e *Executor) executeInclude(inc *ast.Include) error {
 	if inc.ConditionType != "" {
 
 		// Should we execute the inclusion?
-		ret, err := e.shouldExecute(inc.ConditionType, inc.ConditionRule)
+		ret, err := e.shouldExecute(inc.ConditionType, inc.Function)
 
 		// Error?  Then return that
 		if err != nil {
@@ -452,35 +451,73 @@ func (e *Executor) executeIncludeReal(source string) error {
 
 // shouldExecute tests whether the assignment/include/rule should be executed,
 // based on the condition-type and the condition-rule.
-func (e *Executor) shouldExecute(cType string, cRule *conditionals.ConditionCall) (bool, error) {
+func (e *Executor) shouldExecute(cType string, cRule ast.Node) (bool, error) {
 
-	// Look for the implementation of the conditional-method.
-	helper := conditionals.Lookup(cRule.Name)
-	if helper == nil {
-		return false, fmt.Errorf("conditional-function %s not available", cRule.Name)
+	fun, ok := cRule.(*ast.Funcall)
+	if !ok {
+		return false, fmt.Errorf("node is not a function: %v", cRule)
 	}
 
-	// We want to ensure that we expand all arguments
+	// Lookup the function
+	fn, ok := ast.FUNCTIONS[fun.Name]
+	if !ok {
+		return false, fmt.Errorf("function %s not defined", fun.Name)
+	}
+
+	// Convert each argument to a string
 	args := []string{}
-	for _, arg := range cRule.Args {
-		args = append(args, e.env.ExpandVariables(arg))
+
+	for _, arg := range fun.Args {
+
+		// expand the argument
+		obj, ok := arg.(ast.Literal)
+		if !ok {
+			return false, fmt.Errorf("failed to convert %v to string", arg)
+		}
+		val, err := obj.Evaluate(e.env)
+		if err != nil {
+			return false, err
+		}
+
+		args = append(args, val)
 	}
 
-	// Call the function, and handle any error.
-	res, err := helper(args)
+	// Call the function
+	ret, err := fn(e.env, args)
 	if err != nil {
 		return false, err
+	}
+
+	// Function return-value
+	retVal := true
+
+	// Type switch on the return
+	switch r := ret.(type) {
+	case *ast.String:
+		if r.Value == "" {
+			retVal = false
+		}
+	case *ast.Number:
+		if r.Value == 0 {
+			retVal = false
+		}
+	case *ast.Boolean:
+		if !r.Value {
+			retVal = false
+		}
+	default:
+		return false, fmt.Errorf("invalid result in function call for conditional: %v", ret)
 	}
 
 	// Now see if this means the thing should execute
 	switch cType {
 	case "if":
-		if !res {
+		if !retVal {
 			log.Printf("[INFO] Skipping because condition was not true: %s", cRule)
 			return false, nil
 		}
 	case "unless":
-		if res {
+		if retVal {
 			log.Printf("[INFO] Skipping because condition was not false: %s", cRule)
 			return false, nil
 		}
@@ -536,7 +573,7 @@ func (e *Executor) executeSingleRule(rule *ast.Rule) error {
 	if rule.ConditionType != "" {
 
 		// Should we execute the rule?
-		ret, err := e.shouldExecute(rule.ConditionType, rule.ConditionRule)
+		ret, err := e.shouldExecute(rule.ConditionType, rule.Function)
 
 		// Error?  Then return that
 		if err != nil {

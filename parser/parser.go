@@ -29,7 +29,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/skx/marionette/ast"
-	"github.com/skx/marionette/conditionals"
 	"github.com/skx/marionette/lexer"
 	"github.com/skx/marionette/token"
 )
@@ -187,20 +186,25 @@ func (p *Parser) parseLet() (*ast.Assign, error) {
 
 		// skip the token - after saving it
 		nxt := p.peekToken.Literal
-		p.nextToken()
+		tok := p.nextToken()
 
-		// Get the name/arguments of the function call
-		// we expect to come next.
-		fname, args, error := p.parseFunctionCall()
+		// Parse the function
+		tok = p.nextToken()
+		action, err := p.parsePrimitive(tok)
 
-		// error? then return that
-		if error != nil {
-			return let, error
+		if err != nil {
+			return let, err
+		}
+
+		// Confirm the action is a Funcall
+		faction, ok := action.(*ast.Funcall)
+		if !ok {
+			return let, fmt.Errorf("expected function-call after %s, got %v", nxt, action)
 		}
 
 		// Otherwise save the condition.
 		let.ConditionType = nxt
-		let.ConditionRule = &conditionals.ConditionCall{Name: fname, Args: args}
+		let.Function = faction
 	}
 
 	// Update the assignment node, and return it.
@@ -233,20 +237,26 @@ func (p *Parser) parseInclude() (*ast.Include, error) {
 
 		// skip the token - after saving it
 		nxt := p.peekToken.Literal
-		p.nextToken()
+		tok := p.nextToken()
 
-		// Get the name/arguments of the function call
-		// we expect to come next.
-		fname, args, error := p.parseFunctionCall()
+		// Parse the function
+		tok = p.nextToken()
+		action, err := p.parsePrimitive(tok)
 
-		// error? then return that
-		if error != nil {
-			return inc, error
+		if err != nil {
+			return inc, err
+		}
+
+		// Confirm the action is a Funcall
+		faction, ok := action.(*ast.Funcall)
+		if !ok {
+			return inc, fmt.Errorf("expected function-call after %s, got %v", nxt, action)
 		}
 
 		// Otherwise save the condition.
 		inc.ConditionType = nxt
-		inc.ConditionRule = &conditionals.ConditionCall{Name: fname, Args: args}
+		inc.Function = faction
+
 	}
 
 	return inc, nil
@@ -358,27 +368,23 @@ func (p *Parser) parseBlock(ty string) (*ast.Rule, error) {
 		//   "if|unless" =>  FOO ( arg1, arg2 .. )
 		if name == "if" || name == "unless" {
 
-			//
-			// Get the name/arguments of the function call we
-			// expect to come next.
-			//
-			fname, args, error := p.parseFunctionCall()
+			// Parse the function
+			tok := p.nextToken()
+			action, err := p.parsePrimitive(tok)
 
-			if error != nil {
-				return r, error
+			if err != nil {
+				return r, err
 			}
 
-			//
-			// OK at this point we should have:
-			//
-			//  1. A rule-type (tType) such as "exists"
-			//
-			//  2. A collection of arguments.
-			//
-			// Save those values away in our interface map.
-			//
+			// Confirm the action is a Funcall
+			faction, ok := action.(*ast.Funcall)
+			if !ok {
+				return r, fmt.Errorf("expected function-call after %s, got %v", next, action)
+			}
+
+			// Otherwise save the condition.
 			r.ConditionType = name
-			r.ConditionRule = &conditionals.ConditionCall{Name: fname, Args: args}
+			r.Function = faction
 			continue
 		}
 
@@ -445,54 +451,6 @@ func (p *Parser) getName(params map[string]interface{}) string {
 
 	// Return a random UUID for this rule.
 	return uuid.New().String()
-}
-
-// parseFunctionCall is invoked for the `if` & `unless` handlers.
-//
-// It parsers Foo(Val,val,val...) and returns the argument collection.
-func (p *Parser) parseFunctionCall() (string, []string, error) {
-
-	var name string
-	var args []string
-
-	//
-	// The function-call "exists", "equal", etc
-	//
-	tType := p.nextToken()
-	if tType.Type != token.IDENT {
-		return name, args, fmt.Errorf("expected identifier name after conditional %s, got %v", tType, tType)
-	}
-	name = tType.Literal
-
-	//
-	// Skip the opening bracket
-	//
-	open := p.nextToken()
-	if open.Type != token.LPAREN {
-		return name, args, fmt.Errorf("expected ( after conditional name %s, got %v", open, open)
-	}
-
-	//
-	// Collect the arguments, until we get a close-bracket
-	//
-	t := p.nextToken()
-	for t.Literal != ")" && t.Type != token.EOF {
-
-		//
-		// Append the argument, unless it is a comma
-		//
-		if t.Type != token.COMMA {
-
-			args = append(args, t.Literal)
-		}
-		t = p.nextToken()
-	}
-
-	if t.Type == token.EOF {
-		return name, args, fmt.Errorf("unexpected EOF in conditional")
-	}
-
-	return name, args, nil
 }
 
 // nextToken moves to our next token from the lexer.

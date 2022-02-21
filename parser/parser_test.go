@@ -132,24 +132,24 @@ func TestConditionalErrors(t *testing.T) {
 
 	// Broken tests
 	broken := []TestCase{
-		{Input: `shell { name => "OK",
+		{Input: `shell { name => "OK1",
                                  command => "echo Comparison Worked!",
                                  if =>        }`,
-			Error: "expected identifier"},
+			Error: "unexpected type parsing primitive"},
 
-		{Input: `shell { name => "OK",
+		{Input: `shell { name => "OK2",
                                  command => "echo Comparison Worked!",
                                  if => equal(
         }`,
-			Error: "unexpected EOF in conditional"},
-		{Input: `shell { name => "OK",
+			Error: "unexpected type parsing primitive:token"},
+		{Input: `shell { name => "OK3",
                                  command => "echo Comparison Worked!",
                                  unless`,
-			Error: "expected => after conditional"},
-		{Input: `shell { name => "OK",
+			Error: "expected => after conditional unless"},
+		{Input: `shell { name => "OK4",
                                  command => "echo Comparison Worked!",
                                  unless => foo foo`,
-			Error: "expected ( after conditional"},
+			Error: "unexpected type parsing primitive"},
 	}
 
 	for _, test := range broken {
@@ -161,7 +161,7 @@ func TestConditionalErrors(t *testing.T) {
 			t.Errorf("expected error parsing broken input '%s' - got none", test.Input)
 		} else {
 			if !strings.Contains(err.Error(), test.Error) {
-				t.Errorf("error '%s' did not match '%s'", err.Error(), test.Error)
+				t.Errorf("error '%s' did not match '%s' when hadnling %s", err.Error(), test.Error, test.Input)
 			}
 		}
 	}
@@ -196,8 +196,8 @@ func TestConditional(t *testing.T) {
 	}
 
 	// Does it look like the right test?
-	formatted := rule.ConditionRule.String()
-	if formatted != "equal(foo,foo)" {
+	formatted := rule.Function.String()
+	if formatted != "Funcall{equal}" {
 		t.Errorf("failed to stringify valid comparison")
 	}
 }
@@ -229,8 +229,8 @@ func TestInclude(t *testing.T) {
 	// Now test valid includes
 	valid := []string{
 		"include \"test.inc\"",
-		"include \"test.inc\" unless failure(/bin/ls)",
-		"include \"test.inc\" if success(/bin/ls)",
+		"include \"test.inc\" unless failure(\"/bin/ls\")",
+		"include \"test.inc\" if success(\"/bin/ls\")",
 	}
 
 	// Ensure each one succeeds
