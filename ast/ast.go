@@ -24,7 +24,9 @@ type Node interface {
 }
 
 // Literal is an interface which must be implemented by any of our
-// core literal types.  It will return the string-value of the literal.
+// core primitive types.
+//
+// When executed a primitive will return a string-version of the contents.
 type Literal interface {
 
 	// Evaluate returns the value of the literal.
@@ -34,7 +36,11 @@ type Literal interface {
 	Evaluate(env *environment.Environment) (string, error)
 }
 
-// Primitive values
+//
+// Primitive values follow
+//
+
+// Backtick is a value which returns the output of executing a command.
 type Backtick struct {
 	// Node is our parent object.
 	Node
@@ -121,6 +127,10 @@ func (s *String) Evaluate(env *environment.Environment) (string, error) {
 	return env.ExpandVariables(s.Value), nil
 
 }
+
+//
+// "Real" nodes follow
+//
 
 // Assign represents a variable assignment.
 type Assign struct {

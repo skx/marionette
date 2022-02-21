@@ -131,7 +131,7 @@ func (e *Environment) ExpandTokenVariables(tok token.Token) (string, error) {
 	return ret, nil
 }
 
-// ExecuteBacktick is similar to the ExpandVariables, it expands any
+// ExpandBacktick is similar to the ExpandVariables, it expands any
 // variables within the given string, then executes that as a command.
 func (e *Environment) ExpandBacktick(value string) (string, error) {
 
