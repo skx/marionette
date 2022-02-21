@@ -314,19 +314,26 @@ func (e *Executor) executeAssign(assign *ast.Assign) error {
 		}
 	}
 
+	// The key
 	key := assign.Key
-	val := assign.Value
 
-	ret, err := e.expandToken(val)
+	// Ensure the value implements our Literal interface
+	ex, ok := assign.Value.(ast.Literal)
+	if !ok {
+		return fmt.Errorf("value %v does not implement Literal interface", assign.Value)
+	}
+
+	// Execute the literal object (be it a number, string, backtick or bool)
+	val, err := ex.Evaluate(e.env)
 	if err != nil {
 		return err
 	}
 
 	// Show what we're going to do.
-	log.Printf("[DEBUG] Set '%s' -> '%s'", key, ret)
+	log.Printf("[DEBUG] Set '%s' -> '%s'", key, val)
 
 	// Set the value
-	e.env.Set(key, ret)
+	e.env.Set(key, val)
 	return nil
 }
 

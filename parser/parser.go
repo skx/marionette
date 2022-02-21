@@ -19,6 +19,7 @@ package parser
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/google/uuid"
 	"github.com/skx/marionette/ast"
@@ -166,19 +167,11 @@ func (p *Parser) parseLet() (*ast.Assign, error) {
 	}
 
 	// value
-	val := p.nextToken()
+	val, err := p.parsePrimitive()
 
 	// Error-checking.
-	if val.Type == token.ILLEGAL || val.Type == token.EOF {
-		return let, fmt.Errorf("unterminated assignment")
-	}
-
-	// assignment only handles strings/command-output
-	if val.Type != token.BOOLEAN &&
-		val.Type != token.BACKTICK &&
-		val.Type != token.NUMBER &&
-		val.Type != token.STRING {
-		return let, fmt.Errorf("unexpected value for variable assignment; expected string or backtick, got %v", val)
+	if err != nil {
+		return let, err
 	}
 
 	// Look at the next token and see if it is a
@@ -522,4 +515,34 @@ func (p *Parser) nextToken() token.Token {
 // peekTokenIs tests if the next token has the given value.
 func (p *Parser) peekTokenIs(t string) bool {
 	return p.peekToken.Literal == t
+}
+
+// Attempt to parse the next token as one of our primitive-types.
+func (p *Parser) parsePrimitive() (ast.Node, error) {
+
+	// Get the next token
+	tok := p.nextToken()
+
+	// Return the appropriate AST-node, if we can.
+	switch tok.Type {
+	case token.BACKTICK:
+		return &ast.Backtick{Value: tok.Literal}, nil
+	case token.BOOLEAN:
+		if tok.Literal == "true" {
+			return &ast.Boolean{Value: true}, nil
+		}
+		return &ast.Boolean{Value: false}, nil
+	case token.STRING:
+		return &ast.String{Value: tok.Literal}, nil
+	case token.NUMBER:
+		val, err := strconv.ParseInt(tok.Literal, 0, 64)
+		if err != nil {
+			return nil, err
+		}
+
+		return &ast.Number{Value: val}, nil
+	default:
+		return nil, fmt.Errorf("unexpected type parsing primitive:%v", tok)
+	}
+
 }

@@ -130,11 +130,8 @@ type Assign struct {
 	// Key is the name of the variable.
 	Key string
 
-	// Value is the value of our variable.
-	//
-	// This is a token so that we can execute commands,
-	// via backticks.
-	Value token.Token
+	// Value is the value which will be set.
+	Value Node
 
 	// ConditionType holds "if" or "unless" if this assignment
 	// action is to be carried out conditionally.
@@ -150,25 +147,12 @@ func (a *Assign) String() string {
 	if a == nil {
 		return "<nil>"
 	}
-	t := "unknown"
-
-	switch a.Value.Type {
-	case token.BACKTICK:
-		t = "backtick"
-	case token.BOOLEAN:
-		t = "boolean"
-	case token.NUMBER:
-		t = "number"
-	case token.STRING:
-		t = "string"
-	}
-
 	// No condition?
 	if a.ConditionType == "" {
-		return (fmt.Sprintf("Assign{Key:%s Value:%s Type:%s}", a.Key, a.Value.Literal, t))
+		return (fmt.Sprintf("Assign{Key:%s Value:%s}", a.Key, a.Value))
 	}
 
-	return (fmt.Sprintf("Assign{Key:%s Value:%s Type:%s ConditionType:%s Condition:%s}", a.Key, a.Value.Literal, t, a.ConditionType, a.ConditionRule))
+	return (fmt.Sprintf("Assign{Key:%s Value:%s ConditionType:%s Condition:%s}", a.Key, a.Value, a.ConditionType, a.ConditionRule))
 }
 
 // Include represents a file inclusion.
