@@ -47,7 +47,8 @@ func FuzzParser(f *testing.F) {
 		"illegal token",
 		"end of file",
 		"unterminated assignment",
-		"not a string or an array",
+		"strconv.ParseInt: parsing",
+		"TODO: Implement",
 	}
 
 	f.Fuzz(func(t *testing.T, input []byte) {

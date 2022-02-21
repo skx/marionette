@@ -216,12 +216,8 @@ type Rule struct {
 	// Parameters contains the params supplied by the user.
 	//
 	// The keys will be strings, with the values being either
-	// a single token, or an array of tokens.
+	// a single ast Node, or an array of them.
 	//
-	// (We need to store the tokens here, because we need to
-	// be able to differentiate later whether we received a
-	// string or a backtick-string which should be expanded
-	// at runtime.)
 	Params map[string]interface{}
 
 	// ConditionType holds "if" or "unless" if this rule should

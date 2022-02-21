@@ -12,7 +12,6 @@ import (
 	"github.com/skx/marionette/config"
 	"github.com/skx/marionette/file"
 	"github.com/skx/marionette/parser"
-	"github.com/skx/marionette/token"
 )
 
 // TestSimpleRule tests that running a simple rule succeeds
@@ -36,8 +35,8 @@ func TestSimpleRule(t *testing.T) {
 	// Setup the parameters
 	//
 	params := make(map[string]interface{})
-	params["target"] = token.Token{Type: token.STRING, Literal: tmpfile.Name()}
-	params["content"] = token.Token{Type: token.STRING, Literal: expected}
+	params["target"] = &ast.String{Value: tmpfile.Name()}
+	params["content"] = &ast.String{Value: expected}
 
 	//
 	// Create a simple rule
@@ -164,7 +163,7 @@ func TestBrokenDependencies(t *testing.T) {
 	//
 	params := make(map[string]interface{})
 	// -> missing rule
-	params["require"] = token.Token{Type: token.STRING, Literal: "foo"}
+	params["require"] = &ast.String{Value: "foo"}
 
 	//
 	// Create a rule with a single dependency
@@ -178,9 +177,9 @@ func TestBrokenDependencies(t *testing.T) {
 
 	//
 	// Create a rule with a pair of dependencies
-	params["require"] = []token.Token{
-		token.Token{Type: token.STRING, Literal: "foo"},
-		token.Token{Type: token.STRING, Literal: "bar"},
+	params["require"] = []ast.Node{
+		&ast.String{Value: "foo"},
+		&ast.String{Value: "bar"},
 	}
 
 	r2 := []ast.Node{

@@ -20,7 +20,6 @@ import (
 	"github.com/skx/marionette/environment"
 	"github.com/skx/marionette/modules"
 	"github.com/skx/marionette/parser"
-	"github.com/skx/marionette/token"
 )
 
 // Executor holds our internal state.
@@ -105,9 +104,10 @@ func (e *Executor) deps(rule *ast.Rule, key string) ([]string, error) {
 
 	var res []string
 
+	// Get the value from the map, if it exists.
 	requires, ok := rule.Params[key]
 
-	// no requirements?  Awesome
+	// no requirements/dependencies?  Then we're done.
 	if !ok {
 		return res, nil
 	}
@@ -119,27 +119,36 @@ func (e *Executor) deps(rule *ast.Rule, key string) ([]string, error) {
 	// Handle both cases.
 	//
 
-	tok, ok := requires.(token.Token)
-	if ok {
-		val, err := e.expandToken(tok)
-		if err != nil {
-			return res, err
-		}
-		res = append(res, val)
-		return res, nil
-	}
-
-	toks, ok := requires.([]token.Token)
+	// Is this a single node?
+	dep, ok := requires.(ast.Node)
 	if ok {
 
-		for _, tmp := range toks {
-
-			val, err := e.expandToken(tmp)
+		// Is it a single node, which we can convert?
+		exp, ok2 := dep.(ast.Literal)
+		if ok2 {
+			val, err := exp.Evaluate(e.env)
 			if err != nil {
 				return res, err
 			}
-
 			res = append(res, val)
+			return res, nil
+		}
+	}
+
+	// Is this an array of nodes?
+	deps, ok := requires.([]ast.Node)
+	if ok {
+		for _, tmp := range deps {
+
+			// Is it a single node, which we can convert?
+			exp, ok2 := tmp.(ast.Literal)
+			if ok2 {
+				val, err := exp.Evaluate(e.env)
+				if err != nil {
+					return res, err
+				}
+				res = append(res, val)
+			}
 		}
 		return res, nil
 	}
@@ -604,43 +613,45 @@ func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (
 	// So for each argument
 	for k, v := range rule.Params {
 
-		// param has a single value?
-		tok, ok := v.(token.Token)
+		// parameter contains a single node?
+		p, ok := v.(ast.Node)
 		if ok {
-			// expand the variables in the string
-			val := ""
-			val, err = e.expandToken(tok)
-			if err != nil {
-				return false, err
-			}
 
-			// save the value away
-			params[k] = val
-			continue
+			// Is it a single node, which we can convert?
+			exp, ok2 := p.(ast.Literal)
+			if ok2 {
+				val, err2 := exp.Evaluate(e.env)
+				if err2 != nil {
+					return false, err2
+				}
+				params[k] = val
+			}
 		}
 
-		// param has an array of values?
-		toks, ok2 := v.([]token.Token)
+		// Parameters contain multiple nodes?
+		pp, ok2 := v.([]ast.Node)
 		if ok2 {
 
 			// temporary values
 			var tmp []string
 
-			for _, val := range toks {
+			// for each node
+			for _, p := range pp {
 
-				str := ""
+				// Is it a single node, which we can convert?
+				exp, ok2 := p.(ast.Literal)
+				if ok2 {
+					val, err2 := exp.Evaluate(e.env)
+					if err2 != nil {
+						return false, err2
+					}
 
-				// expand the variables in the string
-				str, err = e.expandToken(val)
-				if err != nil {
-					return false, err
+					// save into our array of strings
+					tmp = append(tmp, val)
 				}
-
-				tmp = append(tmp, str)
 			}
 
 			params[k] = tmp
-			continue
 		}
 	}
 
@@ -661,7 +672,7 @@ func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (
 	// Now that execution is complete it might be that the module
 	// wishes to store variables in the environment.
 	//
-	// If the  module implements the "ModuleOutput" interface then invoke
+	// If the module implements the "ModuleOutput" interface then invoke
 	// it, and update the environment appropriately.
 	if outputs, ok := helper.(modules.ModuleOutput); ok {
 
@@ -700,35 +711,4 @@ func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (
 
 	// Finally return the value to the caller.
 	return changed, nil
-}
-
-// expandToken expands the given token into a string.
-//
-// This means handling the case where a token is a string, expanding
-// varibles, and when the token is a backtick-string then running the
-// command too.
-func (e *Executor) expandToken(tok token.Token) (string, error) {
-
-	ret := ""
-	var err error
-
-	switch tok.Type {
-	case token.STRING:
-		ret = e.env.ExpandVariables(tok.Literal)
-	case token.NUMBER:
-		// A number returns the string-value of the token
-		ret = tok.Literal
-	case token.BOOLEAN:
-		// A boolean returns the string-value of itself
-		ret = tok.Literal
-	case token.BACKTICK:
-		ret, err = e.env.ExpandTokenVariables(tok)
-		if err != nil {
-			return "", err
-		}
-	default:
-		return "", fmt.Errorf("unhandled type in executeAssign %v", tok)
-	}
-
-	return ret, nil
 }
