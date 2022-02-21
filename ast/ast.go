@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/skx/marionette/conditionals"
+	"github.com/skx/marionette/environment"
 	"github.com/skx/marionette/token"
 )
 
@@ -20,6 +21,105 @@ type Node interface {
 
 	// String will convert this Node object to a human-readable form.
 	String() string
+}
+
+// Literal is an interface which must be implemented by any of our
+// core literal types.  It will return the string-value of the literal.
+type Literal interface {
+
+	// Evaluate returns the value of the literal.
+	//
+	// The environment is made available because we want to
+	// allow variable expansion within strings and backticks.
+	Evaluate(env *environment.Environment) (string, error)
+}
+
+// Primitive values
+type Backtick struct {
+	// Node is our parent object.
+	Node
+
+	// Value is the command we're to execute.
+	Value string
+}
+
+// String returns our object as a string
+func (b *Backtick) String() string {
+	return fmt.Sprintf("Backtick{Command:%s}", b.Value)
+}
+
+// Evaluate returns the value of the Backtick object.
+func (b *Backtick) Evaluate(env *environment.Environment) (string, error) {
+	ret, err := env.ExpandBacktick(b.Value)
+	return ret, err
+}
+
+// Boolean represents a true/false value
+type Boolean struct {
+	// Node is our parent object.
+	Node
+
+	// Value is the literal value we hold
+	Value bool
+}
+
+// String returns our object as a string
+func (b *Boolean) String() string {
+	if b.Value {
+		return ("Boolean{true}")
+	}
+	return ("Boolean{false}")
+}
+
+// Evaluate returns the value of the Boolean object.
+func (b *Boolean) Evaluate(env *environment.Environment) (string, error) {
+	if b.Value {
+		return "true", nil
+	}
+	return "false", nil
+}
+
+// Number represents an integer/hexadecimal/octal number.
+//
+// Note that we support integers only, not floating-point numbers.
+type Number struct {
+	// Node is our parent object.
+	Node
+
+	// Value is the literal string we've got
+	Value int64
+}
+
+// String returns our object as a string
+func (n *Number) String() string {
+	return fmt.Sprintf("Number{%d}", n.Value)
+}
+
+// Evaluate returns the value of the Number object.
+func (n *Number) Evaluate(env *environment.Environment) (string, error) {
+	return fmt.Sprintf("%d", n.Value), nil
+}
+
+// String represents a string literal
+type String struct {
+	// Node is our parent object.
+	Node
+
+	// Value is the literal string we've got
+	Value string
+}
+
+// String returns our object as a string.
+func (s *String) String() string {
+	return fmt.Sprintf("String{%s}", s.Value)
+}
+
+// Evaluate returns the value of the String object.
+//
+// This means expanding the variables contained within the string.
+func (s *String) Evaluate(env *environment.Environment) (string, error) {
+	return env.ExpandVariables(s.Value), nil
+
 }
 
 // Assign represents a variable assignment.

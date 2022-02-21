@@ -99,6 +99,8 @@ func (e *Environment) ExpandVariables(input string) string {
 //
 // This is done so that if a token is used of type `BACKTICK` we can
 // execute the appropriate shell command(s).
+//
+// TODO: Delete Me.
 func (e *Environment) ExpandTokenVariables(tok token.Token) (string, error) {
 
 	// Expand any variables
@@ -109,6 +111,32 @@ func (e *Environment) ExpandTokenVariables(tok token.Token) (string, error) {
 	if tok.Type != token.BACKTICK {
 		return value, nil
 	}
+
+	// Now we need to execute the command and return the value
+	// Build up the thing to run, using a shell so that
+	// we can handle pipes/redirection.
+	toRun := []string{"/bin/bash", "-c", value}
+
+	// Run the command
+	cmd := exec.Command(toRun[0], toRun[1:]...)
+
+	// Get the output
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("error running command '%s' %s", value, err.Error())
+	}
+
+	// Strip trailing newline.
+	ret := strings.TrimSuffix(string(output), "\n")
+	return ret, nil
+}
+
+// ExecuteBacktick is similar to the ExpandVariables, it expands any
+// variables within the given string, then executes that as a command.
+func (e *Environment) ExpandBacktick(value string) (string, error) {
+
+	// Expand any variables within the command.
+	value = e.ExpandVariables(value)
 
 	// Now we need to execute the command and return the value
 	// Build up the thing to run, using a shell so that
