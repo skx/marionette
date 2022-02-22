@@ -283,7 +283,7 @@ func (e *Executor) Execute() error {
 			log.Printf("[DEBUG] Processing rule: %s", r)
 
 			// rule execution
-			err := e.executeSingleRule(r)
+			err := e.executeSingleRule(r, false)
 			if err != nil {
 				return err
 			}
@@ -483,7 +483,7 @@ func (e *Executor) shouldExecute(cType string, cRule *ast.Funcall) (bool, error)
 }
 
 // executeSingleRule creates the appropriate module, and runs the single rule.
-func (e *Executor) executeSingleRule(rule *ast.Rule) error {
+func (e *Executor) executeSingleRule(rule *ast.Rule, force bool) error {
 
 	// Show what we're doing
 	log.Printf("[INFO] Running %s-module rule: %s", rule.Type, rule.Name)
@@ -491,8 +491,12 @@ func (e *Executor) executeSingleRule(rule *ast.Rule) error {
 	// Don't run rules that are only present to
 	// be notified by a trigger.
 	if rule.Triggered {
-		log.Printf("[DEBUG] Skipping rule because it has the triggered-modifier")
-		return nil
+		if force {
+			log.Printf("[DEBUG] Forcing execution of rule due to notify action")
+		} else {
+			log.Printf("[DEBUG] Skipping rule because it has the triggered-modifier")
+			return nil
+		}
 	}
 
 	// Have we executed this rule already?
@@ -515,7 +519,7 @@ func (e *Executor) executeSingleRule(rule *ast.Rule) error {
 		dr := e.Program[e.index[dep]].(*ast.Rule)
 		log.Printf("[DEBUG] Running dependency for %s: %s\n", rule.Name, dr.Name)
 		// Now the rule itself
-		err := e.executeSingleRule(dr)
+		err := e.executeSingleRule(dr, false)
 		if err != nil {
 			return err
 		}
@@ -578,7 +582,7 @@ func (e *Executor) executeSingleRule(rule *ast.Rule) error {
 			log.Printf("[INFO] Notifying rule: %s", dr.Name)
 
 			// Execute the rule.
-			err := e.executeSingleRule(dr)
+			err := e.executeSingleRule(dr, true)
 			if err != nil {
 				return err
 			}

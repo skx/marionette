@@ -623,3 +623,134 @@ INSERT INTO contacts( first_name, last_name, email ) VALUES( 'nobody', 'special'
 	os.Remove(tmpfile.Name())
 
 }
+
+// Ensure triggered rules are ignored
+func TestIgnoreTriggered(t *testing.T) {
+
+	src := `
+# only created if notified
+file triggered {
+      name    => "one",
+      target  => "one.tst",
+      content => "OK"
+}
+
+# only created if notified
+file triggered {
+      name    => "two",
+      target  => "two.tst",
+      content => "OK"
+}`
+
+	// Before we begin neither file will exist.
+	for _, f := range []string{"one.tst", "two.tst"} {
+
+		// Ensure that we now have a generated SQLite file
+		if file.Exists(f) {
+			t.Fatalf("we did not expect the file to be present: %s", f)
+		}
+	}
+
+	// Create a new parser with our content.
+	p := parser.New(string(src))
+
+	// Parse the rules
+	out, err := p.Parse()
+	if err != nil {
+		t.Fatalf("failed to parse: %s", err)
+	}
+
+	// Execute
+	ex := New(out.Recipe)
+
+	// Check for broken dependencies
+	err = ex.Check()
+	if err != nil {
+		t.Fatalf("failed to check rules:%s", err)
+	}
+
+	// Now execute!
+	err = ex.Execute()
+	if err != nil {
+		t.Fatalf("failed to run rules:%s", err)
+	}
+
+	// At this point those files should still not exist.
+	for _, f := range []string{"one.tst", "two.tst"} {
+
+		// Ensure that we now have a generated SQLite file
+		if file.Exists(f) {
+			t.Fatalf("file should not be created: %s", f)
+		}
+
+		os.Remove(f)
+	}
+}
+
+// Notify two rules upon a change.
+func TestNotifyMultiple(t *testing.T) {
+
+	src := `
+# always results in a change
+log { message => "test",
+      notify  => [ "one", "two" ],
+}
+
+# only created if notified
+file triggered {
+      name    => "one",
+      target  => "one.tst",
+      content => "OK"
+}
+
+# only created if notified
+file triggered {
+      name    => "two",
+      target  => "two.tst",
+      content => "OK"
+}`
+
+	// Before we begin neither file will exist.
+	for _, f := range []string{"one.tst", "two.tst"} {
+
+		// Ensure that we now have a generated SQLite file
+		if file.Exists(f) {
+			t.Fatalf("we did not expect the file to be present: %s", f)
+		}
+	}
+
+	// Create a new parser with our content.
+	p := parser.New(string(src))
+
+	// Parse the rules
+	out, err := p.Parse()
+	if err != nil {
+		t.Fatalf("failed to parse: %s", err)
+	}
+
+	// Execute
+	ex := New(out.Recipe)
+
+	// Check for broken dependencies
+	err = ex.Check()
+	if err != nil {
+		t.Fatalf("failed to check rules:%s", err)
+	}
+
+	// Now execute!
+	err = ex.Execute()
+	if err != nil {
+		t.Fatalf("failed to run rules:%s", err)
+	}
+
+	// At this point we should have two files created
+	for _, f := range []string{"one.tst", "two.tst"} {
+
+		// Ensure that we now have a generated SQLite file
+		if !file.Exists(f) {
+			t.Fatalf("we expected a file to be created: %s", f)
+		}
+
+		os.Remove(f)
+	}
+}
