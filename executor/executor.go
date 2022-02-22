@@ -123,7 +123,7 @@ func (e *Executor) deps(rule *ast.Rule, key string) ([]string, error) {
 	if ok {
 
 		// Is it a single node, which we can convert?
-		exp, ok2 := dep.(ast.Literal)
+		exp, ok2 := dep.(ast.Object)
 		if ok2 {
 			val, err := exp.Evaluate(e.env)
 			if err != nil {
@@ -140,7 +140,7 @@ func (e *Executor) deps(rule *ast.Rule, key string) ([]string, error) {
 		for _, tmp := range deps {
 
 			// Is it a single node, which we can convert?
-			exp, ok2 := tmp.(ast.Literal)
+			exp, ok2 := tmp.(ast.Object)
 			if ok2 {
 				val, err := exp.Evaluate(e.env)
 				if err != nil {
@@ -326,7 +326,7 @@ func (e *Executor) executeAssign(assign *ast.Assign) error {
 	key := assign.Key
 
 	// Ensure the value implements our Literal interface
-	ex, ok := assign.Value.(ast.Literal)
+	ex, ok := assign.Value.(ast.Object)
 	if !ok {
 		return fmt.Errorf("value %v does not implement Literal interface", assign.Value)
 	}
@@ -621,7 +621,7 @@ func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (
 		if ok {
 
 			// Is it a single node, which we can convert?
-			exp, ok2 := p.(ast.Literal)
+			exp, ok2 := p.(ast.Object)
 			if ok2 {
 				val, err2 := exp.Evaluate(e.env)
 				if err2 != nil {
@@ -642,7 +642,7 @@ func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (
 			for _, p := range pp {
 
 				// Is it a single node, which we can convert?
-				exp, ok2 := p.(ast.Literal)
+				exp, ok2 := p.(ast.Object)
 				if ok2 {
 					val, err2 := exp.Evaluate(e.env)
 					if err2 != nil {
