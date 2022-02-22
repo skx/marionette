@@ -176,7 +176,7 @@ func TestBrokenDependencies(t *testing.T) {
 
 	//
 	// Create a rule with a pair of dependencies
-	params["require"] = []ast.Node{
+	params["require"] = []ast.Object{
 		&ast.String{Value: "foo"},
 		&ast.String{Value: "bar"},
 	}
@@ -238,7 +238,7 @@ func TestIf(t *testing.T) {
 			ConditionType: "if",
 			Function: &ast.Funcall{
 				Name: "equal",
-				Args: []ast.Node{&ast.String{Value: "foo"},
+				Args: []ast.Object{&ast.String{Value: "foo"},
 					&ast.String{Value: "bar"},
 				},
 			},
@@ -285,7 +285,7 @@ func TestIf(t *testing.T) {
 	tmpt.ConditionType = "if"
 	tmpt.Function = &ast.Funcall{
 		Name: "agrees",
-		Args: []ast.Node{&ast.String{Value: "foo"},
+		Args: []ast.Object{&ast.String{Value: "foo"},
 			&ast.String{Value: "bar"},
 		},
 	}
@@ -315,7 +315,7 @@ func TestTriggered(t *testing.T) {
 			ConditionType: "if",
 			Function: &ast.Funcall{
 				Name: "equal",
-				Args: []ast.Node{&ast.String{Value: "foo"},
+				Args: []ast.Object{&ast.String{Value: "foo"},
 					&ast.String{Value: "bar"},
 				},
 			},
@@ -375,7 +375,7 @@ func TestUnless(t *testing.T) {
 			ConditionType: "unless",
 			Function: &ast.Funcall{
 				Name: "equal",
-				Args: []ast.Node{&ast.String{Value: "bar"},
+				Args: []ast.Object{&ast.String{Value: "bar"},
 					&ast.String{Value: "bar"},
 				},
 			},
@@ -420,7 +420,7 @@ func TestUnless(t *testing.T) {
 	tmpt := r1[0].(*ast.Rule)
 	tmpt.Function = &ast.Funcall{
 		Name: "tervetulo",
-		Args: []ast.Node{&ast.String{Value: "foo"},
+		Args: []ast.Object{&ast.String{Value: "foo"},
 			&ast.String{Value: "bar"},
 		},
 	}

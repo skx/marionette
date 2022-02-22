@@ -470,7 +470,7 @@ func (p *Parser) peekTokenIs(t string) bool {
 // primitive-types.
 //
 // This is used for block-values, be they single or multiple.
-func (p *Parser) parsePrimitive(tok token.Token) (ast.Node, error) {
+func (p *Parser) parsePrimitive(tok token.Token) (ast.Object, error) {
 
 	// Return the appropriate AST-node, if we can.
 	switch tok.Type {
@@ -492,7 +492,7 @@ func (p *Parser) parsePrimitive(tok token.Token) (ast.Node, error) {
 		if p.peekTokenIs(token.LPAREN) {
 
 			// Arguments we'll build up
-			var args []ast.Node
+			var args []ast.Object
 
 			// skip "("
 			p.nextToken()
@@ -537,10 +537,10 @@ func (p *Parser) parsePrimitive(tok token.Token) (ast.Node, error) {
 
 // parseMultiplePrimitives attempts to parse multiple values within a
 // "[" + "]" separated block.
-func (p *Parser) parseMultiplePrimitives() ([]ast.Node, error) {
+func (p *Parser) parseMultiplePrimitives() ([]ast.Object, error) {
 
-	var ret []ast.Node
-	var val ast.Node
+	var ret []ast.Object
+	var val ast.Object
 	var err error
 
 	for {

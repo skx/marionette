@@ -197,8 +197,8 @@ func TestConditional(t *testing.T) {
 
 	// Does it look like the right test?
 	formatted := rule.Function.String()
-	if formatted != "Funcall{equal}" {
-		t.Errorf("failed to stringify valid comparison")
+	if formatted != "Funcall{equal(String{foo},String{foo})}" {
+		t.Errorf("failed to stringify valid comparison: %s", formatted)
 	}
 }
 

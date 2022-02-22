@@ -85,7 +85,7 @@ type Funcall struct {
 	Name string
 
 	// Arguments are the arguments to be passed to the call.
-	Args []Node
+	Args []Object
 }
 
 // Evaluate returns the value of the function call.
@@ -148,7 +148,14 @@ func (f *Funcall) Evaluate(env *environment.Environment) (string, error) {
 
 // String returns our object as a string.
 func (f *Funcall) String() string {
-	return fmt.Sprintf("Funcall{%s}", f.Name)
+	args := ""
+	for _, a := range f.Args {
+		if len(args) > 0 {
+			args += ","
+		}
+		args += a.String()
+	}
+	return fmt.Sprintf("Funcall{%s(%s)}", f.Name, args)
 }
 
 // Number represents an integer/hexadecimal/octal number.

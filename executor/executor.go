@@ -118,8 +118,8 @@ func (e *Executor) deps(rule *ast.Rule, key string) ([]string, error) {
 	// Handle both cases.
 	//
 
-	// Is this a single node?
-	dep, ok := requires.(ast.Node)
+	// Is this a single object?
+	dep, ok := requires.(ast.Object)
 	if ok {
 
 		// Is it a single node, which we can convert?
@@ -134,8 +134,8 @@ func (e *Executor) deps(rule *ast.Rule, key string) ([]string, error) {
 		}
 	}
 
-	// Is this an array of nodes?
-	deps, ok := requires.([]ast.Node)
+	// Is this an array of objects?
+	deps, ok := requires.([]ast.Object)
 	if ok {
 		for _, tmp := range deps {
 
@@ -451,16 +451,10 @@ func (e *Executor) executeIncludeReal(source string) error {
 
 // shouldExecute tests whether the assignment/include/rule should be executed,
 // based on the condition-type and the condition-rule.
-func (e *Executor) shouldExecute(cType string, cRule ast.Node) (bool, error) {
-
-	// Cast the rule to the correct type
-	fun, ok := cRule.(*ast.Funcall)
-	if !ok {
-		return false, fmt.Errorf("node is not a function: %v", cRule)
-	}
+func (e *Executor) shouldExecute(cType string, cRule *ast.Funcall) (bool, error) {
 
 	// Invoke it, and get the output
-	ret, err := fun.Evaluate(e.env)
+	ret, err := cRule.Evaluate(e.env)
 	if err != nil {
 		return false, err
 	}
@@ -617,7 +611,7 @@ func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (
 	for k, v := range rule.Params {
 
 		// parameter contains a single node?
-		p, ok := v.(ast.Node)
+		p, ok := v.(ast.Object)
 		if ok {
 
 			// Is it a single node, which we can convert?
@@ -632,7 +626,7 @@ func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (
 		}
 
 		// Parameters contain multiple nodes?
-		pp, ok2 := v.([]ast.Node)
+		pp, ok2 := v.([]ast.Object)
 		if ok2 {
 
 			// temporary values

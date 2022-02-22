@@ -79,7 +79,7 @@ func TestFunctions(t *testing.T) {
 	type TestCase struct {
 		Name   string
 		Input  []string
-		Output Node
+		Output Object
 	}
 
 	tests := []TestCase{

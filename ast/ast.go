@@ -10,8 +10,6 @@ package ast
 import (
 	"fmt"
 	"strings"
-
-	"github.com/skx/marionette/token"
 )
 
 //
@@ -40,7 +38,7 @@ type Assign struct {
 
 	// Function holds a function to call, if this is a conditional
 	// action.
-	Function Node
+	Function *Funcall
 }
 
 // String turns an Assign object into a decent string.
@@ -132,12 +130,12 @@ func (r *Rule) String() string {
 		// try to format the value
 		val := ""
 
-		str, ok := v.(token.Token)
+		str, ok := v.(Object)
 		if ok {
 			val = fmt.Sprintf("\"%s\"", str)
 		}
 
-		array, ok2 := v.([]token.Token)
+		array, ok2 := v.([]Object)
 		if ok2 {
 			for _, s := range array {
 				val += fmt.Sprintf(", \"%s\"", s)
