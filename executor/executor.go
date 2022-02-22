@@ -15,12 +15,10 @@ import (
 	"strings"
 
 	"github.com/skx/marionette/ast"
-	"github.com/skx/marionette/conditionals"
 	"github.com/skx/marionette/config"
 	"github.com/skx/marionette/environment"
 	"github.com/skx/marionette/modules"
 	"github.com/skx/marionette/parser"
-	"github.com/skx/marionette/token"
 )
 
 // Executor holds our internal state.
@@ -105,9 +103,10 @@ func (e *Executor) deps(rule *ast.Rule, key string) ([]string, error) {
 
 	var res []string
 
+	// Get the value from the map, if it exists.
 	requires, ok := rule.Params[key]
 
-	// no requirements?  Awesome
+	// no requirements/dependencies?  Then we're done.
 	if !ok {
 		return res, nil
 	}
@@ -119,9 +118,12 @@ func (e *Executor) deps(rule *ast.Rule, key string) ([]string, error) {
 	// Handle both cases.
 	//
 
-	tok, ok := requires.(token.Token)
+	// Is this a single object?
+	dep, ok := requires.(ast.Object)
 	if ok {
-		val, err := e.expandToken(tok)
+
+		// Is it a single node, which we can convert?
+		val, err := dep.Evaluate(e.env)
 		if err != nil {
 			return res, err
 		}
@@ -129,16 +131,15 @@ func (e *Executor) deps(rule *ast.Rule, key string) ([]string, error) {
 		return res, nil
 	}
 
-	toks, ok := requires.([]token.Token)
+	// Is this an array of objects?
+	deps, ok := requires.([]ast.Object)
 	if ok {
+		for _, tmp := range deps {
 
-		for _, tmp := range toks {
-
-			val, err := e.expandToken(tmp)
+			val, err := tmp.Evaluate(e.env)
 			if err != nil {
 				return res, err
 			}
-
 			res = append(res, val)
 		}
 		return res, nil
@@ -282,7 +283,7 @@ func (e *Executor) Execute() error {
 			log.Printf("[DEBUG] Processing rule: %s", r)
 
 			// rule execution
-			err := e.executeSingleRule(r)
+			err := e.executeSingleRule(r, false)
 			if err != nil {
 				return err
 			}
@@ -301,7 +302,7 @@ func (e *Executor) executeAssign(assign *ast.Assign) error {
 	if assign.ConditionType != "" {
 
 		// Should we execute the assignment?
-		ret, err := e.shouldExecute(assign.ConditionType, assign.ConditionRule)
+		ret, err := e.shouldExecute(assign.ConditionType, assign.Function)
 
 		// Error?  Then return that
 		if err != nil {
@@ -314,19 +315,26 @@ func (e *Executor) executeAssign(assign *ast.Assign) error {
 		}
 	}
 
+	// The key
 	key := assign.Key
-	val := assign.Value
 
-	ret, err := e.expandToken(val)
+	// Ensure the value implements our Literal interface
+	ex, ok := assign.Value.(ast.Object)
+	if !ok {
+		return fmt.Errorf("value %v does not implement Literal interface", assign.Value)
+	}
+
+	// Execute the literal object (be it a number, string, backtick or bool)
+	val, err := ex.Evaluate(e.env)
 	if err != nil {
 		return err
 	}
 
 	// Show what we're going to do.
-	log.Printf("[DEBUG] Set '%s' -> '%s'", key, ret)
+	log.Printf("[DEBUG] Set '%s' -> '%s'", key, val)
 
 	// Set the value
-	e.env.Set(key, ret)
+	e.env.Set(key, val)
 	return nil
 }
 
@@ -337,7 +345,7 @@ func (e *Executor) executeInclude(inc *ast.Include) error {
 	if inc.ConditionType != "" {
 
 		// Should we execute the inclusion?
-		ret, err := e.shouldExecute(inc.ConditionType, inc.ConditionRule)
+		ret, err := e.shouldExecute(inc.ConditionType, inc.Function)
 
 		// Error?  Then return that
 		if err != nil {
@@ -436,35 +444,33 @@ func (e *Executor) executeIncludeReal(source string) error {
 
 // shouldExecute tests whether the assignment/include/rule should be executed,
 // based on the condition-type and the condition-rule.
-func (e *Executor) shouldExecute(cType string, cRule *conditionals.ConditionCall) (bool, error) {
+func (e *Executor) shouldExecute(cType string, cRule *ast.Funcall) (bool, error) {
 
-	// Look for the implementation of the conditional-method.
-	helper := conditionals.Lookup(cRule.Name)
-	if helper == nil {
-		return false, fmt.Errorf("conditional-function %s not available", cRule.Name)
-	}
-
-	// We want to ensure that we expand all arguments
-	args := []string{}
-	for _, arg := range cRule.Args {
-		args = append(args, e.env.ExpandVariables(arg))
-	}
-
-	// Call the function, and handle any error.
-	res, err := helper(args)
+	// Invoke it, and get the output
+	ret, err := cRule.Evaluate(e.env)
 	if err != nil {
 		return false, err
+	}
+
+	// Function return-value
+	retVal := true
+
+	// Is the result "truthy"?
+	if ret == "" ||
+		ret == "false" ||
+		ret == "0" {
+		retVal = false
 	}
 
 	// Now see if this means the thing should execute
 	switch cType {
 	case "if":
-		if !res {
+		if !retVal {
 			log.Printf("[INFO] Skipping because condition was not true: %s", cRule)
 			return false, nil
 		}
 	case "unless":
-		if res {
+		if retVal {
 			log.Printf("[INFO] Skipping because condition was not false: %s", cRule)
 			return false, nil
 		}
@@ -477,7 +483,7 @@ func (e *Executor) shouldExecute(cType string, cRule *conditionals.ConditionCall
 }
 
 // executeSingleRule creates the appropriate module, and runs the single rule.
-func (e *Executor) executeSingleRule(rule *ast.Rule) error {
+func (e *Executor) executeSingleRule(rule *ast.Rule, force bool) error {
 
 	// Show what we're doing
 	log.Printf("[INFO] Running %s-module rule: %s", rule.Type, rule.Name)
@@ -485,8 +491,12 @@ func (e *Executor) executeSingleRule(rule *ast.Rule) error {
 	// Don't run rules that are only present to
 	// be notified by a trigger.
 	if rule.Triggered {
-		log.Printf("[DEBUG] Skipping rule because it has the triggered-modifier")
-		return nil
+		if force {
+			log.Printf("[DEBUG] Forcing execution of rule due to notify action")
+		} else {
+			log.Printf("[DEBUG] Skipping rule because it has the triggered-modifier")
+			return nil
+		}
 	}
 
 	// Have we executed this rule already?
@@ -509,7 +519,7 @@ func (e *Executor) executeSingleRule(rule *ast.Rule) error {
 		dr := e.Program[e.index[dep]].(*ast.Rule)
 		log.Printf("[DEBUG] Running dependency for %s: %s\n", rule.Name, dr.Name)
 		// Now the rule itself
-		err := e.executeSingleRule(dr)
+		err := e.executeSingleRule(dr, false)
 		if err != nil {
 			return err
 		}
@@ -520,7 +530,7 @@ func (e *Executor) executeSingleRule(rule *ast.Rule) error {
 	if rule.ConditionType != "" {
 
 		// Should we execute the rule?
-		ret, err := e.shouldExecute(rule.ConditionType, rule.ConditionRule)
+		ret, err := e.shouldExecute(rule.ConditionType, rule.Function)
 
 		// Error?  Then return that
 		if err != nil {
@@ -572,7 +582,7 @@ func (e *Executor) executeSingleRule(rule *ast.Rule) error {
 			log.Printf("[INFO] Notifying rule: %s", dr.Name)
 
 			// Execute the rule.
-			err := e.executeSingleRule(dr)
+			err := e.executeSingleRule(dr, true)
 			if err != nil {
 				return err
 			}
@@ -597,43 +607,38 @@ func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (
 	// So for each argument
 	for k, v := range rule.Params {
 
-		// param has a single value?
-		tok, ok := v.(token.Token)
+		// parameter contains a single node?
+		p, ok := v.(ast.Object)
 		if ok {
-			// expand the variables in the string
-			val := ""
-			val, err = e.expandToken(tok)
-			if err != nil {
-				return false, err
-			}
 
-			// save the value away
+			// Is it a single node, which we can convert?
+			val, err2 := p.Evaluate(e.env)
+			if err2 != nil {
+				return false, err2
+			}
 			params[k] = val
-			continue
 		}
 
-		// param has an array of values?
-		toks, ok2 := v.([]token.Token)
+		// Parameters contain multiple nodes?
+		pp, ok2 := v.([]ast.Object)
 		if ok2 {
 
 			// temporary values
 			var tmp []string
 
-			for _, val := range toks {
+			// for each node
+			for _, p := range pp {
 
-				str := ""
-
-				// expand the variables in the string
-				str, err = e.expandToken(val)
-				if err != nil {
-					return false, err
+				val, err2 := p.Evaluate(e.env)
+				if err2 != nil {
+					return false, err2
 				}
 
-				tmp = append(tmp, str)
+				// save into our array of strings
+				tmp = append(tmp, val)
 			}
 
 			params[k] = tmp
-			continue
 		}
 	}
 
@@ -654,7 +659,7 @@ func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (
 	// Now that execution is complete it might be that the module
 	// wishes to store variables in the environment.
 	//
-	// If the  module implements the "ModuleOutput" interface then invoke
+	// If the module implements the "ModuleOutput" interface then invoke
 	// it, and update the environment appropriately.
 	if outputs, ok := helper.(modules.ModuleOutput); ok {
 
@@ -693,35 +698,4 @@ func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (
 
 	// Finally return the value to the caller.
 	return changed, nil
-}
-
-// expandToken expands the given token into a string.
-//
-// This means handling the case where a token is a string, expanding
-// varibles, and when the token is a backtick-string then running the
-// command too.
-func (e *Executor) expandToken(tok token.Token) (string, error) {
-
-	ret := ""
-	var err error
-
-	switch tok.Type {
-	case token.STRING:
-		ret = e.env.ExpandVariables(tok.Literal)
-	case token.NUMBER:
-		// A number returns the string-value of the token
-		ret = tok.Literal
-	case token.BOOLEAN:
-		// A boolean returns the string-value of itself
-		ret = tok.Literal
-	case token.BACKTICK:
-		ret, err = e.env.ExpandTokenVariables(tok)
-		if err != nil {
-			return "", err
-		}
-	default:
-		return "", fmt.Errorf("unhandled type in executeAssign %v", tok)
-	}
-
-	return ret, nil
 }

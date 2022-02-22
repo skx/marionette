@@ -8,11 +8,9 @@ import (
 	"testing"
 
 	"github.com/skx/marionette/ast"
-	"github.com/skx/marionette/conditionals"
 	"github.com/skx/marionette/config"
 	"github.com/skx/marionette/file"
 	"github.com/skx/marionette/parser"
-	"github.com/skx/marionette/token"
 )
 
 // TestSimpleRule tests that running a simple rule succeeds
@@ -36,8 +34,8 @@ func TestSimpleRule(t *testing.T) {
 	// Setup the parameters
 	//
 	params := make(map[string]interface{})
-	params["target"] = token.Token{Type: token.STRING, Literal: tmpfile.Name()}
-	params["content"] = token.Token{Type: token.STRING, Literal: expected}
+	params["target"] = &ast.String{Value: tmpfile.Name()}
+	params["content"] = &ast.String{Value: expected}
 
 	//
 	// Create a simple rule
@@ -164,7 +162,7 @@ func TestBrokenDependencies(t *testing.T) {
 	//
 	params := make(map[string]interface{})
 	// -> missing rule
-	params["require"] = token.Token{Type: token.STRING, Literal: "foo"}
+	params["require"] = &ast.String{Value: "foo"}
 
 	//
 	// Create a rule with a single dependency
@@ -178,9 +176,9 @@ func TestBrokenDependencies(t *testing.T) {
 
 	//
 	// Create a rule with a pair of dependencies
-	params["require"] = []token.Token{
-		token.Token{Type: token.STRING, Literal: "foo"},
-		token.Token{Type: token.STRING, Literal: "bar"},
+	params["require"] = []ast.Object{
+		&ast.String{Value: "foo"},
+		&ast.String{Value: "bar"},
 	}
 
 	r2 := []ast.Node{
@@ -238,9 +236,11 @@ func TestIf(t *testing.T) {
 			Triggered:     false,
 			Params:        params,
 			ConditionType: "if",
-			ConditionRule: &conditionals.ConditionCall{
-				Name: "equals",
-				Args: []string{"foo", "bar"},
+			Function: &ast.Funcall{
+				Name: "equal",
+				Args: []ast.Object{&ast.String{Value: "foo"},
+					&ast.String{Value: "bar"},
+				},
 			},
 		},
 	}
@@ -257,7 +257,7 @@ func TestIf(t *testing.T) {
 	}
 	err = ex.Execute()
 	if err != nil {
-		t.Errorf("unexpected error running rules")
+		t.Errorf("unexpected error running rules: %s", err.Error())
 	}
 
 	//
@@ -283,9 +283,11 @@ func TestIf(t *testing.T) {
 	tmpt := r1[0].(*ast.Rule)
 	tmpt.Params = params
 	tmpt.ConditionType = "if"
-	tmpt.ConditionRule = &conditionals.ConditionCall{
+	tmpt.Function = &ast.Funcall{
 		Name: "agrees",
-		Args: []string{"foo", "bar"},
+		Args: []ast.Object{&ast.String{Value: "foo"},
+			&ast.String{Value: "bar"},
+		},
 	}
 
 	ex = New(r1)
@@ -293,7 +295,7 @@ func TestIf(t *testing.T) {
 	if err == nil {
 		t.Errorf("expected error running rules, got none")
 	}
-	if !strings.Contains(err.Error(), "not available") {
+	if !strings.Contains(err.Error(), "not defined") {
 		t.Errorf("got an error, but not the right kind: %s", err.Error())
 	}
 
@@ -311,9 +313,11 @@ func TestTriggered(t *testing.T) {
 			Name:          "bob",
 			Triggered:     false,
 			ConditionType: "if",
-			ConditionRule: &conditionals.ConditionCall{
+			Function: &ast.Funcall{
 				Name: "equal",
-				Args: []string{"foo", "bar"},
+				Args: []ast.Object{&ast.String{Value: "foo"},
+					&ast.String{Value: "bar"},
+				},
 			},
 			Params: map[string]interface{}{
 				"require": "test",
@@ -369,9 +373,11 @@ func TestUnless(t *testing.T) {
 			Triggered:     false,
 			Params:        params,
 			ConditionType: "unless",
-			ConditionRule: &conditionals.ConditionCall{
-				Name: "equals",
-				Args: []string{"bar", "bar"},
+			Function: &ast.Funcall{
+				Name: "equal",
+				Args: []ast.Object{&ast.String{Value: "bar"},
+					&ast.String{Value: "bar"},
+				},
 			},
 		},
 	}
@@ -412,9 +418,11 @@ func TestUnless(t *testing.T) {
 	//
 	// change params
 	tmpt := r1[0].(*ast.Rule)
-	tmpt.ConditionRule = &conditionals.ConditionCall{
-		Name: "agrees",
-		Args: []string{"foo", "bar"},
+	tmpt.Function = &ast.Funcall{
+		Name: "tervetulo",
+		Args: []ast.Object{&ast.String{Value: "foo"},
+			&ast.String{Value: "bar"},
+		},
 	}
 
 	ex = New(r1)
@@ -422,7 +430,7 @@ func TestUnless(t *testing.T) {
 	if err == nil {
 		t.Errorf("expected error running rules, got none")
 	}
-	if !strings.Contains(err.Error(), "not available") {
+	if !strings.Contains(err.Error(), "not defined") {
 		t.Errorf("got an error, but not the right kind: %s", err.Error())
 	}
 
@@ -614,4 +622,135 @@ INSERT INTO contacts( first_name, last_name, email ) VALUES( 'nobody', 'special'
 	db.Close()
 	os.Remove(tmpfile.Name())
 
+}
+
+// Ensure triggered rules are ignored
+func TestIgnoreTriggered(t *testing.T) {
+
+	src := `
+# only created if notified
+file triggered {
+      name    => "one",
+      target  => "one.tst",
+      content => "OK"
+}
+
+# only created if notified
+file triggered {
+      name    => "two",
+      target  => "two.tst",
+      content => "OK"
+}`
+
+	// Before we begin neither file will exist.
+	for _, f := range []string{"one.tst", "two.tst"} {
+
+		// Ensure that we now have a generated SQLite file
+		if file.Exists(f) {
+			t.Fatalf("we did not expect the file to be present: %s", f)
+		}
+	}
+
+	// Create a new parser with our content.
+	p := parser.New(string(src))
+
+	// Parse the rules
+	out, err := p.Parse()
+	if err != nil {
+		t.Fatalf("failed to parse: %s", err)
+	}
+
+	// Execute
+	ex := New(out.Recipe)
+
+	// Check for broken dependencies
+	err = ex.Check()
+	if err != nil {
+		t.Fatalf("failed to check rules:%s", err)
+	}
+
+	// Now execute!
+	err = ex.Execute()
+	if err != nil {
+		t.Fatalf("failed to run rules:%s", err)
+	}
+
+	// At this point those files should still not exist.
+	for _, f := range []string{"one.tst", "two.tst"} {
+
+		// Ensure that we now have a generated SQLite file
+		if file.Exists(f) {
+			t.Fatalf("file should not be created: %s", f)
+		}
+
+		os.Remove(f)
+	}
+}
+
+// Notify two rules upon a change.
+func TestNotifyMultiple(t *testing.T) {
+
+	src := `
+# always results in a change
+log { message => "test",
+      notify  => [ "one", "two" ],
+}
+
+# only created if notified
+file triggered {
+      name    => "one",
+      target  => "one.tst",
+      content => "OK"
+}
+
+# only created if notified
+file triggered {
+      name    => "two",
+      target  => "two.tst",
+      content => "OK"
+}`
+
+	// Before we begin neither file will exist.
+	for _, f := range []string{"one.tst", "two.tst"} {
+
+		// Ensure that we now have a generated SQLite file
+		if file.Exists(f) {
+			t.Fatalf("we did not expect the file to be present: %s", f)
+		}
+	}
+
+	// Create a new parser with our content.
+	p := parser.New(string(src))
+
+	// Parse the rules
+	out, err := p.Parse()
+	if err != nil {
+		t.Fatalf("failed to parse: %s", err)
+	}
+
+	// Execute
+	ex := New(out.Recipe)
+
+	// Check for broken dependencies
+	err = ex.Check()
+	if err != nil {
+		t.Fatalf("failed to check rules:%s", err)
+	}
+
+	// Now execute!
+	err = ex.Execute()
+	if err != nil {
+		t.Fatalf("failed to run rules:%s", err)
+	}
+
+	// At this point we should have two files created
+	for _, f := range []string{"one.tst", "two.tst"} {
+
+		// Ensure that we now have a generated SQLite file
+		if !file.Exists(f) {
+			t.Fatalf("we expected a file to be created: %s", f)
+		}
+
+		os.Remove(f)
+	}
 }
