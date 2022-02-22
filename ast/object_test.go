@@ -3,7 +3,74 @@ package ast
 import (
 	"strings"
 	"testing"
+
+	"github.com/skx/marionette/environment"
 )
+
+// TestBrokenBacktick tests the basic backtick functions fail
+func TestBrokenBacktick(t *testing.T) {
+
+	e := environment.New()
+
+	b := &Backtick{Value: "/no/such/binary-can-be/here"}
+
+	_, err := b.Evaluate(e)
+	if err == nil {
+		t.Fatalf("expected error running missing binary")
+	}
+}
+
+// TestSimpleFunction tests some simple functions.
+func TestSimpleFunction(t *testing.T) {
+
+	// Test calling a function that doesn't exist
+	f := &Funcall{Name: "not-found.bogus"}
+	_, err := f.Evaluate(nil)
+	if err == nil {
+		t.Fatalf("expected error calling missing function")
+	}
+
+	// Test calling a function with the wrong number of arguments
+	f.Name = "matches"
+	f.Args = []Object{
+		&String{Value: "haystack"},
+	}
+	_, err = f.Evaluate(nil)
+	if err == nil {
+		t.Fatalf("expected error calling function with wrong args")
+	}
+	if !strings.Contains(err.Error(), "wrong number of args") {
+		t.Fatalf("got error, but wrong one:%s", err.Error())
+	}
+
+	// Test calling a function with an arg that will fail
+	f.Name = "matches"
+	f.Args = []Object{
+		&Backtick{Value: "`/f/not-found"},
+		&Backtick{Value: "`/f/not-found"},
+	}
+	_, err = f.Evaluate(nil)
+	if err == nil {
+		t.Fatalf("expected error calling function with broken arg")
+	}
+	if !strings.Contains(err.Error(), "error running command") {
+		t.Fatalf("got error, but wrong one:%s", err.Error())
+	}
+
+	// Test calling a function with no error
+	f.Name = "len"
+	f.Args = []Object{
+		&String{Value: "Hello, World"},
+	}
+	out, err2 := f.Evaluate(nil)
+	if err2 != nil {
+		t.Fatalf("unexpected error calling 'len'")
+	}
+
+	if out != "12" {
+		t.Fatalf("unexpected result for len(Hello, World) : %s", out)
+	}
+}
 
 func TestStringification(t *testing.T) {
 

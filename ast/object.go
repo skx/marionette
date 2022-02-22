@@ -125,13 +125,7 @@ func (f *Funcall) Evaluate(env *environment.Environment) (string, error) {
 	log.Printf("[DEBUG] Function result - %s(%s) -> %s", f.Name, strings.Join(args, ","), ret)
 
 	// Get the output of the return value as string
-	val, err2 := ret.Evaluate(env)
-	if err2 != nil {
-		return "", err2
-	}
-
-	// And return it.
-	return val, nil
+	return ret.Evaluate(env)
 }
 
 // String returns our object as a string.
