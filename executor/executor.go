@@ -453,37 +453,14 @@ func (e *Executor) executeIncludeReal(source string) error {
 // based on the condition-type and the condition-rule.
 func (e *Executor) shouldExecute(cType string, cRule ast.Node) (bool, error) {
 
+	// Cast the rule to the correct type
 	fun, ok := cRule.(*ast.Funcall)
 	if !ok {
 		return false, fmt.Errorf("node is not a function: %v", cRule)
 	}
 
-	// Lookup the function
-	fn, ok := ast.FUNCTIONS[fun.Name]
-	if !ok {
-		return false, fmt.Errorf("function %s not defined", fun.Name)
-	}
-
-	// Convert each argument to a string
-	args := []string{}
-
-	for _, arg := range fun.Args {
-
-		// expand the argument
-		obj, ok := arg.(ast.Literal)
-		if !ok {
-			return false, fmt.Errorf("failed to convert %v to string", arg)
-		}
-		val, err := obj.Evaluate(e.env)
-		if err != nil {
-			return false, err
-		}
-
-		args = append(args, val)
-	}
-
-	// Call the function
-	ret, err := fn(e.env, args)
+	// Invoke it, and get the output
+	ret, err := fun.Evaluate(e.env)
 	if err != nil {
 		return false, err
 	}
@@ -491,22 +468,11 @@ func (e *Executor) shouldExecute(cType string, cRule ast.Node) (bool, error) {
 	// Function return-value
 	retVal := true
 
-	// Type switch on the return
-	switch r := ret.(type) {
-	case *ast.String:
-		if r.Value == "" {
-			retVal = false
-		}
-	case *ast.Number:
-		if r.Value == 0 {
-			retVal = false
-		}
-	case *ast.Boolean:
-		if !r.Value {
-			retVal = false
-		}
-	default:
-		return false, fmt.Errorf("invalid result in function call for conditional: %v", ret)
+	// Is the result "truthy"?
+	if ret == "" ||
+		ret == "false" ||
+		ret == "0" {
+		retVal = false
 	}
 
 	// Now see if this means the thing should execute
