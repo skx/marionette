@@ -263,6 +263,8 @@ In addition to these conditional functions the following primitives are built in
   * Return the length of the given value.
 * `lower(txt)`
   * Converts the given string to lower-case.
+* `matches(text, regexp)`
+  * Return true if the text matches the specified regular expression.
 * `md5sum(txt)`
   * Returns the MD5-digest of the given value.
 * `sha1sum(txt)`

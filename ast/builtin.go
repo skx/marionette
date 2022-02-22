@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -53,6 +54,7 @@ func init() {
 	FUNCTIONS["lower"] = fnLower
 	FUNCTIONS["lt"] = fnLt
 	FUNCTIONS["lte"] = fnLte
+	FUNCTIONS["matches"] = fnMatches
 	FUNCTIONS["md5"] = fnMD5Sum // duplicate
 	FUNCTIONS["md5sum"] = fnMD5Sum
 	FUNCTIONS["nonempty"] = fnNonEmpty
@@ -288,6 +290,27 @@ func fnLower(env *environment.Environment, args []string) (Object, error) {
 	}
 
 	return &String{Value: strings.ToLower(args[0])}, nil
+}
+
+// fnMatches returns true if the first string matches the regular expression
+// specified as the second argument.
+func fnMatches(env *environment.Environment, args []string) (Object, error) {
+
+	if len(args) != 2 {
+		return nil, fmt.Errorf("wrong number of args for 'matches': %d != 2", len(args))
+	}
+
+	reg, err := regexp.Compile(args[1])
+	if err != nil {
+		return FALSE, err
+	}
+	res := reg.FindStringSubmatch(args[0])
+
+	if len(res) > 0 {
+		return TRUE, nil
+	}
+
+	return FALSE, nil
 }
 
 // fnMD5Sum returns the MD5 digest of the given input

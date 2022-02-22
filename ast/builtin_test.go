@@ -1,6 +1,7 @@
 package ast
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/skx/marionette/file"
@@ -41,6 +42,7 @@ func TestFunctionArgs(t *testing.T) {
 	m["lower"] = 1
 	m["lt"] = 2
 	m["lte"] = 2
+	m["matches"] = 2
 	m["md5"] = 1
 	m["md5sum"] = 1
 	m["nonempty"] = 1
@@ -80,9 +82,18 @@ func TestFunctionArgs(t *testing.T) {
 func TestFunctions(t *testing.T) {
 
 	type TestCase struct {
-		Name   string
-		Input  []string
+		// Name of function
+		Name string
+
+		// Arguments to pass to it
+		Input []string
+
+		// Expected output
 		Output Object
+
+		// If non-empty we expect an error, and it should match
+		// this text.
+		Error string
 	}
 
 	tests := []TestCase{
@@ -96,6 +107,20 @@ func TestFunctions(t *testing.T) {
 		},
 		TestCase{Name: "lt",
 			Input: []string{
+				"1",
+				"kemp",
+			},
+			Error: "strconv.ParseInt: parsing",
+		},
+		TestCase{Name: "lt",
+			Input: []string{
+				"steve",
+				"2",
+			},
+			Error: "strconv.ParseInt: parsing",
+		},
+		TestCase{Name: "lt",
+			Input: []string{
 				"2",
 				"2",
 			},
@@ -111,6 +136,20 @@ func TestFunctions(t *testing.T) {
 		TestCase{Name: "lte",
 			Input: []string{
 				"1",
+				"kemp",
+			},
+			Error: "strconv.ParseInt: parsing",
+		},
+		TestCase{Name: "lte",
+			Input: []string{
+				"steve",
+				"2",
+			},
+			Error: "strconv.ParseInt: parsing",
+		},
+		TestCase{Name: "lte",
+			Input: []string{
+				"1",
 				"2",
 			},
 			Output: &Boolean{Value: true},
@@ -138,6 +177,20 @@ func TestFunctions(t *testing.T) {
 		},
 		TestCase{Name: "gt",
 			Input: []string{
+				"1",
+				"steve",
+			},
+			Error: "strconv.ParseInt: parsing",
+		},
+		TestCase{Name: "gt",
+			Input: []string{
+				"steve",
+				"2",
+			},
+			Error: "strconv.ParseInt: parsing",
+		},
+		TestCase{Name: "gt",
+			Input: []string{
 				"2",
 				"2",
 			},
@@ -149,6 +202,20 @@ func TestFunctions(t *testing.T) {
 				"2",
 			},
 			Output: &Boolean{Value: true},
+		},
+		TestCase{Name: "gte",
+			Input: []string{
+				"1",
+				"steve",
+			},
+			Error: "strconv.ParseInt: parsing",
+		},
+		TestCase{Name: "gte",
+			Input: []string{
+				"steve",
+				"2",
+			},
+			Error: "strconv.ParseInt: parsing",
 		},
 		TestCase{Name: "gte",
 			Input: []string{
@@ -224,6 +291,27 @@ func TestFunctions(t *testing.T) {
 			},
 			Output: &Number{Value: 5},
 		},
+		TestCase{Name: "matches",
+			Input: []string{
+				"password",
+				"^pa[Ss]+word",
+			},
+			Output: &Boolean{Value: true},
+		},
+		TestCase{Name: "matches",
+			Input: []string{
+				"password",
+				"^secret$",
+			},
+			Output: &Boolean{Value: false},
+		},
+		TestCase{Name: "matches",
+			Input: []string{
+				"password",
+				"+",
+			},
+			Error: "error parsing regexp",
+		},
 		TestCase{Name: "md5",
 			Input: []string{
 				"password",
@@ -279,6 +367,7 @@ func TestFunctions(t *testing.T) {
 			},
 		)
 	}
+
 	for _, test := range tests {
 
 		// Find the function
@@ -289,16 +378,27 @@ func TestFunctions(t *testing.T) {
 
 		// Call the function
 		ret, err := fun(nil, test.Input)
+
+		// Got an error making the call
 		if err != nil {
-			t.Fatalf("error calling %s(%v) %s", test.Name, test.Input, err)
-		}
 
-		// Compare the results
-		a := test.Output.String()
-		b := ret.String()
+			// Should we have done?
+			if test.Error != "" {
 
-		if a != b {
-			t.Fatalf("error running test %s(%v) - %s != %s", test.Name, test.Input, a, b)
+				if !strings.Contains(err.Error(), test.Error) {
+					t.Fatalf("expected error (%s), but got different one (%s)", test.Error, err.Error())
+				}
+			} else {
+				t.Fatalf("unexpected error calling %s(%v) %s", test.Name, test.Input, err)
+			}
+		} else {
+			// Compare the results
+			a := test.Output.String()
+			b := ret.String()
+
+			if a != b {
+				t.Fatalf("error running test %s(%v) - %s != %s", test.Name, test.Input, a, b)
+			}
 		}
 	}
 }
