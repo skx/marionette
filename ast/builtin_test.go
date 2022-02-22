@@ -35,10 +35,14 @@ func TestFunctionArgs(t *testing.T) {
 	m["equals"] = 2
 	m["exists"] = 1
 	m["failure"] = 1
+	m["gt"] = 2
+	m["gte"] = 2
 	m["len"] = 1
 	m["lower"] = 1
-	m["md5sum"] = 1
+	m["lt"] = 2
+	m["lte"] = 2
 	m["md5"] = 1
+	m["md5sum"] = 1
 	m["nonempty"] = 1
 	m["on_path"] = 1
 	m["set"] = 1
@@ -47,9 +51,8 @@ func TestFunctionArgs(t *testing.T) {
 	m["success"] = 1
 	m["unset"] = 1
 	m["upper"] = 1
-
-	one := []string{"one"}
-	two := []string{"one", "two"}
+	one := []string{"1"}
+	two := []string{"23", "34"}
 
 	// Ensure that we can call functions with the right number
 	// of arguments.
@@ -84,6 +87,90 @@ func TestFunctions(t *testing.T) {
 
 	tests := []TestCase{
 
+		TestCase{Name: "lt",
+			Input: []string{
+				"1",
+				"2",
+			},
+			Output: &Boolean{Value: true},
+		},
+		TestCase{Name: "lt",
+			Input: []string{
+				"2",
+				"2",
+			},
+			Output: &Boolean{Value: false},
+		},
+		TestCase{Name: "lt",
+			Input: []string{
+				"3",
+				"2",
+			},
+			Output: &Boolean{Value: false},
+		},
+		TestCase{Name: "lte",
+			Input: []string{
+				"1",
+				"2",
+			},
+			Output: &Boolean{Value: true},
+		},
+		TestCase{Name: "lte",
+			Input: []string{
+				"2",
+				"2",
+			},
+			Output: &Boolean{Value: true},
+		},
+		TestCase{Name: "lte",
+			Input: []string{
+				"3",
+				"2",
+			},
+			Output: &Boolean{Value: false},
+		},
+		TestCase{Name: "gt",
+			Input: []string{
+				"1",
+				"2",
+			},
+			Output: &Boolean{Value: false},
+		},
+		TestCase{Name: "gt",
+			Input: []string{
+				"2",
+				"2",
+			},
+			Output: &Boolean{Value: false},
+		},
+		TestCase{Name: "gt",
+			Input: []string{
+				"3",
+				"2",
+			},
+			Output: &Boolean{Value: true},
+		},
+		TestCase{Name: "gte",
+			Input: []string{
+				"1",
+				"2",
+			},
+			Output: &Boolean{Value: false},
+		},
+		TestCase{Name: "gte",
+			Input: []string{
+				"2",
+				"2",
+			},
+			Output: &Boolean{Value: true},
+		},
+		TestCase{Name: "gt",
+			Input: []string{
+				"3",
+				"2",
+			},
+			Output: &Boolean{Value: true},
+		},
 		TestCase{Name: "equal",
 			Input: []string{
 				"one",

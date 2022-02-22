@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -46,18 +47,23 @@ func init() {
 	FUNCTIONS["equals"] = fnEqual // duplicate
 	FUNCTIONS["exists"] = fnExists
 	FUNCTIONS["failure"] = fnFailure
+	FUNCTIONS["gt"] = fnGt
+	FUNCTIONS["gte"] = fnGte
 	FUNCTIONS["len"] = fnLen
 	FUNCTIONS["lower"] = fnLower
-	FUNCTIONS["md5sum"] = fnMD5Sum
+	FUNCTIONS["lt"] = fnLt
+	FUNCTIONS["lte"] = fnLte
 	FUNCTIONS["md5"] = fnMD5Sum // duplicate
+	FUNCTIONS["md5sum"] = fnMD5Sum
 	FUNCTIONS["nonempty"] = fnNonEmpty
 	FUNCTIONS["on_path"] = fnOnPath
 	FUNCTIONS["set"] = fnNonEmpty // duplicate
-	FUNCTIONS["sha1sum"] = fnSha1Sum
 	FUNCTIONS["sha1"] = fnSha1Sum // duplicate
+	FUNCTIONS["sha1sum"] = fnSha1Sum
 	FUNCTIONS["success"] = fnSuccess
 	FUNCTIONS["unset"] = fnEmpty // duplicate
 	FUNCTIONS["upper"] = fnUpper
+
 }
 
 //
@@ -165,6 +171,55 @@ func fnFailure(env *environment.Environment, args []string) (Object, error) {
 	}
 }
 
+// fnGt compares two numbers to see if the first is greater than the second.
+func fnGt(env *environment.Environment, args []string) (Object, error) {
+
+	// Two arguments are required.
+	if len(args) != 2 {
+		return nil, fmt.Errorf("'gt' requires two arguments")
+	}
+
+	a, errA := strconv.ParseInt(args[0], 0, 64)
+	if errA != nil {
+		return FALSE, errA
+	}
+	b, errB := strconv.ParseInt(args[1], 0, 64)
+	if errB != nil {
+		return FALSE, errB
+	}
+
+	if a > b {
+		return TRUE, nil
+	}
+	return FALSE, nil
+
+}
+
+// fnGt compares two numbers to see if the first is greater than, or equal
+// to the second.
+func fnGte(env *environment.Environment, args []string) (Object, error) {
+
+	// Two arguments are required.
+	if len(args) != 2 {
+		return nil, fmt.Errorf("'gte' requires two arguments")
+	}
+
+	a, errA := strconv.ParseInt(args[0], 0, 64)
+	if errA != nil {
+		return FALSE, errA
+	}
+	b, errB := strconv.ParseInt(args[1], 0, 64)
+	if errB != nil {
+		return FALSE, errB
+	}
+
+	if a >= b {
+		return TRUE, nil
+	}
+	return FALSE, nil
+
+}
+
 // fnLen returns the length of the given node.
 func fnLen(env *environment.Environment, args []string) (Object, error) {
 
@@ -174,6 +229,54 @@ func fnLen(env *environment.Environment, args []string) (Object, error) {
 	}
 
 	return &Number{Value: int64(utf8.RuneCountInString(args[0]))}, nil
+}
+
+// fnLt compares two numbers to see if the first is less than the second.
+func fnLt(env *environment.Environment, args []string) (Object, error) {
+
+	// Two arguments are required.
+	if len(args) != 2 {
+		return nil, fmt.Errorf("'lt' requires two arguments")
+	}
+
+	a, errA := strconv.ParseInt(args[0], 0, 64)
+	if errA != nil {
+		return FALSE, errA
+	}
+	b, errB := strconv.ParseInt(args[1], 0, 64)
+	if errB != nil {
+		return FALSE, errB
+	}
+
+	if a < b {
+		return TRUE, nil
+	}
+	return FALSE, nil
+
+}
+
+// fnLt compares two numbers to see if the first is less than, or equal to,
+// the second.
+func fnLte(env *environment.Environment, args []string) (Object, error) {
+
+	// Two arguments are required.
+	if len(args) != 2 {
+		return nil, fmt.Errorf("'lte' requires two arguments")
+	}
+
+	a, errA := strconv.ParseInt(args[0], 0, 64)
+	if errA != nil {
+		return FALSE, errA
+	}
+	b, errB := strconv.ParseInt(args[1], 0, 64)
+	if errB != nil {
+		return FALSE, errB
+	}
+
+	if a <= b {
+		return TRUE, nil
+	}
+	return FALSE, nil
 }
 
 // fnLower converts the given node to lower-case.

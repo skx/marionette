@@ -251,6 +251,14 @@ let cmd = "wget -O ${dst} ${url}"       if on_path("wget")
 
 In addition to these conditional functions the following primitives are built in, and may be freely used:
 
+* `gt(a,b)`
+  * Return true if a>b
+* `gte(a,b)`
+  * Return true if a>=b
+* `lt(a,b)`
+  * Return true if a<b
+* `lte(a,b)`
+  * Return true if a<=b
 * `len(txt)`
   * Return the length of the given value.
 * `lower(txt)`
