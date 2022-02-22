@@ -97,19 +97,14 @@ func (f *Funcall) Evaluate(env *environment.Environment) (string, error) {
 		return "", fmt.Errorf("function %s not defined", f.Name)
 	}
 
-	// Convert each argument to a string
+	// Holder for expanded arguments
 	args := []string{}
 
+	// Convert each argument to a string
 	for _, arg := range f.Args {
 
-		// Force the object into an our interface
-		obj, ok := arg.(Object)
-		if !ok {
-			return "", fmt.Errorf("failed to cast %v to an Object", arg)
-		}
-
 		// Evaluate
-		val, err := obj.Evaluate(env)
+		val, err := arg.Evaluate(env)
 		if err != nil {
 			return "", err
 		}
@@ -129,21 +124,14 @@ func (f *Funcall) Evaluate(env *environment.Environment) (string, error) {
 
 	log.Printf("[DEBUG] Function result - %s(%s) -> %s", f.Name, strings.Join(args, ","), ret)
 
-	// convert the result to an object
-	obj, ok2 := ret.(Object)
-	if ok2 {
-
-		// If that worked get the string-output
-		val, err2 := obj.Evaluate(env)
-		if err2 != nil {
-			return "", err2
-		}
-
-		// And return it.
-		return val, nil
+	// Get the output of the return value as string
+	val, err2 := ret.Evaluate(env)
+	if err2 != nil {
+		return "", err2
 	}
 
-	return "", fmt.Errorf("return value wasn't an Oobject")
+	// And return it.
+	return val, nil
 }
 
 // String returns our object as a string.

@@ -123,15 +123,12 @@ func (e *Executor) deps(rule *ast.Rule, key string) ([]string, error) {
 	if ok {
 
 		// Is it a single node, which we can convert?
-		exp, ok2 := dep.(ast.Object)
-		if ok2 {
-			val, err := exp.Evaluate(e.env)
-			if err != nil {
-				return res, err
-			}
-			res = append(res, val)
-			return res, nil
+		val, err := dep.Evaluate(e.env)
+		if err != nil {
+			return res, err
 		}
+		res = append(res, val)
+		return res, nil
 	}
 
 	// Is this an array of objects?
@@ -139,15 +136,11 @@ func (e *Executor) deps(rule *ast.Rule, key string) ([]string, error) {
 	if ok {
 		for _, tmp := range deps {
 
-			// Is it a single node, which we can convert?
-			exp, ok2 := tmp.(ast.Object)
-			if ok2 {
-				val, err := exp.Evaluate(e.env)
-				if err != nil {
-					return res, err
-				}
-				res = append(res, val)
+			val, err := tmp.Evaluate(e.env)
+			if err != nil {
+				return res, err
 			}
+			res = append(res, val)
 		}
 		return res, nil
 	}
@@ -615,14 +608,11 @@ func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (
 		if ok {
 
 			// Is it a single node, which we can convert?
-			exp, ok2 := p.(ast.Object)
-			if ok2 {
-				val, err2 := exp.Evaluate(e.env)
-				if err2 != nil {
-					return false, err2
-				}
-				params[k] = val
+			val, err2 := p.Evaluate(e.env)
+			if err2 != nil {
+				return false, err2
 			}
+			params[k] = val
 		}
 
 		// Parameters contain multiple nodes?
@@ -635,17 +625,13 @@ func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (
 			// for each node
 			for _, p := range pp {
 
-				// Is it a single node, which we can convert?
-				exp, ok2 := p.(ast.Object)
-				if ok2 {
-					val, err2 := exp.Evaluate(e.env)
-					if err2 != nil {
-						return false, err2
-					}
-
-					// save into our array of strings
-					tmp = append(tmp, val)
+				val, err2 := p.Evaluate(e.env)
+				if err2 != nil {
+					return false, err2
 				}
+
+				// save into our array of strings
+				tmp = append(tmp, val)
 			}
 
 			params[k] = tmp
