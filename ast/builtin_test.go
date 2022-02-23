@@ -36,6 +36,7 @@ func TestFunctionArgs(t *testing.T) {
 	m["equals"] = 2
 	m["exists"] = 1
 	m["failure"] = 1
+	m["field"] = 2
 	m["gt"] = 2
 	m["gte"] = 2
 	m["len"] = 1
@@ -278,6 +279,34 @@ func TestFunctions(t *testing.T) {
 				"one",
 			},
 			Output: &Boolean{Value: false},
+		},
+		TestCase{Name: "field",
+			Input: []string{
+				"Steve Kemp",
+				"0",
+			},
+			Output: &String{Value: "Steve"},
+		},
+		TestCase{Name: "field",
+			Input: []string{
+				"Steve Kemp",
+				"1",
+			},
+			Output: &String{Value: "Kemp"},
+		},
+		TestCase{Name: "field",
+			Input: []string{
+				"Forename Surname",
+				"10",
+			},
+			Output: &String{Value: ""},
+		},
+		TestCase{Name: "field",
+			Input: []string{
+				"Forename Surname",
+				"Nope",
+			},
+			Error: "strconv",
 		},
 		TestCase{Name: "len",
 			Input: []string{

@@ -48,6 +48,7 @@ func init() {
 	FUNCTIONS["equals"] = fnEqual // duplicate
 	FUNCTIONS["exists"] = fnExists
 	FUNCTIONS["failure"] = fnFailure
+	FUNCTIONS["field"] = fnField
 	FUNCTIONS["gt"] = fnGt
 	FUNCTIONS["gte"] = fnGte
 	FUNCTIONS["len"] = fnLen
@@ -171,6 +172,34 @@ func fnFailure(env *environment.Environment, args []string) (Object, error) {
 		// No failure
 		return FALSE, nil
 	}
+}
+
+// fnField returns the numbered field from the given text.  Much like awk:
+//   field( "Steve Kemp", 0) -> "Steve"
+//   field( "Steve Kemp", 1) -> "Kemp"
+func fnField(env *environment.Environment, args []string) (Object, error) {
+
+	if len(args) != 2 {
+		return nil, fmt.Errorf("wrong number of args for 'field': %d != 2", len(args))
+	}
+
+	// Split the first thing into tokens
+	fields := strings.Fields(args[0])
+
+	// Get the number to extract
+	n, err := strconv.ParseInt(args[1], 0, 64)
+	if err != nil {
+		return FALSE, err
+	}
+
+	if int(n) <= len(fields) {
+		return &String{Value: fields[n]}, nil
+	} else {
+		log.Printf("[DEBUG] Warning: Field %d out of bounds for input '%s' %d fields available", n, args[0], len(fields))
+	}
+
+	return &String{Value: ""}, nil
+
 }
 
 // fnGt compares two numbers to see if the first is greater than the second.

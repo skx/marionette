@@ -251,6 +251,9 @@ let cmd = "wget -O ${dst} ${url}"       if on_path("wget")
 
 In addition to these conditional functions the following primitives are built in, and may be freely used:
 
+* `field(txt,index)`
+  * Split the given text on whitespace, and return the specified field by index.
+  * 0 is the first field, 1 is the second, etc.
 * `gt(a,b)`
   * Return true if a>b
 * `gte(a,b)`
