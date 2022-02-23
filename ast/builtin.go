@@ -194,9 +194,9 @@ func fnField(env *environment.Environment, args []string) (Object, error) {
 
 	if int(n) <= len(fields) {
 		return &String{Value: fields[n]}, nil
-	} else {
-		log.Printf("[DEBUG] Warning: Field %d out of bounds for input '%s' %d fields available", n, args[0], len(fields))
 	}
+
+	log.Printf("[DEBUG] Warning: Field %d out of bounds for input '%s' %d fields available", n, args[0], len(fields))
 
 	return &String{Value: ""}, nil
 
