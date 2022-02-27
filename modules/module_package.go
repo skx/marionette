@@ -5,6 +5,7 @@ package modules
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/skx/marionette/config"
 	"github.com/skx/marionette/environment"
@@ -24,7 +25,7 @@ type PackageModule struct {
 // Check is part of the module-api, and checks arguments.
 func (pm *PackageModule) Check(args map[string]interface{}) error {
 
-	// Ensure we have a package to install/uninstall.
+	// Ensure we have a package, or set of packages, to install/uninstall.
 	_, ok := args["package"]
 	if !ok {
 		return fmt.Errorf("missing 'package' parameter")
@@ -103,6 +104,15 @@ func (pm *PackageModule) Execute(env *environment.Environment, args map[string]i
 		}
 	}
 
+	// We might have 10+ packages, but we want to ensure that we
+	// install/remove all the packages at once.
+	//
+	// So while we can test the packages that are already present
+	// to work out our actions we do need to add/remove things
+	// en mass
+	toInstall := []string{}
+	toRemove := []string{}
+
 	// For each package install/uninstall
 	for _, name := range packages {
 
@@ -128,13 +138,9 @@ func (pm *PackageModule) Execute(env *environment.Environment, args map[string]i
 				continue
 			}
 
-			// install the missing package.
-			err = pkg.Install(name)
-			if err != nil {
-				return false, err
-			}
-
-			changed = true
+			// Save this package as something to install
+			// once we've tested the rest.
+			toInstall = append(toInstall, name)
 		}
 
 		if state == "absent" {
@@ -144,14 +150,44 @@ func (pm *PackageModule) Execute(env *environment.Environment, args map[string]i
 				continue
 			}
 
-			// remove the package.
-			err = pkg.Uninstall(name)
-			if err != nil {
-				return false, err
-			}
-
-			changed = true
+			// Save this package as something to remove
+			// once we've tested the rest
+			toRemove = append(toRemove, name)
 		}
+	}
+
+	// Something to install?
+	if len(toInstall) > 0 {
+
+		// Log it
+		log.Printf("[DEBUG] Package(s) which need to be installed: %s", strings.Join(toInstall, ","))
+
+		// Do it
+		err := pkg.Install(toInstall)
+		if err != nil {
+			return false, err
+		}
+
+		// We resulted in a change, because we had things to install
+		// and presumably they're now installed.
+		changed = true
+	}
+
+	// Something to uninstall?
+	if len(toRemove) > 0 {
+
+		// Log it
+		log.Printf("[DEBUG] Package(s) which need to be removed: %s", strings.Join(toRemove, ","))
+
+		// Do it
+		err := pkg.Uninstall(toRemove)
+		if err != nil {
+			return false, err
+		}
+
+		// We resulted in a change, because we had things to remove
+		// and presumably they're now purged.
+		changed = true
 	}
 
 	return changed, nil
@@ -163,7 +199,7 @@ func init() {
 		return &PackageModule{cfg: cfg}
 	})
 
-	// compat
+	// compatibility with previous releases.
 	Register("apt", func(cfg *config.Config) ModuleAPI {
 		return &PackageModule{cfg: cfg, state: "installed"}
 	})

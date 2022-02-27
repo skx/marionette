@@ -7,6 +7,7 @@ package system
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -139,7 +140,7 @@ func (p *Package) IsInstalled(name string) (bool, error) {
 }
 
 // Install a single package to the system.
-func (p *Package) Install(name string) error {
+func (p *Package) Install(name []string) error {
 
 	if !p.IsKnown() {
 		return fmt.Errorf("failed to recognize system-type")
@@ -147,7 +148,10 @@ func (p *Package) Install(name string) error {
 
 	// Get the command
 	tmp := installCmd[p.System()]
-	tmp = strings.ReplaceAll(tmp, "%s", name)
+	tmp = strings.ReplaceAll(tmp, "%s", strings.Join(name, " "))
+
+	// Show what we're going to run
+	log.Printf("[DEBUG] packages:Install will run %s\n", tmp)
 
 	// Split
 	run := strings.Split(tmp, " ")
@@ -157,7 +161,7 @@ func (p *Package) Install(name string) error {
 }
 
 // Uninstall a single package from the system.
-func (p *Package) Uninstall(name string) error {
+func (p *Package) Uninstall(name []string) error {
 
 	if !p.IsKnown() {
 		return fmt.Errorf("failed to recognize system-type")
@@ -165,7 +169,10 @@ func (p *Package) Uninstall(name string) error {
 
 	// Get the command
 	tmp := uninstallCmd[p.System()]
-	tmp = strings.ReplaceAll(tmp, "%s", name)
+	tmp = strings.ReplaceAll(tmp, "%s", strings.Join(name, " "))
+
+	// Show what we're going to run
+	log.Printf("[DEBUG] packages:Uninstall will run %s\n", tmp)
 
 	// Split
 	run := strings.Split(tmp, " ")
