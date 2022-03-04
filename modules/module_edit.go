@@ -17,6 +17,9 @@ type EditModule struct {
 
 	// cfg contains our configuration object.
 	cfg *config.Config
+
+	// env holds our environment
+	env *environment.Environment
 }
 
 // Check is part of the module-api, and checks arguments.
@@ -37,7 +40,7 @@ func (e *EditModule) Check(args map[string]interface{}) error {
 }
 
 // Execute is part of the module-api, and is invoked to run a rule.
-func (e *EditModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
+func (e *EditModule) Execute(args map[string]interface{}) (bool, error) {
 
 	var ret bool
 
@@ -277,7 +280,10 @@ func (e *EditModule) SearchReplace(path string, search string, replace string) (
 
 // init is used to dynamically register our module.
 func init() {
-	Register("edit", func(cfg *config.Config) ModuleAPI {
-		return &EditModule{cfg: cfg}
+	Register("edit", func(cfg *config.Config, env *environment.Environment) ModuleAPI {
+		return &EditModule{
+			cfg: cfg,
+			env: env,
+		}
 	})
 }

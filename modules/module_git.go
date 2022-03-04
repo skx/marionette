@@ -19,6 +19,9 @@ type GitModule struct {
 
 	// cfg contains our configuration object.
 	cfg *mcfg.Config
+
+	// env holds our environment
+	env *environment.Environment
 }
 
 // Check is part of the module-api, and checks arguments.
@@ -45,7 +48,7 @@ func (g *GitModule) Check(args map[string]interface{}) error {
 }
 
 // Execute is part of the module-api, and is invoked to run a rule.
-func (g *GitModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
+func (g *GitModule) Execute(args map[string]interface{}) (bool, error) {
 
 	// Repository location - we've already confirmed these are valid
 	// in our check function.
@@ -151,7 +154,10 @@ func (g *GitModule) Execute(env *environment.Environment, args map[string]interf
 
 // init is used to dynamically register our module.
 func init() {
-	Register("git", func(cfg *mcfg.Config) ModuleAPI {
-		return &GitModule{cfg: cfg}
+	Register("git", func(cfg *mcfg.Config, env *environment.Environment) ModuleAPI {
+		return &GitModule{
+			cfg: cfg,
+			env: env,
+		}
 	})
 }

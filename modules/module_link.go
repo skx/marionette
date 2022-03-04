@@ -14,6 +14,9 @@ type LinkModule struct {
 
 	// cfg contains our configuration object.
 	cfg *config.Config
+
+	// env holds our environment
+	env *environment.Environment
 }
 
 // Check is part of the module-api, and checks arguments.
@@ -32,7 +35,7 @@ func (f *LinkModule) Check(args map[string]interface{}) error {
 }
 
 // Execute is part of the module-api, and is invoked to run a rule.
-func (f *LinkModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
+func (f *LinkModule) Execute(args map[string]interface{}) (bool, error) {
 
 	// Get the target
 	target := StringParam(args, "target")
@@ -99,7 +102,10 @@ func (f *LinkModule) Execute(env *environment.Environment, args map[string]inter
 
 // init is used to dynamically register our module.
 func init() {
-	Register("link", func(cfg *config.Config) ModuleAPI {
-		return &LinkModule{cfg: cfg}
+	Register("link", func(cfg *config.Config, env *environment.Environment) ModuleAPI {
+		return &LinkModule{
+			cfg: cfg,
+			env: env,
+		}
 	})
 }

@@ -6,12 +6,10 @@ import (
 	"fmt"
 	"log"
 	"runtime"
-
-	"github.com/skx/marionette/environment"
 )
 
 // Execute is part of the module-api, and is invoked to run a rule.
-func (g *GroupModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
+func (g *GroupModule) Execute(args map[string]interface{}) (bool, error) {
 
 	message := "the 'group' module is not implemented on this platform"
 

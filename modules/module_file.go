@@ -42,9 +42,7 @@ func (f *FileModule) Check(args map[string]interface{}) error {
 }
 
 // Execute is part of the module-api, and is invoked to run a rule.
-func (f *FileModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
-
-	f.env = env
+func (f *FileModule) Execute(args map[string]interface{}) (bool, error) {
 
 	var ret bool
 	var err error
@@ -278,7 +276,10 @@ func (f *FileModule) CreateFile(dst string, content string) (bool, error) {
 
 // init is used to dynamically register our module.
 func init() {
-	Register("file", func(cfg *config.Config) ModuleAPI {
-		return &FileModule{cfg: cfg}
+	Register("file", func(cfg *config.Config, env *environment.Environment) ModuleAPI {
+		return &FileModule{
+			cfg: cfg,
+			env: env,
+		}
 	})
 }

@@ -13,6 +13,9 @@ type FailModule struct {
 
 	// cfg contains our configuration object.
 	cfg *config.Config
+
+	// env holds our environment
+	env *environment.Environment
 }
 
 // Check is part of the module-api, and checks arguments.
@@ -34,7 +37,7 @@ func (f *FailModule) Check(args map[string]interface{}) error {
 }
 
 // Execute is part of the module-api, and is invoked to run a rule.
-func (f *FailModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
+func (f *FailModule) Execute(args map[string]interface{}) (bool, error) {
 
 	// Get the message
 	str := StringParam(args, "message")
@@ -52,7 +55,10 @@ func (f *FailModule) Execute(env *environment.Environment, args map[string]inter
 
 // init is used to dynamically register our module.
 func init() {
-	Register("fail", func(cfg *config.Config) ModuleAPI {
-		return &FailModule{cfg: cfg}
+	Register("fail", func(cfg *config.Config, env *environment.Environment) ModuleAPI {
+		return &FailModule{
+			cfg: cfg,
+			env: env,
+		}
 	})
 }

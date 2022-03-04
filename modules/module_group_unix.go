@@ -8,12 +8,10 @@ import (
 	"os/exec"
 	"os/user"
 	"syscall"
-
-	"github.com/skx/marionette/environment"
 )
 
 // Execute is part of the module-api, and is invoked to run a rule.
-func (g *GroupModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
+func (g *GroupModule) Execute(args map[string]interface{}) (bool, error) {
 
 	// Group/State - we've already confirmed these are valid
 	// in our check function.
