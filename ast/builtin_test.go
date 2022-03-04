@@ -1,6 +1,7 @@
 package ast
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -66,16 +67,23 @@ func TestFunctionArgs(t *testing.T) {
 		valid := m[name]
 
 		if valid == 1 {
-			_, err = fun(nil, one)
+			t.Run(name, func(t *testing.T) {
+				_, err = fun(nil, one)
+			})
+			if err != nil {
+				t.Fatalf("unexpected error with 1 arg")
+			}
 		} else if valid == 2 {
-			_, err = fun(nil, two)
+			t.Run(name, func(t *testing.T) {
+				_, err = fun(nil, two)
+			})
+			if err != nil {
+				t.Fatalf("unexpected error with 2 args")
+			}
 		} else {
 			t.Fatalf("unhandled test-case for function '%s'", name)
 		}
 
-		if err != nil {
-			t.Fatalf("unexpected error invoking %s with %d args", name, valid)
-		}
 	}
 
 }
@@ -399,35 +407,38 @@ func TestFunctions(t *testing.T) {
 
 	for _, test := range tests {
 
-		// Find the function
-		fun, ok := FUNCTIONS[test.Name]
-		if !ok {
-			t.Fatalf("failed to find test")
-		}
+		t.Run(fmt.Sprintf("%s(%s) -> %s", test.Name, test.Input, test.Output), func(t *testing.T) {
 
-		// Call the function
-		ret, err := fun(nil, test.Input)
+			// Find the function
+			fun, ok := FUNCTIONS[test.Name]
+			if !ok {
+				t.Fatalf("failed to find test")
+			}
 
-		// Got an error making the call
-		if err != nil {
+			// Call the function
+			ret, err := fun(nil, test.Input)
 
-			// Should we have done?
-			if test.Error != "" {
+			// Got an error making the call
+			if err != nil {
 
-				if !strings.Contains(err.Error(), test.Error) {
-					t.Fatalf("expected error (%s), but got different one (%s)", test.Error, err.Error())
+				// Should we have done?
+				if test.Error != "" {
+
+					if !strings.Contains(err.Error(), test.Error) {
+						t.Fatalf("expected error (%s), but got different one (%s)", test.Error, err.Error())
+					}
+				} else {
+					t.Fatalf("unexpected error calling %s(%v) %s", test.Name, test.Input, err)
 				}
 			} else {
-				t.Fatalf("unexpected error calling %s(%v) %s", test.Name, test.Input, err)
-			}
-		} else {
-			// Compare the results
-			a := test.Output.String()
-			b := ret.String()
+				// Compare the results
+				a := test.Output.String()
+				b := ret.String()
 
-			if a != b {
-				t.Fatalf("error running test %s(%v) - %s != %s", test.Name, test.Input, a, b)
+				if a != b {
+					t.Fatalf("error running test %s(%v) - %s != %s", test.Name, test.Input, a, b)
+				}
 			}
-		}
+		})
 	}
 }
