@@ -4,8 +4,12 @@
 package modules
 
 import (
+	"github.com/skx/marionette/config"
 	"github.com/skx/marionette/environment"
 )
+
+// ModuleConstructor is the signature of a constructor-function.
+type ModuleConstructor func(cfg *config.Config, env *environment.Environment) ModuleAPI
 
 // ModuleAPI is the interface which all of our modules must implement.
 //
@@ -27,7 +31,7 @@ type ModuleAPI interface {
 	//
 	// The return value is true if the module made a change
 	// and false otherwise.
-	Execute(*environment.Environment, map[string]interface{}) (bool, error)
+	Execute(map[string]interface{}) (bool, error)
 }
 
 // ModuleOutput is an optional interface that may be implemented by any of
@@ -35,7 +39,6 @@ type ModuleAPI interface {
 //
 // If this interface is implemented it is possible for modules to set
 // values in the environment after they've been executed.
-//
 type ModuleOutput interface {
 
 	// GetOutputs will return a set of key-value pairs.

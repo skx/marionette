@@ -4,19 +4,17 @@ import (
 	"sync"
 
 	"github.com/skx/marionette/config"
+	"github.com/skx/marionette/environment"
 )
 
 // This is a map of known modules.
 var handlers = struct {
-	m map[string]TestCtor
+	m map[string]ModuleConstructor
 	sync.RWMutex
-}{m: make(map[string]TestCtor)}
-
-// TestCtor is the signature of a constructor-function.
-type TestCtor func(cfg *config.Config) ModuleAPI
+}{m: make(map[string]ModuleConstructor)}
 
 // Register records a new module.
-func Register(id string, newfunc TestCtor) {
+func Register(id string, newfunc ModuleConstructor) {
 	handlers.Lock()
 	handlers.m[id] = newfunc
 	handlers.Unlock()
@@ -31,12 +29,12 @@ func RegisterAlias(alias string, impl string) {
 
 // Lookup is the factory-method which looks up and returns
 // an object of the given type - if possible.
-func Lookup(id string, cfg *config.Config) (a ModuleAPI) {
+func Lookup(id string, cfg *config.Config, env *environment.Environment) (a ModuleAPI) {
 	handlers.RLock()
 	ctor, ok := handlers.m[id]
 	handlers.RUnlock()
 	if ok {
-		a = ctor(cfg)
+		a = ctor(cfg, env)
 	}
 	return
 }
