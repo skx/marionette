@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/skx/marionette/environment"
 	"github.com/skx/marionette/file"
 )
 
@@ -53,8 +52,7 @@ func TestDirectoryMultiple(t *testing.T) {
 	}
 
 	d := &DirectoryModule{}
-	env := environment.New()
-	changed, err := d.Execute(env, args)
+	changed, err := d.Execute(args)
 
 	if err != nil {
 		t.Fatalf("error making multiple directories:%s", err)
@@ -65,7 +63,7 @@ func TestDirectoryMultiple(t *testing.T) {
 
 	// Second time around the directories should exist,
 	// so we see no change
-	changed, err = d.Execute(env, args)
+	changed, err = d.Execute(args)
 
 	if err != nil {
 		t.Fatalf("error making multiple directories:%s", err)
@@ -84,7 +82,7 @@ func TestDirectoryMultiple(t *testing.T) {
 
 	// Now remove them
 	args["state"] = "absent"
-	changed, err = d.Execute(env, args)
+	changed, err = d.Execute(args)
 
 	if err != nil {
 		t.Fatalf("error removing multiple directories:%s", err)
@@ -101,7 +99,7 @@ func TestDirectoryMultiple(t *testing.T) {
 	}
 
 	// remove them again - should be no change
-	changed, err = d.Execute(env, args)
+	changed, err = d.Execute(args)
 	if err != nil {
 		t.Fatalf("error removing multiple directories:%s", err)
 	}
@@ -132,8 +130,7 @@ func TestDirectoryMkdirP(t *testing.T) {
 	}
 
 	d := &DirectoryModule{}
-	env := environment.New()
-	changed, err := d.Execute(env, args)
+	changed, err := d.Execute(args)
 
 	if err != nil {
 		t.Fatalf("error making nested-directories:%s", err)
@@ -149,7 +146,7 @@ func TestDirectoryMkdirP(t *testing.T) {
 
 	// Now remove them
 	args["state"] = "absent"
-	changed, err = d.Execute(env, args)
+	changed, err = d.Execute(args)
 
 	if err != nil {
 		t.Fatalf("error removing nested-directories:%s", err)
@@ -163,7 +160,7 @@ func TestDirectoryMkdirP(t *testing.T) {
 	}
 
 	// remove them again - should be no change
-	changed, err = d.Execute(env, args)
+	changed, err = d.Execute(args)
 	if err != nil {
 		t.Fatalf("error removing multiple directories:%s", err)
 	}
