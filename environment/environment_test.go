@@ -1,6 +1,7 @@
 package environment
 
 import (
+	"os"
 	"runtime"
 	"testing"
 )
@@ -10,6 +11,7 @@ func TestExpected(t *testing.T) {
 
 	x := New()
 
+	// Get the arch
 	a, aOK := x.Get("ARCH")
 	if !aOK {
 		t.Fatalf("Failed to get ${ARCH}")
@@ -18,6 +20,7 @@ func TestExpected(t *testing.T) {
 		t.Fatalf("${ARCH} had wrong value != %s", runtime.GOARCH)
 	}
 
+	// Get the OS
 	o, oOK := x.Get("OS")
 	if !oOK {
 		t.Fatalf("Failed to get ${OS}")
@@ -25,6 +28,24 @@ func TestExpected(t *testing.T) {
 	if o != runtime.GOOS {
 		t.Fatalf("${OS} had wrong value != %s", runtime.GOOS)
 	}
+
+	// Test getting environmental variables
+	testVar := "steve"
+	os.Setenv("TEST_ME", testVar)
+	out := x.ExpandVariables("${TEST_ME}")
+	if out != "steve" {
+		t.Fatalf("${TEST_ME} had wrong value != %s", testVar)
+	}
+
+	// Chagne the variable in the map, which will
+	// take precedence to the env
+	updated := "OK, Computer"
+	x.vars["TEST_ME"] = updated
+	out = x.ExpandVariables("${TEST_ME}")
+	if out != updated {
+		t.Fatalf("${TEST_ME} had wrong value %s != %s", out, updated)
+	}
+
 }
 
 // TestSet ensures a value will remain
