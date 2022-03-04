@@ -38,12 +38,16 @@ func TestAssignment(t *testing.T) {
 	// Ensure each one fails
 	for _, test := range broken {
 
-		p := New(test)
-		_, err := p.Parse()
+		// Create a sub-test for this input
+		t.Run(test, func(t *testing.T) {
 
-		if err == nil {
-			t.Errorf("expected error parsing broken assign '%s' - got none", test)
-		}
+			p := New(test)
+			_, err := p.Parse()
+
+			if err == nil {
+				t.Errorf("expected error parsing broken assign '%s' - got none", test)
+			}
+		})
 	}
 
 	// Now test valid assignments
@@ -58,12 +62,15 @@ func TestAssignment(t *testing.T) {
 	// Ensure each one succeeds
 	for _, test := range valid {
 
-		p := New(test)
-		_, err := p.Parse()
+		// Create a sub-test for this input
+		t.Run(test, func(t *testing.T) {
+			p := New(test)
+			_, err := p.Parse()
 
-		if err != nil {
-			t.Errorf("unexpected error parsing assignment '%s': %s", test, err)
-		}
+			if err != nil {
+				t.Errorf("unexpected error parsing assignment '%s': %s", test, err)
+			}
+		})
 	}
 }
 
@@ -92,12 +99,15 @@ func TestBlock(t *testing.T) {
 
 	for _, test := range broken {
 
-		p := New(test)
-		_, err := p.Parse()
+		// Create a sub-test for this input
+		t.Run(test, func(t *testing.T) {
+			p := New(test)
+			_, err := p.Parse()
 
-		if err == nil {
-			t.Errorf("expected error parsing broken block '%s' - got none", test)
-		}
+			if err == nil {
+				t.Errorf("expected error parsing broken block '%s' - got none", test)
+			}
+		})
 	}
 
 	// valid tests
@@ -108,16 +118,20 @@ func TestBlock(t *testing.T) {
 
 	for _, test := range valid {
 
-		p := New(test)
-		rules, err := p.Parse()
+		// Create a sub-test for this input
+		t.Run(test, func(t *testing.T) {
 
-		if err != nil {
-			t.Errorf("unexpected error parsing '%s' %s", test, err.Error())
-		}
+			p := New(test)
+			rules, err := p.Parse()
 
-		if len(rules.Recipe) != 1 {
-			t.Errorf("expected a single rule")
-		}
+			if err != nil {
+				t.Errorf("unexpected error parsing '%s' %s", test, err.Error())
+			}
+
+			if len(rules.Recipe) != 1 {
+				t.Errorf("expected a single rule")
+			}
+		})
 	}
 }
 
@@ -154,16 +168,20 @@ func TestConditionalErrors(t *testing.T) {
 
 	for _, test := range broken {
 
-		p := New(test.Input)
-		_, err := p.Parse()
+		// Create a sub-test for this input
+		t.Run(test.Input, func(t *testing.T) {
 
-		if err == nil {
-			t.Errorf("expected error parsing broken input '%s' - got none", test.Input)
-		} else {
-			if !strings.Contains(err.Error(), test.Error) {
-				t.Errorf("error '%s' did not match '%s' when hadnling %s", err.Error(), test.Error, test.Input)
+			p := New(test.Input)
+			_, err := p.Parse()
+
+			if err == nil {
+				t.Errorf("expected error parsing broken input '%s' - got none", test.Input)
+			} else {
+				if !strings.Contains(err.Error(), test.Error) {
+					t.Errorf("error '%s' did not match '%s' when hadnling %s", err.Error(), test.Error, test.Input)
+				}
 			}
-		}
+		})
 	}
 }
 
@@ -218,12 +236,15 @@ func TestInclude(t *testing.T) {
 	// Ensure each one fails
 	for _, test := range broken {
 
-		p := New(test)
-		_, err := p.Parse()
+		// Create a sub-test for this input
+		t.Run(test, func(t *testing.T) {
+			p := New(test)
+			_, err := p.Parse()
 
-		if err == nil {
-			t.Errorf("expected error parsing broken include '%s' - got none", test)
-		}
+			if err == nil {
+				t.Errorf("expected error parsing broken include '%s' - got none", test)
+			}
+		})
 	}
 
 	// Now test valid includes
@@ -236,12 +257,15 @@ func TestInclude(t *testing.T) {
 	// Ensure each one succeeds
 	for _, test := range valid {
 
-		p := New(test)
-		_, err := p.Parse()
+		// Create a sub-test for this input
+		t.Run(test, func(t *testing.T) {
+			p := New(test)
+			_, err := p.Parse()
 
-		if err != nil {
-			t.Errorf("unexpected error parsing include '%s': %s", test, err)
-		}
+			if err != nil {
+				t.Errorf("unexpected error parsing include '%s': %s", test, err)
+			}
+		})
 	}
 }
 
