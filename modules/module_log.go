@@ -48,7 +48,7 @@ func (f *LogModule) Execute(args map[string]interface{}) (bool, error) {
 		return true, nil
 	}
 
-	// otherwise we assume it is an array of commands
+	// otherwise we assume it is an array of messages
 	strs := arg.([]string)
 
 	// process each argument

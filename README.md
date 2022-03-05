@@ -481,7 +481,7 @@ An example of changing a file might look like this:
 
 ```
 edit { target  => "/etc/ssh/sshd_config",
-       search  => "PasswordAuthentication",
+       search  => "^PasswordAuthentication",
        replace => "# PasswordAuthentication",
 }
 ```
@@ -501,7 +501,7 @@ fail {
 }
 ```
 
-The only valid parameter is `message`, which must be a single string.
+The only valid parameter is `message`.
 
 See also [log](#log), which will log a message but then continue execution.
 

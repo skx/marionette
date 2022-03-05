@@ -27,29 +27,39 @@ func (f *FailModule) Check(args map[string]interface{}) error {
 		return fmt.Errorf("missing 'message' parameter")
 	}
 
-	// Ensure the message is a string
-	msg := StringParam(args, "message")
-	if msg == "" {
-		return fmt.Errorf("failed to convert 'message' to string")
-	}
-
 	return nil
 }
 
 // Execute is part of the module-api, and is invoked to run a rule.
 func (f *FailModule) Execute(args map[string]interface{}) (bool, error) {
 
-	// Get the message
-	str := StringParam(args, "message")
-	if str == "" {
+	// Get the message/messages to log.
+	arg, ok := args["message"]
+
+	// Ensure that we've got something
+	if !ok {
 		return false, fmt.Errorf("missing 'message' parameter")
 	}
 
-	// Show it, and terminate
-	fmt.Fprintf(os.Stderr, "FAIL: %s\n", str)
+	// A single string?  Show it, and return it as an error.
+	str, ok := arg.(string)
+	if ok {
+		fmt.Fprintf(os.Stderr, "FAIL: %s\n", str)
+		return false, fmt.Errorf("%s", str)
+	}
 
-	// Return an error
-	return false, fmt.Errorf("%s", str)
+	// otherwise we assume it is an array of strings
+	strs := arg.([]string)
+
+	// process each argument
+	complete := ""
+	for _, str = range strs {
+		fmt.Fprintf(os.Stderr, "FAIL: %s\n", str)
+		complete += str + "\n"
+	}
+
+	// Return the joined error-message
+	return false, fmt.Errorf("%s", complete)
 
 }
 
