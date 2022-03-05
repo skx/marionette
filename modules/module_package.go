@@ -18,6 +18,9 @@ type PackageModule struct {
 	// cfg contains our configuration object.
 	cfg *config.Config
 
+	// env holds our environment
+	env *environment.Environment
+
 	// state when using a compatibility-module
 	state string
 }
@@ -70,7 +73,7 @@ func (pm *PackageModule) getPackages(args map[string]interface{}) []string {
 }
 
 // Execute is part of the module-api, and is invoked to run a rule.
-func (pm *PackageModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
+func (pm *PackageModule) Execute(args map[string]interface{}) (bool, error) {
 
 	// Did we make a change, by installing/removing a package?
 	changed := false
@@ -195,15 +198,26 @@ func (pm *PackageModule) Execute(env *environment.Environment, args map[string]i
 
 // init is used to dynamically register our module.
 func init() {
-	Register("package", func(cfg *config.Config) ModuleAPI {
-		return &PackageModule{cfg: cfg}
+	Register("package", func(cfg *config.Config, env *environment.Environment) ModuleAPI {
+		return &PackageModule{
+			cfg: cfg,
+			env: env,
+		}
 	})
 
 	// compatibility with previous releases.
-	Register("apt", func(cfg *config.Config) ModuleAPI {
-		return &PackageModule{cfg: cfg, state: "installed"}
+	Register("apt", func(cfg *config.Config, env *environment.Environment) ModuleAPI {
+		return &PackageModule{
+			cfg:   cfg,
+			env:   env,
+			state: "installed",
+		}
 	})
-	Register("dpkg", func(cfg *config.Config) ModuleAPI {
-		return &PackageModule{cfg: cfg, state: "absent"}
+	Register("dpkg", func(cfg *config.Config, env *environment.Environment) ModuleAPI {
+		return &PackageModule{
+			cfg:   cfg,
+			env:   env,
+			state: "absent",
+		}
 	})
 }

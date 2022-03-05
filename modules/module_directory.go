@@ -14,6 +14,9 @@ import (
 type DirectoryModule struct {
 	// cfg contains our configuration object.
 	cfg *config.Config
+
+	// env holds our environment
+	env *environment.Environment
 }
 
 // Check is part of the module-api, and checks arguments.
@@ -31,7 +34,7 @@ func (f *DirectoryModule) Check(args map[string]interface{}) error {
 }
 
 // Execute is part of the module-api, and is invoked to run a rule.
-func (f *DirectoryModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
+func (f *DirectoryModule) Execute(args map[string]interface{}) (bool, error) {
 
 	// Ensure we have one or more targets to process
 	_, ok := args["target"]
@@ -166,7 +169,8 @@ func (f *DirectoryModule) executeSingle(target string, args map[string]interface
 
 // init is used to dynamically register our module.
 func init() {
-	Register("directory", func(cfg *config.Config) ModuleAPI {
-		return &DirectoryModule{cfg: cfg}
+	Register("directory", func(cfg *config.Config, env *environment.Environment) ModuleAPI {
+		return &DirectoryModule{cfg: cfg,
+			env: env}
 	})
 }

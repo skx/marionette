@@ -18,6 +18,9 @@ type HTTPModule struct {
 	// cfg contains our configuration object.
 	cfg *config.Config
 
+	// env holds our environment
+	env *environment.Environment
+
 	// Save the status-code, after our request was completed.
 	statusCode int
 
@@ -47,7 +50,7 @@ func (f *HTTPModule) Check(args map[string]interface{}) error {
 }
 
 // Execute is part of the module-api, and is invoked to run a rule.
-func (f *HTTPModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
+func (f *HTTPModule) Execute(args map[string]interface{}) (bool, error) {
 
 	// Get the url.
 	url := StringParam(args, "url")
@@ -139,7 +142,10 @@ func (f *HTTPModule) GetOutputs() map[string]string {
 
 // init is used to dynamically register our module.
 func init() {
-	Register("http", func(cfg *config.Config) ModuleAPI {
-		return &HTTPModule{cfg: cfg}
+	Register("http", func(cfg *config.Config, env *environment.Environment) ModuleAPI {
+		return &HTTPModule{
+			cfg: cfg,
+			env: env,
+		}
 	})
 }

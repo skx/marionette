@@ -21,6 +21,9 @@ type DockerModule struct {
 	// cfg contains our configuration object.
 	cfg *config.Config
 
+	// env holds our environment
+	env *environment.Environment
+
 	// Cached list of image-tags we've got available on the local host.
 	Tags []string
 }
@@ -130,7 +133,7 @@ func (dm *DockerModule) installImage(img string) error {
 }
 
 // Execute is part of the module-api, and is invoked to run a rule.
-func (dm *DockerModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
+func (dm *DockerModule) Execute(args map[string]interface{}) (bool, error) {
 
 	// We might have multiple images to fetch
 	var images []string
@@ -182,7 +185,10 @@ func (dm *DockerModule) Execute(env *environment.Environment, args map[string]in
 
 // init is used to dynamically register our module.
 func init() {
-	Register("docker", func(cfg *config.Config) ModuleAPI {
-		return &DockerModule{cfg: cfg}
+	Register("docker", func(cfg *config.Config, env *environment.Environment) ModuleAPI {
+		return &DockerModule{
+			cfg: cfg,
+			env: env,
+		}
 	})
 }

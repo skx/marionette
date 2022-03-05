@@ -5,14 +5,10 @@ import (
 	"log"
 	"strings"
 	"testing"
-
-	"github.com/skx/marionette/environment"
 )
 
 // Test the argument validation works
 func TestLogArguments(t *testing.T) {
-
-	e := environment.New()
 
 	// Save our log writer
 	before := log.Writer()
@@ -47,7 +43,7 @@ func TestLogArguments(t *testing.T) {
 	// Try to execute - missing argument
 	//
 	c := false
-	c, err = l.Execute(e, empty)
+	c, err = l.Execute(empty)
 	if err == nil {
 		t.Fatalf("expected an error with no message.")
 	}
@@ -58,7 +54,7 @@ func TestLogArguments(t *testing.T) {
 	//
 	// Try to execute - valid argument
 	//
-	c, err = l.Execute(e, args)
+	c, err = l.Execute(args)
 	if err != nil {
 		t.Fatalf("unexpected error executing")
 	}

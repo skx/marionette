@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/skx/marionette/environment"
 	"github.com/skx/marionette/file"
 )
 
@@ -45,8 +44,6 @@ func TestEditCheck(t *testing.T) {
 
 func TestEditAppend(t *testing.T) {
 
-	env := environment.New()
-
 	// create a temporary file
 	tmpfile, err := ioutil.TempFile("", "marionette-")
 	if err != nil {
@@ -63,7 +60,7 @@ func TestEditAppend(t *testing.T) {
 	args["target"] = tmpfile.Name()
 	args["append_if_missing"] = "Steve Kemp"
 
-	changed, err := e.Execute(env, args)
+	changed, err := e.Execute(args)
 	if err != nil {
 		t.Fatalf("error changing file")
 	}
@@ -85,7 +82,7 @@ func TestEditAppend(t *testing.T) {
 	}
 
 	// Call again
-	changed, err = e.Execute(env, args)
+	changed, err = e.Execute(args)
 	if err != nil {
 		t.Fatalf("error changing file")
 	}
@@ -106,7 +103,7 @@ func TestEditAppend(t *testing.T) {
 
 	// Finally append "Test"
 	args["append_if_missing"] = "Test"
-	changed, err = e.Execute(env, args)
+	changed, err = e.Execute(args)
 	if err != nil {
 		t.Fatalf("error changing file")
 	}
@@ -128,8 +125,6 @@ func TestEditAppend(t *testing.T) {
 
 func TestEditRemove(t *testing.T) {
 
-	env := environment.New()
-
 	// create a temporary file
 	tmpfile, err := ioutil.TempFile("", "marionette-")
 	if err != nil {
@@ -150,7 +145,7 @@ func TestEditRemove(t *testing.T) {
 	args["remove_lines"] = "^#"
 
 	// Make the change
-	changed, err := e.Execute(env, args)
+	changed, err := e.Execute(args)
 	if err != nil {
 		t.Fatalf("unexpected error")
 	}
@@ -159,7 +154,7 @@ func TestEditRemove(t *testing.T) {
 	}
 
 	// Second time nothing should happen
-	changed, err = e.Execute(env, args)
+	changed, err = e.Execute(args)
 	if err != nil {
 		t.Fatalf("unexpected error")
 	}
@@ -178,14 +173,14 @@ func TestEditRemove(t *testing.T) {
 
 	// Now test that an invalid regexp is taken
 	args["remove_lines"] = "*"
-	_, err = e.Execute(env, args)
+	_, err = e.Execute(args)
 	if err == nil {
 		t.Fatalf("expected error, got none")
 	}
 
 	// Remove the temporary file, and confirm we get something similar
 	os.Remove(tmpfile.Name())
-	_, err = e.Execute(env, args)
+	_, err = e.Execute(args)
 	if err != nil {
 		t.Fatalf("didn't expect error, got one")
 	}

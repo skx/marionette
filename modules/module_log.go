@@ -13,6 +13,9 @@ type LogModule struct {
 
 	// cfg contains our configuration object.
 	cfg *config.Config
+
+	// env holds our environment
+	env *environment.Environment
 }
 
 // Check is part of the module-api, and checks arguments.
@@ -28,7 +31,7 @@ func (f *LogModule) Check(args map[string]interface{}) error {
 }
 
 // Execute is part of the module-api, and is invoked to run a rule.
-func (f *LogModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
+func (f *LogModule) Execute(args map[string]interface{}) (bool, error) {
 
 	// Get the message/messages to log.
 	arg, ok := args["message"]
@@ -58,7 +61,10 @@ func (f *LogModule) Execute(env *environment.Environment, args map[string]interf
 
 // init is used to dynamically register our module.
 func init() {
-	Register("log", func(cfg *config.Config) ModuleAPI {
-		return &LogModule{cfg: cfg}
+	Register("log", func(cfg *config.Config, env *environment.Environment) ModuleAPI {
+		return &LogModule{
+			cfg: cfg,
+			env: env,
+		}
 	})
 }

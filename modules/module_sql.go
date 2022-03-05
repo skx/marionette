@@ -21,6 +21,9 @@ type SQLModule struct {
 
 	// cfg contains our configuration object.
 	cfg *config.Config
+
+	// env holds our environment
+	env *environment.Environment
 }
 
 // Check is part of the module-api, and checks arguments.
@@ -69,7 +72,7 @@ func (f *SQLModule) Check(args map[string]interface{}) error {
 }
 
 // Execute is part of the module-api, and is invoked to run a rule.
-func (f *SQLModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
+func (f *SQLModule) Execute(args map[string]interface{}) (bool, error) {
 
 	// Get our DSN + Driver
 	dsn := StringParam(args, "dsn")
@@ -140,7 +143,10 @@ func (f *SQLModule) Execute(env *environment.Environment, args map[string]interf
 
 // init is used to dynamically register our module.
 func init() {
-	Register("sql", func(cfg *config.Config) ModuleAPI {
-		return &SQLModule{cfg: cfg}
+	Register("sql", func(cfg *config.Config, env *environment.Environment) ModuleAPI {
+		return &SQLModule{
+			cfg: cfg,
+			env: env,
+		}
 	})
 }

@@ -551,7 +551,7 @@ func (e *Executor) executeSingleRule(rule *ast.Rule, force bool) error {
 	var err error
 
 	// Create the instance of the module
-	helper := modules.Lookup(rule.Type, e.cfg)
+	helper := modules.Lookup(rule.Type, e.cfg, e.env)
 	if helper == nil {
 		return fmt.Errorf("unknown module type %s, from rule %v", rule.Type, rule)
 	}
@@ -650,7 +650,7 @@ func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (
 	}
 
 	// Execute the module.
-	changed, err := helper.Execute(e.env, params)
+	changed, err := helper.Execute(params)
 	if err != nil {
 		return false, fmt.Errorf("error running %s-module rule '%s' %s",
 			rule.Type, rule.Name, err.Error())

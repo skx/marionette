@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/skx/marionette/config"
-	"github.com/skx/marionette/environment"
 )
 
 func TestShellCheck(t *testing.T) {
@@ -40,13 +39,11 @@ func TestShell(t *testing.T) {
 	sQuiet := &ShellModule{cfg: &config.Config{Verbose: false}}
 	sVerbose := &ShellModule{cfg: &config.Config{Verbose: true}}
 
-	env := environment.New()
-
 	// Arguments
 	args := make(map[string]interface{})
 
 	// Run with no arguments to see an error
-	changed, err := sQuiet.Execute(env, args)
+	changed, err := sQuiet.Execute(args)
 	if changed {
 		t.Fatalf("unexpected change")
 	}
@@ -60,7 +57,7 @@ func TestShell(t *testing.T) {
 	// Now setup a command to run - a harmless one!
 	args["command"] = "true"
 
-	changed, err = sQuiet.Execute(env, args)
+	changed, err = sQuiet.Execute(args)
 
 	if !changed {
 		t.Fatalf("Expected to see changed result")
@@ -69,7 +66,7 @@ func TestShell(t *testing.T) {
 		t.Fatalf("unexpected error:%s", err.Error())
 	}
 
-	changed, err = sVerbose.Execute(env, args)
+	changed, err = sVerbose.Execute(args)
 
 	if !changed {
 		t.Fatalf("Expected to see changed result")
@@ -80,7 +77,7 @@ func TestShell(t *testing.T) {
 
 	// Try a command with redirection
 	args["command"] = "true >/dev/null"
-	changed, err = sQuiet.Execute(env, args)
+	changed, err = sQuiet.Execute(args)
 
 	if !changed {
 		t.Fatalf("Expected to see changed result")
@@ -91,7 +88,7 @@ func TestShell(t *testing.T) {
 
 	// Now finally try a command that doesn't exist.
 	args["command"] = "/this/does/not/exist"
-	changed, err = sQuiet.Execute(env, args)
+	changed, err = sQuiet.Execute(args)
 
 	if err == nil {
 		t.Fatalf("wanted error running missing command, got none")

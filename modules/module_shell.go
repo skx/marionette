@@ -17,6 +17,9 @@ type ShellModule struct {
 	// cfg contains our configuration object.
 	cfg *config.Config
 
+	// env holds our environment
+	env *environment.Environment
+
 	// Saved copy of STDOUT.
 	stdout []byte
 
@@ -37,7 +40,7 @@ func (f *ShellModule) Check(args map[string]interface{}) error {
 }
 
 // Execute is part of the module-api, and is invoked to run a rule.
-func (f *ShellModule) Execute(env *environment.Environment, args map[string]interface{}) (bool, error) {
+func (f *ShellModule) Execute(args map[string]interface{}) (bool, error) {
 
 	// Ensure we have one or more commands to run.
 	_, ok := args["command"]
@@ -175,7 +178,10 @@ func (f *ShellModule) GetOutputs() map[string]string {
 
 // init is used to dynamically register our module.
 func init() {
-	Register("shell", func(cfg *config.Config) ModuleAPI {
-		return &ShellModule{cfg: cfg}
+	Register("shell", func(cfg *config.Config, env *environment.Environment) ModuleAPI {
+		return &ShellModule{
+			cfg: cfg,
+			env: env,
+		}
 	})
 }

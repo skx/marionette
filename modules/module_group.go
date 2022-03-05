@@ -9,6 +9,7 @@ import (
 	"regexp"
 
 	mcfg "github.com/skx/marionette/config"
+	"github.com/skx/marionette/environment"
 )
 
 // GroupModule stores our state
@@ -16,6 +17,9 @@ type GroupModule struct {
 
 	// cfg contains our configuration object.
 	cfg *mcfg.Config
+
+	// env holds our environment
+	env *environment.Environment
 
 	// Regular expression for testing if parameters are safe
 	// and won't cause shell injection issues.
@@ -64,9 +68,10 @@ func (g *GroupModule) Check(args map[string]interface{}) error {
 
 // init is used to dynamically register our module.
 func init() {
-	Register("group", func(cfg *mcfg.Config) ModuleAPI {
+	Register("group", func(cfg *mcfg.Config, env *environment.Environment) ModuleAPI {
 		return &GroupModule{
 			cfg: cfg,
+			env: env,
 			reg: regexp.MustCompile(`^[-_/a-zA-Z0-9]+$`),
 		}
 	})
