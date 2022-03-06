@@ -112,15 +112,30 @@ func (e *Executor) deps(rule *ast.Rule, key string) ([]string, error) {
 	}
 
 	//
-	// OK the requirements might be a single rule, or
-	// an array of rules.
+	// OK the requirements might be a single object, or
+	// an array of objects
 	//
 	// Handle both cases.
 	//
+	// Is this an array-object?
+	array, ok := requires.(ast.Array)
+	if ok {
+		// For each of the children
+		for _, tmp := range array.Values {
+
+			// Evaluate it, and store
+			val, err := tmp.Evaluate(e.env)
+			if err != nil {
+				return res, err
+			}
+			res = append(res, val)
+		}
+		return res, nil
+	}
 
 	// Is this a single object?
-	dep, ok := requires.(ast.Object)
-	if ok {
+	dep, ok2 := requires.(ast.Object)
+	if ok2 {
 
 		// Is it a single node, which we can convert?
 		val, err := dep.Evaluate(e.env)
@@ -131,21 +146,7 @@ func (e *Executor) deps(rule *ast.Rule, key string) ([]string, error) {
 		return res, nil
 	}
 
-	// Is this an array of objects?
-	deps, ok := requires.([]ast.Object)
-	if ok {
-		for _, tmp := range deps {
-
-			val, err := tmp.Evaluate(e.env)
-			if err != nil {
-				return res, err
-			}
-			res = append(res, val)
-		}
-		return res, nil
-	}
-
-	return res, nil
+	return nil, fmt.Errorf("unknown object at deps - %v %t", requires, requires)
 }
 
 // Check ensures the rules make sense.
@@ -444,7 +445,7 @@ func (e *Executor) executeIncludeReal(source string) error {
 
 // shouldExecute tests whether the assignment/include/rule should be executed,
 // based on the condition-type and the condition-rule.
-func (e *Executor) shouldExecute(cType string, cRule *ast.Funcall) (bool, error) {
+func (e *Executor) shouldExecute(cType string, cRule ast.Funcall) (bool, error) {
 
 	// Invoke it, and get the output
 	ret, err := cRule.Evaluate(e.env)
@@ -607,27 +608,17 @@ func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (
 	// So for each argument
 	for k, v := range rule.Params {
 
-		// parameter contains a single node?
-		p, ok := v.(ast.Object)
+		// Is this parameter value an array?
+		//
+		// If so expand each value it contains.
+		array, ok := v.(ast.Array)
 		if ok {
-
-			// Is it a single node, which we can convert?
-			val, err2 := p.Evaluate(e.env)
-			if err2 != nil {
-				return false, err2
-			}
-			params[k] = val
-		}
-
-		// Parameters contain multiple nodes?
-		pp, ok2 := v.([]ast.Object)
-		if ok2 {
 
 			// temporary values
 			var tmp []string
 
 			// for each node
-			for _, p := range pp {
+			for _, p := range array.Values {
 
 				val, err2 := p.Evaluate(e.env)
 				if err2 != nil {
@@ -639,7 +630,27 @@ func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (
 			}
 
 			params[k] = tmp
+
+			continue
 		}
+
+		// parameter contains a single node?
+		p, ok := v.(ast.Object)
+		if ok {
+
+			// Is it a single node, which we can convert?
+			val, err2 := p.Evaluate(e.env)
+			if err2 != nil {
+				return false, err2
+			}
+			params[k] = val
+
+			continue
+		}
+
+		// We got a parameter which is unknown
+		return false, fmt.Errorf("runInternalModule unknown object at deps - %V %T", v, v)
+
 	}
 
 	// Check the arguments, using the module-specific Check method.

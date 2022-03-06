@@ -203,7 +203,7 @@ func (p *Parser) parseLet() (*ast.Assign, error) {
 		}
 
 		// Confirm the action is a Funcall
-		faction, ok := action.(*ast.Funcall)
+		faction, ok := action.(ast.Funcall)
 		if !ok {
 			return let, fmt.Errorf("expected function-call after %s, got %v", nxt, action)
 		}
@@ -250,7 +250,7 @@ func (p *Parser) parseInclude() (*ast.Include, error) {
 		}
 
 		// Confirm the action is a Funcall
-		faction, ok := action.(*ast.Funcall)
+		faction, ok := action.(ast.Funcall)
 		if !ok {
 			return inc, fmt.Errorf("expected function-call after %s, got %v", nxt, action)
 		}
@@ -379,7 +379,7 @@ func (p *Parser) parseBlock(ty string) (*ast.Rule, error) {
 			}
 
 			// Confirm the action is a Funcall
-			faction, ok := action.(*ast.Funcall)
+			faction, ok := action.(ast.Funcall)
 			if !ok {
 				return r, fmt.Errorf("expected function-call after %s, got %v", next, action)
 			}
@@ -398,8 +398,8 @@ func (p *Parser) parseBlock(ty string) (*ast.Rule, error) {
 		// We need to find the value, which is either a single
 		// object, or an array of objects.
 		//
-        // parsePrimitive will handle both cases.
-        //
+		// parsePrimitive will handle both cases.
+		//
 		next = p.nextToken()
 		value, err := p.parsePrimitive(next)
 		if err != nil {
@@ -426,14 +426,14 @@ func (p *Parser) getName(params map[string]interface{}) string {
 	if ok {
 
 		// OK we did.  Was it a string?
-		str, ok := n.(*ast.String)
+		str, ok := n.(ast.String)
 		if ok {
 			return str.Value
 		}
 
 		// Show a warning.
 		if p.debug {
-			fmt.Printf("WARNING: Name of rule is not *ast.String, got %T\n", n)
+			fmt.Printf("WARNING: Name of rule is not ast.String, got %T\n", n)
 		}
 	}
 
@@ -464,13 +464,13 @@ func (p *Parser) parsePrimitive(tok token.Token) (ast.Object, error) {
 	switch tok.Type {
 
 	case token.BACKTICK:
-		return &ast.Backtick{Value: tok.Literal}, nil
+		return ast.Backtick{Value: tok.Literal}, nil
 
 	case token.BOOLEAN:
 		if tok.Literal == "true" {
-			return &ast.Boolean{Value: true}, nil
+			return ast.Boolean{Value: true}, nil
 		}
-		return &ast.Boolean{Value: false}, nil
+		return ast.Boolean{Value: false}, nil
 
 	case token.IDENT:
 		// if this is an identifier and the next token is "("
@@ -505,7 +505,7 @@ func (p *Parser) parsePrimitive(tok token.Token) (ast.Object, error) {
 				return nil, fmt.Errorf("unexpected EOF in function-call")
 			}
 
-			return &ast.Funcall{Name: name, Args: args}, nil
+			return ast.Funcall{Name: name, Args: args}, nil
 
 		}
 
@@ -515,17 +515,17 @@ func (p *Parser) parsePrimitive(tok token.Token) (ast.Object, error) {
 			return nil, err
 		}
 
-		return &ast.Array{Values: vals}, nil
+		return ast.Array{Values: vals}, nil
 
 	case token.NUMBER:
 		val, err := strconv.ParseInt(tok.Literal, 0, 64)
 		if err != nil {
 			return nil, err
 		}
-		return &ast.Number{Value: val}, nil
+		return ast.Number{Value: val}, nil
 
 	case token.STRING:
-		return &ast.String{Value: tok.Literal}, nil
+		return ast.String{Value: tok.Literal}, nil
 
 	}
 	return nil, fmt.Errorf("unexpected type parsing primitive:%v", tok)

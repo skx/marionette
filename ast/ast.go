@@ -38,7 +38,7 @@ type Assign struct {
 
 	// Function holds a function to call, if this is a conditional
 	// action.
-	Function *Funcall
+	Function Funcall
 }
 
 // String turns an Assign object into a decent string.
@@ -70,7 +70,7 @@ type Include struct {
 
 	// Function holds a function to call, if this is a conditional
 	// action.
-	Function *Funcall
+	Function Funcall
 }
 
 // String turns an Include object into a useful string.
@@ -115,7 +115,7 @@ type Rule struct {
 
 	// Function holds a function to call, if this is a conditional
 	// action.
-	Function *Funcall
+	Function Funcall
 }
 
 // String turns a Rule object into a useful string

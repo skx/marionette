@@ -34,8 +34,8 @@ func TestSimpleRule(t *testing.T) {
 	// Setup the parameters
 	//
 	params := make(map[string]interface{})
-	params["target"] = &ast.String{Value: tmpfile.Name()}
-	params["content"] = &ast.String{Value: expected}
+	params["target"] = ast.String{Value: tmpfile.Name()}
+	params["content"] = ast.String{Value: expected}
 
 	//
 	// Create a simple rule
@@ -162,7 +162,7 @@ func TestBrokenDependencies(t *testing.T) {
 	//
 	params := make(map[string]interface{})
 	// -> missing rule
-	params["require"] = &ast.String{Value: "foo"}
+	params["require"] = ast.String{Value: "foo"}
 
 	//
 	// Create a rule with a single dependency
@@ -176,9 +176,11 @@ func TestBrokenDependencies(t *testing.T) {
 
 	//
 	// Create a rule with a pair of dependencies
-	params["require"] = []ast.Object{
-		&ast.String{Value: "foo"},
-		&ast.String{Value: "bar"},
+	params["require"] = ast.Array{
+		Values: []ast.Object{
+			ast.String{Value: "foo"},
+			ast.String{Value: "bar"},
+		},
 	}
 
 	r2 := []ast.Node{
@@ -236,10 +238,11 @@ func TestIf(t *testing.T) {
 			Triggered:     false,
 			Params:        params,
 			ConditionType: "if",
-			Function: &ast.Funcall{
+			Function: ast.Funcall{
 				Name: "equal",
-				Args: []ast.Object{&ast.String{Value: "foo"},
-					&ast.String{Value: "bar"},
+				Args: []ast.Object{
+					ast.String{Value: "foo"},
+					ast.String{Value: "bar"},
 				},
 			},
 		},
@@ -283,10 +286,11 @@ func TestIf(t *testing.T) {
 	tmpt := r1[0].(*ast.Rule)
 	tmpt.Params = params
 	tmpt.ConditionType = "if"
-	tmpt.Function = &ast.Funcall{
+	tmpt.Function = ast.Funcall{
 		Name: "agrees",
-		Args: []ast.Object{&ast.String{Value: "foo"},
-			&ast.String{Value: "bar"},
+		Args: []ast.Object{
+			ast.String{Value: "foo"},
+			ast.String{Value: "bar"},
 		},
 	}
 
@@ -313,21 +317,21 @@ func TestTriggered(t *testing.T) {
 			Name:          "bob",
 			Triggered:     false,
 			ConditionType: "if",
-			Function: &ast.Funcall{
+			Function: ast.Funcall{
 				Name: "equal",
-				Args: []ast.Object{&ast.String{Value: "foo"},
-					&ast.String{Value: "bar"},
+				Args: []ast.Object{
+					ast.String{Value: "foo"},
+					ast.String{Value: "bar"},
 				},
 			},
 			Params: map[string]interface{}{
-				"require": "test",
+				"require": ast.String{Value: "test"},
 			},
 		},
 		&ast.Rule{Type: "file",
 			Name:      "test",
 			Triggered: true,
 			Params: map[string]interface{}{
-				"require": 3,
 				"target":  "/tmp/foo",
 				"ensure":  "present",
 				"content": "foo",
@@ -373,10 +377,11 @@ func TestUnless(t *testing.T) {
 			Triggered:     false,
 			Params:        params,
 			ConditionType: "unless",
-			Function: &ast.Funcall{
+			Function: ast.Funcall{
 				Name: "equal",
-				Args: []ast.Object{&ast.String{Value: "bar"},
-					&ast.String{Value: "bar"},
+				Args: []ast.Object{
+					ast.String{Value: "bar"},
+					ast.String{Value: "bar"},
 				},
 			},
 		},
@@ -418,10 +423,11 @@ func TestUnless(t *testing.T) {
 	//
 	// change params
 	tmpt := r1[0].(*ast.Rule)
-	tmpt.Function = &ast.Funcall{
+	tmpt.Function = ast.Funcall{
 		Name: "tervetulo",
-		Args: []ast.Object{&ast.String{Value: "foo"},
-			&ast.String{Value: "bar"},
+		Args: []ast.Object{
+			ast.String{Value: "foo"},
+			ast.String{Value: "bar"},
 		},
 	}
 

@@ -41,12 +41,12 @@ type Backtick struct {
 }
 
 // String returns our object as a string.
-func (b *Backtick) String() string {
+func (b Backtick) String() string {
 	return fmt.Sprintf("Backtick{Command:%s}", b.Value)
 }
 
 // Evaluate returns the value of the Backtick object.
-func (b *Backtick) Evaluate(env *environment.Environment) (string, error) {
+func (b Backtick) Evaluate(env *environment.Environment) (string, error) {
 	ret, err := env.ExpandBacktick(b.Value)
 	return ret, err
 }
@@ -63,7 +63,7 @@ type Array struct {
 }
 
 // String returns our object as a string.
-func (a *Array) String() string {
+func (a Array) String() string {
 	tmp := []string{}
 	for _, arg := range a.Values {
 		tmp = append(tmp, arg.String())
@@ -76,7 +76,7 @@ func (a *Array) String() string {
 //
 // The evaluation here consists of the joined output of evaluating all
 // the children we contain.
-func (a *Array) Evaluate(env *environment.Environment) (string, error) {
+func (a Array) Evaluate(env *environment.Environment) (string, error) {
 	tmp := ""
 	for _, obj := range a.Values {
 		if len(tmp) > 0 {
@@ -102,7 +102,7 @@ type Boolean struct {
 }
 
 // String returns our object as a string.
-func (b *Boolean) String() string {
+func (b Boolean) String() string {
 	if b.Value {
 		return ("Boolean{true}")
 	}
@@ -110,7 +110,7 @@ func (b *Boolean) String() string {
 }
 
 // Evaluate returns the value of the Boolean object.
-func (b *Boolean) Evaluate(env *environment.Environment) (string, error) {
+func (b Boolean) Evaluate(env *environment.Environment) (string, error) {
 	if b.Value {
 		return "true", nil
 	}
@@ -130,7 +130,7 @@ type Funcall struct {
 }
 
 // Evaluate returns the value of the function call.
-func (f *Funcall) Evaluate(env *environment.Environment) (string, error) {
+func (f Funcall) Evaluate(env *environment.Environment) (string, error) {
 
 	// Lookup the function
 	fn, ok := FUNCTIONS[f.Name]
@@ -170,7 +170,7 @@ func (f *Funcall) Evaluate(env *environment.Environment) (string, error) {
 }
 
 // String returns our object as a string.
-func (f *Funcall) String() string {
+func (f Funcall) String() string {
 	args := ""
 	for _, a := range f.Args {
 		if len(args) > 0 {
@@ -193,12 +193,12 @@ type Number struct {
 }
 
 // String returns our object as a string.
-func (n *Number) String() string {
+func (n Number) String() string {
 	return fmt.Sprintf("Number{%d}", n.Value)
 }
 
 // Evaluate returns the value of the Number object.
-func (n *Number) Evaluate(env *environment.Environment) (string, error) {
+func (n Number) Evaluate(env *environment.Environment) (string, error) {
 	return fmt.Sprintf("%d", n.Value), nil
 }
 
@@ -212,14 +212,14 @@ type String struct {
 }
 
 // String returns our object as a string.
-func (s *String) String() string {
+func (s String) String() string {
 	return fmt.Sprintf("String{%s}", s.Value)
 }
 
 // Evaluate returns the value of the String object.
 //
 // This means expanding the variables contained within the string.
-func (s *String) Evaluate(env *environment.Environment) (string, error) {
+func (s String) Evaluate(env *environment.Environment) (string, error) {
 	return env.ExpandVariables(s.Value), nil
 
 }
