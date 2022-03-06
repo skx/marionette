@@ -165,6 +165,9 @@ func (p *Parser) parseLet() (*ast.Assign, error) {
 		return let, fmt.Errorf("assignment can only be made to identifiers, got %v", name)
 	}
 
+	// Update the assignment node
+	let.Key = name.Literal
+
 	// =
 	t := p.nextToken()
 	if t.Type != token.ASSIGN {
@@ -173,12 +176,15 @@ func (p *Parser) parseLet() (*ast.Assign, error) {
 
 	// get the value, and parse it
 	t = p.nextToken()
+
+	// Parse it
 	val, err := p.parsePrimitive(t)
 
 	// Error-checking.
 	if err != nil {
 		return let, err
 	}
+	let.Value = val
 
 	// Look at the next token and see if it is a
 	// conditional assignment.
@@ -206,10 +212,6 @@ func (p *Parser) parseLet() (*ast.Assign, error) {
 		let.ConditionType = nxt
 		let.Function = faction
 	}
-
-	// Update the assignment node, and return it.
-	let.Key = name.Literal
-	let.Value = val
 
 	return let, nil
 }
@@ -394,32 +396,18 @@ func (p *Parser) parseBlock(ty string) (*ast.Rule, error) {
 		//  KEY =>
 		//
 		// We need to find the value, which is either a single
-		// token, or an array of tokens.
+		// object, or an array of objects.
 		//
-		if p.peekToken.Type == token.LSQUARE {
-
-			// OK this is an array of primitive values,
-			// separated by commas.
-			values, err := p.parseMultiplePrimitives()
-			if err != nil {
-				return r, err
-			}
-
-			// Save it
-			r.Params[name] = values
-
-		} else {
-
-			// Single value.
-			next = p.nextToken()
-			value, err := p.parsePrimitive(next)
-			if err != nil {
-				return r, err
-			}
-
-			// Save it
-			r.Params[name] = value
+        // parsePrimitive will handle both cases.
+        //
+		next = p.nextToken()
+		value, err := p.parsePrimitive(next)
+		if err != nil {
+			return r, err
 		}
+
+		// Save it
+		r.Params[name] = value
 	}
 
 	// If there was no name setup for the rule then we
@@ -521,6 +509,14 @@ func (p *Parser) parsePrimitive(tok token.Token) (ast.Object, error) {
 
 		}
 
+	case token.LSQUARE:
+		vals, err := p.parseMultiplePrimitives()
+		if err != nil {
+			return nil, err
+		}
+
+		return &ast.Array{Values: vals}, nil
+
 	case token.NUMBER:
 		val, err := strconv.ParseInt(tok.Literal, 0, 64)
 		if err != nil {
@@ -537,6 +533,16 @@ func (p *Parser) parsePrimitive(tok token.Token) (ast.Object, error) {
 
 // parseMultiplePrimitives attempts to parse multiple values within a
 // "[" + "]" separated block.
+//
+// Because we quit when we find "]" and we ignore "[" we cannot parse
+// nested arrays:
+//
+//     [ "OK", "This", "Is, "Fine" ]
+//
+// But this is not:
+//
+//     [ "This", [ "Is", "Wrong" ] ]
+//
 func (p *Parser) parseMultiplePrimitives() ([]ast.Object, error) {
 
 	var ret []ast.Object
