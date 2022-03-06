@@ -51,6 +51,47 @@ func (b *Backtick) Evaluate(env *environment.Environment) (string, error) {
 	return ret, err
 }
 
+// Array is a holder which can contain an arbitrary number of any of our primitive types.
+//
+// NOTE: Arrays cannot be nested, due to our parser-limitations.
+type Array struct {
+	// Object is our parent object.
+	Object
+
+	// Values hold the literal values we contain.
+	Values []Object
+}
+
+// String returns our object as a string.
+func (a *Array) String() string {
+	tmp := []string{}
+	for _, arg := range a.Values {
+		tmp = append(tmp, arg.String())
+	}
+
+	return fmt.Sprintf("Array{%s}", strings.Join(tmp, ","))
+}
+
+// Evaluate returns the value of the array object.
+//
+// The evaluation here consists of the joined output of evaluating all
+// the children we contain.
+func (a *Array) Evaluate(env *environment.Environment) (string, error) {
+	tmp := ""
+	for _, obj := range a.Values {
+		if len(tmp) > 0 {
+			tmp += ","
+		}
+
+		out, err := obj.Evaluate(env)
+		if err != nil {
+			return "", err
+		}
+		tmp += out
+	}
+	return tmp, nil
+}
+
 // Boolean represents a true/false value
 type Boolean struct {
 	// Object is our parent object.

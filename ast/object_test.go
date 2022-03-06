@@ -20,6 +20,21 @@ func TestBrokenBacktick(t *testing.T) {
 	}
 }
 
+// TestArrays handles basic array testing
+func TestArrays(t *testing.T) {
+
+	// Array
+	a := &Array{Values: []Object{
+		&Number{Value: 12},
+		&Number{Value: 34},
+	}}
+
+	_, err := a.Evaluate(nil)
+	if err != nil {
+		t.Fatalf("unexpected error evaluating an array")
+	}
+}
+
 // TestSimpleFunction tests some simple functions.
 func TestSimpleFunction(t *testing.T) {
 
@@ -73,6 +88,18 @@ func TestSimpleFunction(t *testing.T) {
 }
 
 func TestStringification(t *testing.T) {
+
+	// Array
+	a := &Array{Values: []Object{
+		&Number{Value: 12},
+		&Number{Value: 34},
+	}}
+	if !strings.Contains(a.String(), "Array") {
+		t.Fatalf("stringified object is bogus")
+	}
+	if !strings.Contains(a.String(), "Number{12},Number{34}") {
+		t.Fatalf("stringified object is bogus")
+	}
 
 	// Backtick
 	b := &Backtick{Value: "/usr/bin/id"}
