@@ -30,7 +30,7 @@ type Assign struct {
 	Key string
 
 	// Value is the value which will be set.
-	Value Node
+	Value Object
 
 	// ConditionType holds "if" or "unless" if this assignment
 	// action is to be carried out conditionally.
