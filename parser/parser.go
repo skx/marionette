@@ -179,11 +179,16 @@ func (p *Parser) parseLet() (*ast.Assign, error) {
 
 	// Parse it
 	val, err := p.parsePrimitive(t)
-
-	// Error-checking.
 	if err != nil {
 		return let, err
 	}
+
+	// Assignments won't handle arrays yet
+	_, ok := val.(ast.Array)
+	if ok {
+		return let, fmt.Errorf("you cannot assign an array to a variable")
+	}
+
 	let.Value = val
 
 	// Look at the next token and see if it is a
@@ -370,8 +375,8 @@ func (p *Parser) parseBlock(ty string) (*ast.Rule, error) {
 		//   "if|unless" =>  FOO ( arg1, arg2 .. )
 		if name == "if" || name == "unless" {
 
-			// Parse the function
 			tok := p.nextToken()
+
 			action, err := p.parsePrimitive(tok)
 
 			if err != nil {
@@ -381,7 +386,7 @@ func (p *Parser) parseBlock(ty string) (*ast.Rule, error) {
 			// Confirm the action is a Funcall
 			faction, ok := action.(ast.Funcall)
 			if !ok {
-				return r, fmt.Errorf("expected function-call after %s, got %v", next, action)
+				return r, fmt.Errorf("expected function-call after '%s', got %v", name, action)
 			}
 
 			// Otherwise save the condition.
