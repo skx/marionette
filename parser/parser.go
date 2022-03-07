@@ -227,16 +227,15 @@ func (p *Parser) parseInclude() (*ast.Include, error) {
 	// The include statement we'll return
 	inc := &ast.Include{}
 
-	// Get the thing we should include.
-	t := p.nextToken()
-
-	// We only allow strings to be used for inclusion.
-	if t.Type != token.STRING {
-		return inc, fmt.Errorf("only strings are supported for include statements; got %v", t)
+	// Parse the thing we should include.
+	tok := p.nextToken()
+	obj, err := p.parsePrimitive(tok)
+	if err != nil {
+		return inc, err
 	}
 
-	// The include-command
-	inc.Source = t.Literal
+	// Save the thing away
+	inc.Source = obj
 
 	// Look at the next token and see if it is a
 	// conditional inclusion

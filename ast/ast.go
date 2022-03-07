@@ -62,7 +62,7 @@ type Include struct {
 	Node
 
 	// Source holds the location to include.
-	Source string
+	Source Object
 
 	// ConditionType holds "if" or "unless" if this inclusion is to
 	// be executed conditionally.

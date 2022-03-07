@@ -353,23 +353,67 @@ func (e *Executor) executeInclude(inc *ast.Include) error {
 		}
 	}
 
-	// Expand any variables in the string.
-	inc.Source = e.env.ExpandVariables(inc.Source)
+	// We now need to handle the things that we should include
+	//
+	// We might have:
+	//
+	//   include "path/to/file"
+	//   include true
+	//   include [ "one.txt", "two.txt" ]
+	//
+	// Because the array value will handle multiple values we'll
+	// expand them as we go.
+	includes := []string{}
 
-	// If we've already included this path, return
-	seen, ok := e.included[inc.Source]
-	if ok && seen {
-		log.Printf("[INFO] Skipping inclusion of %s - already seen", inc.Source)
-		return nil
+	//
+	// Is this an array?
+	//
+	array, ok := inc.Source.(ast.Array)
+	if ok {
+
+		// If so evaluate each node and save it
+		// in our list of things to include.
+		for _, p := range array.Values {
+
+			val, err2 := p.Evaluate(e.env)
+			if err2 != nil {
+				return err2
+			}
+
+			// save into our array of strings
+			includes = append(includes, val)
+		}
+
+	} else {
+
+		// OK this isn't an array, so we can just
+		// handle it as a single-thing.
+		val, err2 := inc.Source.Evaluate(e.env)
+		if err2 != nil {
+			return err2
+		}
+
+		includes = append(includes, val)
 	}
 
-	// Mark it as included now.
-	e.MarkSeen(inc.Source)
+	// For each thing to include ..
+	for _, path := range includes {
 
-	// And read/run it.
-	err := e.executeIncludeReal(inc.Source)
-	if err != nil {
-		return fmt.Errorf("failed to execute included file %s: %s", inc.Source, err)
+		// If we've already included this path, skip it
+		seen, ok := e.included[path]
+		if ok && seen {
+			log.Printf("[INFO] Skipping inclusion of %s - already seen", path)
+			continue
+		}
+
+		// Mark it as included now.
+		e.MarkSeen(path)
+
+		// And read/run it.
+		err := e.executeIncludeReal(path)
+		if err != nil {
+			return fmt.Errorf("failed to execute included file %s: %s", path, err)
+		}
 	}
 
 	return nil
