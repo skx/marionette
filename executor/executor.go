@@ -112,15 +112,30 @@ func (e *Executor) deps(rule *ast.Rule, key string) ([]string, error) {
 	}
 
 	//
-	// OK the requirements might be a single rule, or
-	// an array of rules.
+	// OK the requirements might be a single object, or
+	// an array of objects
 	//
 	// Handle both cases.
 	//
+	// Is this an array-object?
+	array, ok := requires.(ast.Array)
+	if ok {
+		// For each of the children
+		for _, tmp := range array.Values {
+
+			// Evaluate it, and store
+			val, err := tmp.Evaluate(e.env)
+			if err != nil {
+				return res, err
+			}
+			res = append(res, val)
+		}
+		return res, nil
+	}
 
 	// Is this a single object?
-	dep, ok := requires.(ast.Object)
-	if ok {
+	dep, ok2 := requires.(ast.Object)
+	if ok2 {
 
 		// Is it a single node, which we can convert?
 		val, err := dep.Evaluate(e.env)
@@ -131,21 +146,7 @@ func (e *Executor) deps(rule *ast.Rule, key string) ([]string, error) {
 		return res, nil
 	}
 
-	// Is this an array of objects?
-	deps, ok := requires.([]ast.Object)
-	if ok {
-		for _, tmp := range deps {
-
-			val, err := tmp.Evaluate(e.env)
-			if err != nil {
-				return res, err
-			}
-			res = append(res, val)
-		}
-		return res, nil
-	}
-
-	return res, nil
+	return nil, fmt.Errorf("unknown object at deps - %v %t", requires, requires)
 }
 
 // Check ensures the rules make sense.
@@ -318,14 +319,8 @@ func (e *Executor) executeAssign(assign *ast.Assign) error {
 	// The key
 	key := assign.Key
 
-	// Ensure the value implements our Literal interface
-	ex, ok := assign.Value.(ast.Object)
-	if !ok {
-		return fmt.Errorf("value %v does not implement Literal interface", assign.Value)
-	}
-
 	// Execute the literal object (be it a number, string, backtick or bool)
-	val, err := ex.Evaluate(e.env)
+	val, err := assign.Value.Evaluate(e.env)
 	if err != nil {
 		return err
 	}
@@ -358,23 +353,67 @@ func (e *Executor) executeInclude(inc *ast.Include) error {
 		}
 	}
 
-	// Expand any variables in the string.
-	inc.Source = e.env.ExpandVariables(inc.Source)
+	// We now need to handle the things that we should include
+	//
+	// We might have:
+	//
+	//   include "path/to/file"
+	//   include true
+	//   include [ "one.txt", "two.txt" ]
+	//
+	// Because the array value will handle multiple values we'll
+	// expand them as we go.
+	includes := []string{}
 
-	// If we've already included this path, return
-	seen, ok := e.included[inc.Source]
-	if ok && seen {
-		log.Printf("[INFO] Skipping inclusion of %s - already seen", inc.Source)
-		return nil
+	//
+	// Is this an array?
+	//
+	array, ok := inc.Source.(ast.Array)
+	if ok {
+
+		// If so evaluate each node and save it
+		// in our list of things to include.
+		for _, p := range array.Values {
+
+			val, err2 := p.Evaluate(e.env)
+			if err2 != nil {
+				return err2
+			}
+
+			// save into our array of strings
+			includes = append(includes, val)
+		}
+
+	} else {
+
+		// OK this isn't an array, so we can just
+		// handle it as a single-thing.
+		val, err2 := inc.Source.Evaluate(e.env)
+		if err2 != nil {
+			return err2
+		}
+
+		includes = append(includes, val)
 	}
 
-	// Mark it as included now.
-	e.MarkSeen(inc.Source)
+	// For each thing to include ..
+	for _, path := range includes {
 
-	// And read/run it.
-	err := e.executeIncludeReal(inc.Source)
-	if err != nil {
-		return fmt.Errorf("failed to execute included file %s: %s", inc.Source, err)
+		// If we've already included this path, skip it
+		seen, ok := e.included[path]
+		if ok && seen {
+			log.Printf("[INFO] Skipping inclusion of %s - already seen", path)
+			continue
+		}
+
+		// Mark it as included now.
+		e.MarkSeen(path)
+
+		// And read/run it.
+		err := e.executeIncludeReal(path)
+		if err != nil {
+			return fmt.Errorf("failed to execute included file %s: %s", path, err)
+		}
 	}
 
 	return nil
@@ -444,7 +483,7 @@ func (e *Executor) executeIncludeReal(source string) error {
 
 // shouldExecute tests whether the assignment/include/rule should be executed,
 // based on the condition-type and the condition-rule.
-func (e *Executor) shouldExecute(cType string, cRule *ast.Funcall) (bool, error) {
+func (e *Executor) shouldExecute(cType string, cRule ast.Funcall) (bool, error) {
 
 	// Invoke it, and get the output
 	ret, err := cRule.Evaluate(e.env)
@@ -607,27 +646,17 @@ func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (
 	// So for each argument
 	for k, v := range rule.Params {
 
-		// parameter contains a single node?
-		p, ok := v.(ast.Object)
+		// Is this parameter value an array?
+		//
+		// If so expand each value it contains.
+		array, ok := v.(ast.Array)
 		if ok {
-
-			// Is it a single node, which we can convert?
-			val, err2 := p.Evaluate(e.env)
-			if err2 != nil {
-				return false, err2
-			}
-			params[k] = val
-		}
-
-		// Parameters contain multiple nodes?
-		pp, ok2 := v.([]ast.Object)
-		if ok2 {
 
 			// temporary values
 			var tmp []string
 
 			// for each node
-			for _, p := range pp {
+			for _, p := range array.Values {
 
 				val, err2 := p.Evaluate(e.env)
 				if err2 != nil {
@@ -639,7 +668,27 @@ func (e *Executor) runInternalModule(helper modules.ModuleAPI, rule *ast.Rule) (
 			}
 
 			params[k] = tmp
+
+			continue
 		}
+
+		// parameter contains a single node?
+		p, ok := v.(ast.Object)
+		if ok {
+
+			// Is it a single node, which we can convert?
+			val, err2 := p.Evaluate(e.env)
+			if err2 != nil {
+				return false, err2
+			}
+			params[k] = val
+
+			continue
+		}
+
+		// We got a parameter which is unknown
+		return false, fmt.Errorf("runInternalModule unknown object at deps - %V %T", v, v)
+
 	}
 
 	// Check the arguments, using the module-specific Check method.

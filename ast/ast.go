@@ -30,7 +30,7 @@ type Assign struct {
 	Key string
 
 	// Value is the value which will be set.
-	Value Node
+	Value Object
 
 	// ConditionType holds "if" or "unless" if this assignment
 	// action is to be carried out conditionally.
@@ -38,7 +38,7 @@ type Assign struct {
 
 	// Function holds a function to call, if this is a conditional
 	// action.
-	Function *Funcall
+	Function Funcall
 }
 
 // String turns an Assign object into a decent string.
@@ -62,7 +62,7 @@ type Include struct {
 	Node
 
 	// Source holds the location to include.
-	Source string
+	Source Object
 
 	// ConditionType holds "if" or "unless" if this inclusion is to
 	// be executed conditionally.
@@ -70,7 +70,7 @@ type Include struct {
 
 	// Function holds a function to call, if this is a conditional
 	// action.
-	Function *Funcall
+	Function Funcall
 }
 
 // String turns an Include object into a useful string.
@@ -115,7 +115,7 @@ type Rule struct {
 
 	// Function holds a function to call, if this is a conditional
 	// action.
-	Function *Funcall
+	Function Funcall
 }
 
 // String turns a Rule object into a useful string

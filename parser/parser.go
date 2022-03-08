@@ -165,6 +165,9 @@ func (p *Parser) parseLet() (*ast.Assign, error) {
 		return let, fmt.Errorf("assignment can only be made to identifiers, got %v", name)
 	}
 
+	// Update the assignment node
+	let.Key = name.Literal
+
 	// =
 	t := p.nextToken()
 	if t.Type != token.ASSIGN {
@@ -173,12 +176,20 @@ func (p *Parser) parseLet() (*ast.Assign, error) {
 
 	// get the value, and parse it
 	t = p.nextToken()
-	val, err := p.parsePrimitive(t)
 
-	// Error-checking.
+	// Parse it
+	val, err := p.parsePrimitive(t)
 	if err != nil {
 		return let, err
 	}
+
+	// Assignments won't handle arrays yet
+	_, ok := val.(ast.Array)
+	if ok {
+		return let, fmt.Errorf("you cannot assign an array to a variable")
+	}
+
+	let.Value = val
 
 	// Look at the next token and see if it is a
 	// conditional assignment.
@@ -197,7 +208,7 @@ func (p *Parser) parseLet() (*ast.Assign, error) {
 		}
 
 		// Confirm the action is a Funcall
-		faction, ok := action.(*ast.Funcall)
+		faction, ok := action.(ast.Funcall)
 		if !ok {
 			return let, fmt.Errorf("expected function-call after %s, got %v", nxt, action)
 		}
@@ -206,10 +217,6 @@ func (p *Parser) parseLet() (*ast.Assign, error) {
 		let.ConditionType = nxt
 		let.Function = faction
 	}
-
-	// Update the assignment node, and return it.
-	let.Key = name.Literal
-	let.Value = val
 
 	return let, nil
 }
@@ -220,16 +227,15 @@ func (p *Parser) parseInclude() (*ast.Include, error) {
 	// The include statement we'll return
 	inc := &ast.Include{}
 
-	// Get the thing we should include.
-	t := p.nextToken()
-
-	// We only allow strings to be used for inclusion.
-	if t.Type != token.STRING {
-		return inc, fmt.Errorf("only strings are supported for include statements; got %v", t)
+	// Parse the thing we should include.
+	tok := p.nextToken()
+	obj, err := p.parsePrimitive(tok)
+	if err != nil {
+		return inc, err
 	}
 
-	// The include-command
-	inc.Source = t.Literal
+	// Save the thing away
+	inc.Source = obj
 
 	// Look at the next token and see if it is a
 	// conditional inclusion
@@ -248,7 +254,7 @@ func (p *Parser) parseInclude() (*ast.Include, error) {
 		}
 
 		// Confirm the action is a Funcall
-		faction, ok := action.(*ast.Funcall)
+		faction, ok := action.(ast.Funcall)
 		if !ok {
 			return inc, fmt.Errorf("expected function-call after %s, got %v", nxt, action)
 		}
@@ -368,8 +374,8 @@ func (p *Parser) parseBlock(ty string) (*ast.Rule, error) {
 		//   "if|unless" =>  FOO ( arg1, arg2 .. )
 		if name == "if" || name == "unless" {
 
-			// Parse the function
 			tok := p.nextToken()
+
 			action, err := p.parsePrimitive(tok)
 
 			if err != nil {
@@ -377,9 +383,9 @@ func (p *Parser) parseBlock(ty string) (*ast.Rule, error) {
 			}
 
 			// Confirm the action is a Funcall
-			faction, ok := action.(*ast.Funcall)
+			faction, ok := action.(ast.Funcall)
 			if !ok {
-				return r, fmt.Errorf("expected function-call after %s, got %v", next, action)
+				return r, fmt.Errorf("expected function-call after '%s', got %v", name, action)
 			}
 
 			// Otherwise save the condition.
@@ -394,32 +400,18 @@ func (p *Parser) parseBlock(ty string) (*ast.Rule, error) {
 		//  KEY =>
 		//
 		// We need to find the value, which is either a single
-		// token, or an array of tokens.
+		// object, or an array of objects.
 		//
-		if p.peekToken.Type == token.LSQUARE {
-
-			// OK this is an array of primitive values,
-			// separated by commas.
-			values, err := p.parseMultiplePrimitives()
-			if err != nil {
-				return r, err
-			}
-
-			// Save it
-			r.Params[name] = values
-
-		} else {
-
-			// Single value.
-			next = p.nextToken()
-			value, err := p.parsePrimitive(next)
-			if err != nil {
-				return r, err
-			}
-
-			// Save it
-			r.Params[name] = value
+		// parsePrimitive will handle both cases.
+		//
+		next = p.nextToken()
+		value, err := p.parsePrimitive(next)
+		if err != nil {
+			return r, err
 		}
+
+		// Save it
+		r.Params[name] = value
 	}
 
 	// If there was no name setup for the rule then we
@@ -438,14 +430,14 @@ func (p *Parser) getName(params map[string]interface{}) string {
 	if ok {
 
 		// OK we did.  Was it a string?
-		str, ok := n.(*ast.String)
+		str, ok := n.(ast.String)
 		if ok {
 			return str.Value
 		}
 
 		// Show a warning.
 		if p.debug {
-			fmt.Printf("WARNING: Name of rule is not *ast.String, got %T\n", n)
+			fmt.Printf("WARNING: Name of rule is not ast.String, got %T\n", n)
 		}
 	}
 
@@ -476,13 +468,13 @@ func (p *Parser) parsePrimitive(tok token.Token) (ast.Object, error) {
 	switch tok.Type {
 
 	case token.BACKTICK:
-		return &ast.Backtick{Value: tok.Literal}, nil
+		return ast.Backtick{Value: tok.Literal}, nil
 
 	case token.BOOLEAN:
 		if tok.Literal == "true" {
-			return &ast.Boolean{Value: true}, nil
+			return ast.Boolean{Value: true}, nil
 		}
-		return &ast.Boolean{Value: false}, nil
+		return ast.Boolean{Value: false}, nil
 
 	case token.IDENT:
 		// if this is an identifier and the next token is "("
@@ -517,27 +509,56 @@ func (p *Parser) parsePrimitive(tok token.Token) (ast.Object, error) {
 				return nil, fmt.Errorf("unexpected EOF in function-call")
 			}
 
-			return &ast.Funcall{Name: name, Args: args}, nil
+			return ast.Funcall{Name: name, Args: args}, nil
 
 		}
+
+		// Here we have a bare identifier.
+		//
+		// We could allow this:
+		//
+		//    let a = "Steve"
+		//    log { message => a }
+		//
+		// However at the moment we do not.
+		//
+		return nil, fmt.Errorf("unexpected bare identifier %s", name)
+
+	case token.LSQUARE:
+		vals, err := p.parseArrayofPrimitives()
+		if err != nil {
+			return nil, err
+		}
+
+		return ast.Array{Values: vals}, nil
 
 	case token.NUMBER:
 		val, err := strconv.ParseInt(tok.Literal, 0, 64)
 		if err != nil {
 			return nil, err
 		}
-		return &ast.Number{Value: val}, nil
+		return ast.Number{Value: val}, nil
 
 	case token.STRING:
-		return &ast.String{Value: tok.Literal}, nil
+		return ast.String{Value: tok.Literal}, nil
 
 	}
 	return nil, fmt.Errorf("unexpected type parsing primitive:%v", tok)
 }
 
-// parseMultiplePrimitives attempts to parse multiple values within a
+// parseArrayofPrimitives attempts to parse multiple values within a
 // "[" + "]" separated block.
-func (p *Parser) parseMultiplePrimitives() ([]ast.Object, error) {
+//
+// Because we quit when we find "]" and we ignore "[" we cannot parse
+// nested arrays:
+//
+//     [ "OK", "This", "Is, "Fine" ]
+//
+// But this is not:
+//
+//     [ "This", [ "Is", "Wrong" ] ]
+//
+func (p *Parser) parseArrayofPrimitives() ([]ast.Object, error) {
 
 	var ret []ast.Object
 	var val ast.Object

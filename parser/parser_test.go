@@ -163,7 +163,7 @@ func TestConditionalErrors(t *testing.T) {
 		{Input: `shell { name => "OK4",
                                  command => "echo Comparison Worked!",
                                  unless => foo foo`,
-			Error: "unexpected type parsing primitive"},
+			Error: "unexpected bare identifier foo"},
 	}
 
 	for _, test := range broken {
@@ -226,7 +226,7 @@ func TestInclude(t *testing.T) {
 	// Broken statements
 	broken := []string{
 		"include",
-		"include `/bin/ls`",
+		"include 22.2",
 		"include \"test.inc\" unless false(/bin/ls",
 		"include \"test.inc\" unless false(/bin/ls,",
 		"include \"test.inc\" if true(/bin/ls,",
@@ -250,6 +250,7 @@ func TestInclude(t *testing.T) {
 	// Now test valid includes
 	valid := []string{
 		"include \"test.inc\"",
+		"include [ \"test.inc\", \"test.inc\"] ",
 		"include \"test.inc\" unless failure(\"/bin/ls\")",
 		"include \"test.inc\" if success(\"/bin/ls\")",
 	}

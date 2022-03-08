@@ -34,6 +34,13 @@ func FuzzParser(f *testing.F) {
 	f.Add([]byte(`shell { command => "uptime", if => equal(\"one\",\"two\"); } `))
 	f.Add([]byte(`shell { command => "uptime", unless => false(\"/bin/true\"); } `))
 
+	// Assignments
+	f.Add([]byte(`let a = "foo"`))
+	f.Add([]byte(`let a = true`))
+	f.Add([]byte(`let a = false;`))
+	f.Add([]byte(`let a = 32`))
+	f.Add([]byte(`let invalid =  [ "steve", "kemp"]`))
+
 	// Known errors are listed here.
 	//
 	// The purpose of fuzzing is to find panics, or unexpected errors.
@@ -46,9 +53,10 @@ func FuzzParser(f *testing.F) {
 		"assignment can only be made to identifiers",
 		"illegal token",
 		"end of file",
+		"you cannot assign an array to a variable",
 		"unterminated assignment",
 		"strconv.ParseInt: parsing",
-		"TODO: Implement",
+		"unexpected bare identifier",
 	}
 
 	f.Fuzz(func(t *testing.T, input []byte) {
