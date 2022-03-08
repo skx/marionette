@@ -56,6 +56,7 @@ func FuzzParser(f *testing.F) {
 		"you cannot assign an array to a variable",
 		"unterminated assignment",
 		"strconv.ParseInt: parsing",
+		"unexpected bare identifier",
 	}
 
 	f.Fuzz(func(t *testing.T, input []byte) {

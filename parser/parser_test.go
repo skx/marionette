@@ -163,7 +163,7 @@ func TestConditionalErrors(t *testing.T) {
 		{Input: `shell { name => "OK4",
                                  command => "echo Comparison Worked!",
                                  unless => foo foo`,
-			Error: "unexpected type parsing primitive"},
+			Error: "unexpected bare identifier foo"},
 	}
 
 	for _, test := range broken {

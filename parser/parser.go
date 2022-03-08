@@ -513,8 +513,19 @@ func (p *Parser) parsePrimitive(tok token.Token) (ast.Object, error) {
 
 		}
 
+		// Here we have a bare identifier.
+		//
+		// We could allow this:
+		//
+		//    let a = "Steve"
+		//    log { message => a }
+		//
+		// However at the moment we do not.
+		//
+		return nil, fmt.Errorf("unexpected bare identifier %s", name)
+
 	case token.LSQUARE:
-		vals, err := p.parseMultiplePrimitives()
+		vals, err := p.parseArrayofPrimitives()
 		if err != nil {
 			return nil, err
 		}
@@ -535,7 +546,7 @@ func (p *Parser) parsePrimitive(tok token.Token) (ast.Object, error) {
 	return nil, fmt.Errorf("unexpected type parsing primitive:%v", tok)
 }
 
-// parseMultiplePrimitives attempts to parse multiple values within a
+// parseArrayofPrimitives attempts to parse multiple values within a
 // "[" + "]" separated block.
 //
 // Because we quit when we find "]" and we ignore "[" we cannot parse
@@ -547,7 +558,7 @@ func (p *Parser) parsePrimitive(tok token.Token) (ast.Object, error) {
 //
 //     [ "This", [ "Is", "Wrong" ] ]
 //
-func (p *Parser) parseMultiplePrimitives() ([]ast.Object, error) {
+func (p *Parser) parseArrayofPrimitives() ([]ast.Object, error) {
 
 	var ret []ast.Object
 	var val ast.Object
