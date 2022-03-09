@@ -19,8 +19,9 @@ Our implementation is pretty simple and all revolves around a set of rules.
   * Conditional execution is managed via the built-in functions located in the [ast/builtin.go](ast/builtin.go) file.
 
 * We use a bunch of objects, stored beneath `ast/` which implement simple primitives
-  * Strings, Numbers, Booleans, and Functions are implemented in [ast/object.go](ast/object.go)
+  * Arrays, Booleans, Functions, Numbers, and Strings are implemented in [ast/object.go](ast/object.go)
   * These all have an evaluation-method which allow them to self-execute and return strings.
+  * The Array object evaluation-method is a bit of an outlier, it evaluates to a string version of the child-contents, joined by "`,`".
 
 In addition to the above we also have a [config](config/) object which is passed around to allow us to centralize global state, and we have a set of [file](file/) helpers which contain some central code.
 
