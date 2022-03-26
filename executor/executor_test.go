@@ -612,7 +612,10 @@ INSERT INTO contacts( first_name, last_name, email ) VALUES( 'nobody', 'special'
 		var last string
 		var mail string
 
-		row.Scan(&id, &first, &last, &mail)
+		err := row.Scan(&id, &first, &last, &mail)
+		if err != nil {
+			t.Fatalf("error running row-scan")
+		}
 
 		if first != "steve" {
 			t.Fatalf("unexpected SQL result:%s", first)
