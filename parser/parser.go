@@ -197,10 +197,10 @@ func (p *Parser) parseLet() (*ast.Assign, error) {
 
 		// skip the token - after saving it
 		nxt := p.peekToken.Literal
-		tok := p.nextToken()
+		p.nextToken()
 
 		// Parse the function
-		tok = p.nextToken()
+		tok := p.nextToken()
 		action, err := p.parsePrimitive(tok)
 
 		if err != nil {
@@ -243,10 +243,10 @@ func (p *Parser) parseInclude() (*ast.Include, error) {
 
 		// skip the token - after saving it
 		nxt := p.peekToken.Literal
-		tok := p.nextToken()
+		p.nextToken()
 
 		// Parse the function
-		tok = p.nextToken()
+		tok := p.nextToken()
 		action, err := p.parsePrimitive(tok)
 
 		if err != nil {
