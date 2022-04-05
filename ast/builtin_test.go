@@ -355,6 +355,28 @@ func TestFunctions(t *testing.T) {
 			},
 			Output: &String{Value: "5f4dcc3b5aa765d61d8327deb882cf99"},
 		},
+		TestCase{Name: "rand",
+			Input: []string{
+				"1",
+				"100",
+				"hostname",
+			},
+			Output: &String{Value: "96"},
+		},
+		TestCase{Name: "rand",
+			Input: []string{
+				"1",
+				"steve",
+			},
+			Error: "Error:strconv.Atoi: parsing",
+		},
+		TestCase{Name: "rand",
+			Input: []string{
+				"steve",
+				"2",
+			},
+			Error: "Error:strconv.Atoi: parsing",
+		},
 		TestCase{Name: "sha1sum",
 			Input: []string{
 				"secret",
