@@ -268,6 +268,8 @@ In addition to these conditional functions the following primitives are built in
   * Converts the given string to lower-case.
 * `matches(text, regexp)`
   * Return true if the text matches the specified regular expression.
+* `rand(min,max,seed)`
+  * Return a random integer between min and max. Optionally set a seed value.
 * `md5sum(txt)`
   * Returns the MD5-digest of the given value.
 * `sha1sum(txt)`

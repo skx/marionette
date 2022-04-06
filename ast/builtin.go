@@ -5,14 +5,18 @@ package ast
 import (
 	"crypto/md5"
 	"crypto/sha1"
+	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"log"
+	"math/rand"
 	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/skx/marionette/environment"
@@ -60,6 +64,7 @@ func init() {
 	FUNCTIONS["md5sum"] = fnMD5Sum
 	FUNCTIONS["nonempty"] = fnNonEmpty
 	FUNCTIONS["on_path"] = fnOnPath
+	FUNCTIONS["rand"] = fnRandom
 	FUNCTIONS["set"] = fnNonEmpty // duplicate
 	FUNCTIONS["sha1"] = fnSha1Sum // duplicate
 	FUNCTIONS["sha1sum"] = fnSha1Sum
@@ -397,6 +402,45 @@ func fnOnPath(env *environment.Environment, args []string) (Object, error) {
 
 	// Not found
 	return FALSE, nil
+}
+
+// Returns a random number between min/max values, with an optional seed value
+func fnRandom(env *environment.Environment, args []string) (Object, error) {
+
+	if len(args) != 2 && len(args) != 3 {
+		return nil, fmt.Errorf("wrong number of args for 'rand': %d != 2 or 3", len(args))
+	}
+
+	min, err := strconv.Atoi(args[0])
+	if err != nil {
+		return nil, err
+	}
+
+	max, err := strconv.Atoi(args[1])
+	if err != nil {
+		return nil, err
+	}
+
+	if max <= min {
+		return nil, fmt.Errorf("max value is less than or equal to min. min: %d, max: %d", min, max)
+	}
+
+	if len(args) == 3 {
+		seedString := args[2]
+		h := sha1.New()
+		_, err = io.WriteString(h, seedString)
+		if err != nil {
+			return nil, err
+		}
+		seed := binary.BigEndian.Uint64(h.Sum(nil))
+		rand.Seed(int64(seed))
+	} else {
+		rand.Seed(time.Now().UnixNano())
+	}
+
+	val := rand.Intn(max-min) + min
+
+	return &String{Value: strconv.Itoa(val)}, nil
 }
 
 // fnSha1Sum returns the SHA1 digest of the given input
