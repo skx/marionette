@@ -156,7 +156,7 @@ func (l *Lexer) nextTokenReal() token.Token {
 		}
 	default:
 		// is it a number?
-		if isDigit(l.ch) {
+		if l.ch == '-' || l.ch == '+' || isDigit(l.ch) {
 			// Read it.
 			tok = l.readDecimal()
 			return tok
@@ -186,8 +186,8 @@ func (l *Lexer) readDecimal() token.Token {
 
 	str := ""
 
-	// We usually just accept digits.
-	accept := "0123456789"
+	// We usually just accept digits, plus the negative unary marker.
+	accept := "-+0123456789"
 
 	// But if we have `0x` as a prefix we accept hexadecimal instead.
 	if l.ch == '0' && l.peekChar() == 'x' {
@@ -204,6 +204,18 @@ func (l *Lexer) readDecimal() token.Token {
 	for strings.Contains(accept, string(l.ch)) {
 		str += string(l.ch)
 		l.readChar()
+	}
+
+	// If we have a `-` or `+` it can only occur at the beginning
+	for _, chr := range []string{"-", "+"} {
+		if strings.Contains(str, chr) {
+			if !strings.HasPrefix(str, chr) {
+				return token.Token{
+					Type:    token.ILLEGAL,
+					Literal: "'" + chr + "' may only occur at the start of the number",
+				}
+			}
+		}
 	}
 
 	// Don't convert the number to decimal - just use the literal value.
