@@ -49,6 +49,7 @@ func TestFunctionArgs(t *testing.T) {
 	m["md5sum"] = 1
 	m["nonempty"] = 1
 	m["on_path"] = 1
+	m["rand"] = 2
 	m["set"] = 1
 	m["sha1"] = 1
 	m["sha1sum"] = 1
@@ -368,14 +369,14 @@ func TestFunctions(t *testing.T) {
 				"1",
 				"steve",
 			},
-			Error: "Error:strconv.Atoi: parsing",
+			Error: "strconv.Atoi",
 		},
 		TestCase{Name: "rand",
 			Input: []string{
 				"steve",
 				"2",
 			},
-			Error: "Error:strconv.Atoi: parsing",
+			Error: "strconv.Atoi",
 		},
 		TestCase{Name: "sha1sum",
 			Input: []string{

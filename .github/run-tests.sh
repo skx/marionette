@@ -1,6 +1,7 @@
 #!/bin/sh
 
-# Run golang tests
-echo "Running our project-specific test-cases .."
+# Failures will cause this script to terminate
+set -e
+
+# Run the tests
 go test -race ./...
-echo "Completed our project-specific test-cases .."
