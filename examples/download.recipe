@@ -23,7 +23,7 @@ let cmd = "wget -O ${dst} ${url}"       if on_path("wget")
 #
 fail {
         message => "Failed to find curl or wget on the PATH",
-        if      => unset(${cmd})
+        if      => unset("${cmd}")
 }
 
 log {

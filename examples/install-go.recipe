@@ -58,7 +58,7 @@ package {
 shell {
       name    => "golang:download",
       command => "wget -O ${archive}/${version}.tar.gz https://go.dev/dl/go${version}.${OS}-${ARCH}.tar.gz",
-      unless  => exists(${archive}/${version}.tar.gz)
+      unless  => exists("${archive}/${version}.tar.gz")
       require => "golang:wget",
 }
 
@@ -70,7 +70,7 @@ shell {
       command => "tar xf ${archive}/${version}.tar.gz --directory=${install}/go-${version} --strip-components=1",
 
       # If there is a /bin directory then we've unpacked already.
-      unless  => exists(${install}/go-${version}/bin )
+      unless  => exists("${install}/go-${version}/bin")
 
       # We can only unpack if we've downloaded
       require => "golang:download"
