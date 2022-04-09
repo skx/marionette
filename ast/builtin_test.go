@@ -375,8 +375,8 @@ func TestFunctions(t *testing.T) {
 			Input: []string{
 				"What is your name?",
 			},
-			StdIn:  "STEVE\n",
-			Output: &String{Value: "STEVE\n"},
+			StdIn:  "  STEVE  \n",
+			Output: &String{Value: "STEVE"},
 		},
 		TestCase{Name: "prompt",
 			Input: []string{

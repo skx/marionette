@@ -429,7 +429,7 @@ func fnPrompt(env *environment.Environment, args []string) (Object, error) {
 
 	// No error? return it
 	if err == nil {
-		return &String{Value: text}, nil
+		return &String{Value: strings.TrimSpace(text)}, nil
 	}
 
 	// Return the error
