@@ -3,6 +3,7 @@
 package ast
 
 import (
+	"bufio"
 	"crypto/md5"
 	"crypto/sha1"
 	"encoding/binary"
@@ -38,6 +39,9 @@ var FALSE = &Boolean{Value: false}
 // TRUE is a global true-value, which simplifies our function returns.
 var TRUE = &Boolean{Value: true}
 
+// STDIN is where we read from in our `prompt` function
+var STDIN *bufio.Reader
+
 // init is called on startup, and creates the FUNCTIONS map which will
 // hold our built-in functions.
 func init() {
@@ -64,6 +68,7 @@ func init() {
 	FUNCTIONS["md5sum"] = fnMD5Sum
 	FUNCTIONS["nonempty"] = fnNonEmpty
 	FUNCTIONS["on_path"] = fnOnPath
+	FUNCTIONS["prompt"] = fnPrompt
 	FUNCTIONS["rand"] = fnRandom
 	FUNCTIONS["set"] = fnNonEmpty // duplicate
 	FUNCTIONS["sha1"] = fnSha1Sum // duplicate
@@ -71,6 +76,8 @@ func init() {
 	FUNCTIONS["success"] = fnSuccess
 	FUNCTIONS["unset"] = fnEmpty // duplicate
 	FUNCTIONS["upper"] = fnUpper
+
+	STDIN = bufio.NewReader(os.Stdin)
 
 }
 
@@ -402,6 +409,31 @@ func fnOnPath(env *environment.Environment, args []string) (Object, error) {
 
 	// Not found
 	return FALSE, nil
+}
+
+// fnPrompt allows the user to be prompted for input.
+func fnPrompt(env *environment.Environment, args []string) (Object, error) {
+
+	// only one argument is allowed
+	if len(args) != 1 {
+		return nil, fmt.Errorf("wrong number of args for 'prompt': %d != 1", len(args))
+	}
+
+	// Show the prompt
+	arg := args[0]
+	fmt.Printf("%s\n", arg)
+
+	// Read a line of input
+	//	reader := bufio.NewReader(os.Stdin)
+	text, err := STDIN.ReadString('\n')
+
+	// No error? return it
+	if err == nil {
+		return &String{Value: text}, nil
+	}
+
+	// Return the error
+	return &String{Value: ""}, err
 }
 
 // Returns a random number between min/max values, with an optional seed value

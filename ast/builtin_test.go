@@ -1,6 +1,7 @@
 package ast
 
 import (
+	"bufio"
 	"fmt"
 	"strings"
 	"testing"
@@ -49,6 +50,7 @@ func TestFunctionArgs(t *testing.T) {
 	m["md5sum"] = 1
 	m["nonempty"] = 1
 	m["on_path"] = 1
+	m["prompt"] = 1
 	m["rand"] = 2
 	m["set"] = 1
 	m["sha1"] = 1
@@ -59,9 +61,15 @@ func TestFunctionArgs(t *testing.T) {
 	one := []string{"1"}
 	two := []string{"23", "34"}
 
+	// Replace STDIN
+	old := STDIN
+
 	// Ensure that we can call functions with the right number
 	// of arguments.
 	for name, fun := range FUNCTIONS {
+
+		// Replace STDIN
+		STDIN = bufio.NewReader(strings.NewReader("STEVE\n"))
 
 		var err error
 
@@ -72,7 +80,7 @@ func TestFunctionArgs(t *testing.T) {
 				_, err = fun(nil, one)
 			})
 			if err != nil {
-				t.Fatalf("unexpected error with 1 arg")
+				t.Fatalf("unexpected error with 1 arg:%s", err)
 			}
 		} else if valid == 2 {
 			t.Run(name, func(t *testing.T) {
@@ -87,9 +95,13 @@ func TestFunctionArgs(t *testing.T) {
 
 	}
 
+	STDIN = old
 }
 
 func TestFunctions(t *testing.T) {
+
+	// Replace STDIN
+	old := STDIN
 
 	type TestCase struct {
 		// Name of function
@@ -100,6 +112,9 @@ func TestFunctions(t *testing.T) {
 
 		// Expected output
 		Output Object
+
+		// Faked stdin?
+		StdIn string
 
 		// If non-empty we expect an error, and it should match
 		// this text.
@@ -356,6 +371,27 @@ func TestFunctions(t *testing.T) {
 			},
 			Output: &String{Value: "5f4dcc3b5aa765d61d8327deb882cf99"},
 		},
+		TestCase{Name: "prompt",
+			Input: []string{
+				"What is your name?",
+			},
+			StdIn:  "STEVE\n",
+			Output: &String{Value: "STEVE\n"},
+		},
+		TestCase{Name: "prompt",
+			Input: []string{
+				"Foo",
+				"Bar",
+			},
+			Error: "wrong number of args",
+		},
+		TestCase{Name: "prompt",
+			Input: []string{
+				"Empty",
+			},
+			StdIn: "",
+			Error: "EOF",
+		},
 		TestCase{Name: "rand",
 			Input: []string{
 				"1",
@@ -430,6 +466,12 @@ func TestFunctions(t *testing.T) {
 
 	for _, test := range tests {
 
+		// Replace the contents of STDIN if we should
+		if test.StdIn != "" {
+
+			STDIN = bufio.NewReader(strings.NewReader(test.StdIn))
+		}
+
 		t.Run(fmt.Sprintf("%s(%s) -> %s", test.Name, test.Input, test.Output), func(t *testing.T) {
 
 			// Find the function
@@ -464,4 +506,6 @@ func TestFunctions(t *testing.T) {
 			}
 		})
 	}
+
+	STDIN = old
 }
