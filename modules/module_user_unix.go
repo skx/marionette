@@ -30,7 +30,7 @@ func (g *UserModule) Execute(args map[string]interface{}) (bool, error) {
 		if state == "absent" {
 
 			// remove the user
-			err := g.removeUser(login)
+			err := g.removeUser(args)
 			return true, err
 		}
 	}
@@ -77,6 +77,12 @@ func (g *UserModule) createUser(args map[string]interface{}) error {
 	// The user-creation command
 	cmdArgs := []string{"useradd", "--shell", shell, login}
 
+	// do we need to enhance our permissions?
+	privs := StringParam(args, "elevate")
+	if privs != "" {
+		cmdArgs = append([]string{privs}, cmdArgs...)
+	}
+
 	// Show what we're doing
 	log.Printf("[DEBUG] Running %s", cmdArgs)
 
@@ -101,10 +107,18 @@ func (g *UserModule) createUser(args map[string]interface{}) error {
 }
 
 // removeUser removes the local user
-func (g *UserModule) removeUser(login string) error {
+func (g *UserModule) removeUser(args map[string]interface{}) error {
+
+	login := StringParam(args, "login")
 
 	// The user-removal command
 	cmdArgs := []string{"userdel", login}
+
+	// do we need to enhance our permissions?
+	privs := StringParam(args, "elevate")
+	if privs != "" {
+		cmdArgs = append([]string{privs}, cmdArgs...)
+	}
 
 	// Show what we're doing
 	log.Printf("[DEBUG] Running %s", cmdArgs)
