@@ -633,6 +633,7 @@ group { group => "sysadmin",
         state => "present" }
 ```
 
+* `elevate` is an optional parameter, which should contain the path to "sudo", or similar program to grant root-privileges.
 * `group` is a mandatory parameter.
 * `state` should be one of `absent` or `present`, depending upon whether you want to add or remove the group.
 
@@ -741,7 +742,7 @@ package { package => [ "nano", "vim-tiny", "nvi" ],
 
 Valid parameters are:
 
-* `elevate` - Should contain the path to "sudo", or similar program to grant root-privileges.
+* `elevate` is an optional parameter, which should contain the path to "sudo", or similar program to grant root-privileges.
 * `package` is a mandatory parameter, containing the package, or list of packages.
 * `state` - Should be one of `installed` or `absent`, depending upon whether you want to install or uninstall the named package(s).
 * `update` - If this is set to `true` then the system will be updated prior to installation.
@@ -843,6 +844,7 @@ user { login => "steve",
        state => "present" }
 ```
 
+* `elevate` is an optional parameter, which should contain the path to "sudo", or similar program to grant root-privileges.
 * `login` is a mandatory parameter.
 * `shell` is an optional parameter to use for the users' shell.
 * `state` should be one of `absent` or `present`, depending upon whether you want to add or remove the user.
