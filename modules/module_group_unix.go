@@ -30,7 +30,7 @@ func (g *GroupModule) Execute(args map[string]interface{}) (bool, error) {
 		if state == "absent" {
 
 			// remove the group
-			err := g.removeGroup(group)
+			err := g.removeGroup(args)
 			return true, err
 		}
 	}
@@ -69,6 +69,12 @@ func (g *GroupModule) createGroup(args map[string]interface{}) error {
 	// The creation command
 	cmdArgs := []string{"groupadd", group}
 
+	// do we need to enhance our permissions?
+	privs := StringParam(args, "elevate")
+	if privs != "" {
+		cmdArgs = append([]string{privs}, cmdArgs...)
+	}
+
 	// Show what we're doing
 	log.Printf("[DEBUG] Running %s", cmdArgs)
 
@@ -93,10 +99,18 @@ func (g *GroupModule) createGroup(args map[string]interface{}) error {
 }
 
 // removeGroup removes the local group
-func (g *GroupModule) removeGroup(group string) error {
+func (g *GroupModule) removeGroup(args map[string]interface{}) error {
+
+	group := StringParam(args, "group")
 
 	// The removal command
 	cmdArgs := []string{"groupdel", group}
+
+	// do we need to enhance our permissions?
+	privs := StringParam(args, "elevate")
+	if privs != "" {
+		cmdArgs = append([]string{privs}, cmdArgs...)
+	}
 
 	// Show what we're doing
 	log.Printf("[DEBUG] Running %s", cmdArgs)
