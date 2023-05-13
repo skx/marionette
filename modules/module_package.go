@@ -81,6 +81,12 @@ func (pm *PackageModule) Execute(args map[string]interface{}) (bool, error) {
 	// Package abstraction
 	pkg := system.New()
 
+	// Do we need to use doas/sudo?
+	privs := StringParam(args, "elevate")
+	if privs != "" {
+		pkg.UsePrivilegeHelper(privs)
+	}
+
 	// Get the packages we're working with
 	packages := pm.getPackages(args)
 
