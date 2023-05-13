@@ -34,6 +34,8 @@
 * [Github Setup](#github-setup)
 
 
+
+
 # marionette
 
 `marionette` is a simple command-line application which is designed to carry out system automation tasks.  It was designed to resemble the well-known configuration-management application [puppet](https://puppet.com/), albeit in a much simpler and more minimal manner.
@@ -103,6 +105,10 @@ A rule may also contain an optional `triggered` attribute.  Rules which contain 
 Here is an example rule which executes a shell-command:
 
 ```
+
+
+
+
 # Run a command, unconditionally
 shell {
         command => "uptime > /tmp/uptime.txt"
@@ -129,6 +135,7 @@ There are four magical keys which can be supplied to all modules:
 | `notify` | This is used for [dependency management](#dependency-management) |
 | `if`     | This is used to make a rule [conditional](#conditionals)         |
 | `unless` | This is used to make a rule [conditional](#conditionals)         |
+
 
 
 ## Dependency Management
@@ -163,11 +170,22 @@ directory{ name   => "Create /tmp/blah",
 The alternative would have been to have the directory-creation trigger the shell-execution rule via an explicit notification:
 
 ```
+
+
+
+
 # This command will notify the "Test" rule, if it creates the directory
+
+
+
+
 # because it was not already present.
 directory{ target => "/tmp/blah",
            notify => "Test"
 }
+
+
+
 
 # Run the command, when triggered/notified.
 shell triggered { name         => "Test",
@@ -184,7 +202,6 @@ The difference in these two approaches is how often things run:
   * Because the directory-creation triggers the notification only when the rule changes (i.e. the directory goes from being "absent" to "present").
 
 You'll note that any rule which is followed by the token `triggered` will __only__ be executed when it is triggered by name.  If there is no `notify` key referring to that rule it will __never__ be executed.
-
 
 
 
@@ -242,9 +259,16 @@ More conditional primitives may be added if they appear to be necessary, or if u
 Conditionals may also be applied to variable assignments and file inclusion:
 
 ```
+
+
+
+
 # Include a file of rules, on a per-arch basis
 include "x86_64.rules" if equal( "${ARCH}","x86_64" )
 include "i386.rules"   if equal( "${ARCH}","i386" )
+
+
+
 
 # Setup a ${cmd} to download something, depending on what is present.
 let cmd = "curl --output ${dst} ${url}" if on_path("curl")
@@ -278,6 +302,7 @@ In addition to these conditional functions the following primitives are built in
   * Returns the SHA1-digest of the given value.
 * `upper(txt)`
   * Converts the given string to upper-case.
+
 
 
 ## Examples
@@ -332,6 +357,10 @@ file { name    => "set-todays-date",
 You can break large rule-files into pieces, and include them in each other:
 
 ```
+
+
+
+
 # main.in
 
 let prefix="/etc/marionette"
@@ -344,6 +373,10 @@ To simplify your recipe writing including other files may be made conditional,
 just like our rules:
 
 ```
+
+
+
+
 # main.in
 
 include "x86_64.rules" if equal( "${ARCH}","x86_64" )
@@ -371,7 +404,6 @@ There are additionally two "magic" variables available which will always have va
 | `${INCLUDE_FILE}` | The absolute path of the current file being processed.           |
 
 
-
 ### Outputs
 
 Some modules will set "outputs" after they've executed, and those outputs will be documented explicitly in the later list of available modules.
@@ -381,7 +413,15 @@ When a module creates an output it will be available for subsequent modules to u
 Here is an example showing the use of the `stdout` output which the [shell](#shell) module produces:
 
 ```
+
+
+
+
 # Run a command - This will produce "${user.stdout}" and "${user.stderr}"
+
+
+
+
 # variables which can be used later.
 shell {
            name => "user",
@@ -410,9 +450,11 @@ shell {
 
 
 
+
 # Module Types
 
 Our primitives are implemented in 100% pure golang, and are included with our binary, these are now described briefly:
+
 
 
 ## `directory`
@@ -491,6 +533,7 @@ edit { target  => "/etc/ssh/sshd_config",
 ```
 
 
+
 ## `fail`
 
 The fail-module is designed to terminate processing, if you find a situation where the local
@@ -551,6 +594,7 @@ Where `template` is used, the template file is rendered using the
 [`text/template`](https://pkg.go.dev/text/template) Go package
 
 
+
 ## `git`
 
 Clone a remote repository to a local directory.
@@ -589,6 +633,7 @@ group { group => "sysadmin",
         state => "present" }
 ```
 
+* `elevate` is an optional parameter, which should contain the path to "sudo", or similar program to grant root-privileges.
 * `group` is a mandatory parameter.
 * `state` should be one of `absent` or `present`, depending upon whether you want to add or remove the group.
 
@@ -621,6 +666,7 @@ Valid parameters are:
   * If `expect` is not set, an error will be triggered for any non 2xx response status code.
 
 The `http` module is always regarded as having made a change on a successful request.
+
 
 ### `http` Outputs
 
@@ -676,11 +722,18 @@ The package-module allows you to install or remove a package from your system, v
 Example usage:
 
 ```
+
+
+
+
 # Install a single package
 package { name    => "Install bash",
           package => "bash",
           state   => "installed",
         }
+
+
+
 
 # Uninstall a series of packages
 package { package => [ "nano", "vim-tiny", "nvi" ],
@@ -689,6 +742,7 @@ package { package => [ "nano", "vim-tiny", "nvi" ],
 
 Valid parameters are:
 
+* `elevate` is an optional parameter, which should contain the path to "sudo", or similar program to grant root-privileges.
 * `package` is a mandatory parameter, containing the package, or list of packages.
 * `state` - Should be one of `installed` or `absent`, depending upon whether you want to install or uninstall the named package(s).
 * `update` - If this is set to `true` then the system will be updated prior to installation.
@@ -731,6 +785,7 @@ To specify the query to run you should set one of the following two parameters:
 NOTE: You may find you need to append `multiStatements=true` to your DSN to ensure correct operation when reading SQL from a file.
 
 
+
 ## `shell`
 
 The shell module allows you to run shell-commands, complete with redirection and pipes.
@@ -766,6 +821,7 @@ shell { shell   => true,
       }
 ```
 
+
 ### `shell` Outputs
 
 The following [outputs](#outputs) will be set:
@@ -774,6 +830,7 @@ The following [outputs](#outputs) will be set:
   * Anything the command wrote to STDOUT.
 * `stderr`
   * Anything the command wrote to STDERR.
+
 
 
 ## `user`
@@ -787,9 +844,11 @@ user { login => "steve",
        state => "present" }
 ```
 
+* `elevate` is an optional parameter, which should contain the path to "sudo", or similar program to grant root-privileges.
 * `login` is a mandatory parameter.
 * `shell` is an optional parameter to use for the users' shell.
 * `state` should be one of `absent` or `present`, depending upon whether you want to add or remove the user.
+
 
 
 
@@ -799,12 +858,14 @@ user { login => "steve",
   * At the moment we just have a small number of [pre-declared variables](#pre-declared-variables).
 
 
+
 ## See Also
 
 * There are some brief notes on our implementation contained within [HACKING.md](HACKING.md).
   * This gives an overview of the structure.
 * There are some brief-notes on [fuzz-testing the parser](FUZZING.md).
   * This should ensure that there is no input that can crash our application.
+
 
 
 ## Github Setup

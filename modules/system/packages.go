@@ -59,6 +59,10 @@ type Package struct {
 
 	// System contains our identified system.
 	system string
+
+	// privilegedhelper contains the name of a binary to prefix
+	// our commands with, to elevate privileges
+	privilegedhelper string
 }
 
 // New creates a new instance of this object, attempting to identify the
@@ -67,6 +71,12 @@ func New() *Package {
 	p := &Package{}
 	p.identify()
 	return p
+}
+
+// UsePrivilegeHelper is used to ensure that all executed commands
+// are prefixed with "sudo ..", "doas ..", or similar.
+func (p *Package) UsePrivilegeHelper(cmd string) {
+	p.privilegedhelper = cmd
 }
 
 // identify tries to identify this system, if a binary we know is found
@@ -105,6 +115,11 @@ func (p *Package) Update() error {
 
 	// Get the command
 	tmp := updateCmd[p.System()]
+
+	// Add privileges if we need to
+	if p.privilegedhelper != "" {
+		tmp = p.privilegedhelper + " " + tmp
+	}
 
 	// Split
 	run := strings.Split(tmp, " ")
@@ -150,6 +165,11 @@ func (p *Package) Install(name []string) error {
 	tmp := installCmd[p.System()]
 	tmp = strings.ReplaceAll(tmp, "%s", strings.Join(name, " "))
 
+	// Add privileges if we need to
+	if p.privilegedhelper != "" {
+		tmp = p.privilegedhelper + " " + tmp
+	}
+
 	// Show what we're going to run
 	log.Printf("[DEBUG] packages:Install will run %s\n", tmp)
 
@@ -170,6 +190,11 @@ func (p *Package) Uninstall(name []string) error {
 	// Get the command
 	tmp := uninstallCmd[p.System()]
 	tmp = strings.ReplaceAll(tmp, "%s", strings.Join(name, " "))
+
+	// Add privileges if we need to
+	if p.privilegedhelper != "" {
+		tmp = p.privilegedhelper + " " + tmp
+	}
 
 	// Show what we're going to run
 	log.Printf("[DEBUG] packages:Uninstall will run %s\n", tmp)
