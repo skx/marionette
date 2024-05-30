@@ -12,6 +12,8 @@ import (
 	"os/exec"
 	"strings"
 	"syscall"
+
+	"github.com/google/shlex"
 )
 
 // Known-system types
@@ -51,6 +53,12 @@ var (
 	updateCmd = map[string]string{
 		DEBIAN: "/usr/bin/apt-get update --quiet --quiet",
 		YUM:    "/usr/bin/yum clean expire-cache --quiet",
+	}
+
+	// Environment variables used for commands on each system
+	envCmd = map[string]string{
+		DEBIAN: "DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a",
+		YUM:    "",
 	}
 )
 
@@ -122,10 +130,17 @@ func (p *Package) Update() error {
 	}
 
 	// Split
-	run := strings.Split(tmp, " ")
+	run, err := shlex.Split(tmp)
+	if err != nil {
+		return err
+	}
+	env, err := shlex.Split(envCmd[p.System()])
+	if err != nil {
+		return err
+	}
 
 	// Run the command
-	return p.run(run)
+	return p.run(run, env)
 }
 
 // IsInstalled checks a package installed?
@@ -140,10 +155,17 @@ func (p *Package) IsInstalled(name string) (bool, error) {
 	tmp = strings.ReplaceAll(tmp, "%s", name)
 
 	// Split
-	run := strings.Split(tmp, " ")
+	run, err := shlex.Split(tmp)
+	if err != nil {
+		return false, err
+	}
+	env, err := shlex.Split(envCmd[p.System()])
+	if err != nil {
+		return false, err
+	}
 
 	// Run the command
-	err := p.run(run)
+	err = p.run(run, env)
 
 	// No error?  Then the package is installed
 	if err == nil {
@@ -174,10 +196,17 @@ func (p *Package) Install(name []string) error {
 	log.Printf("[DEBUG] packages:Install will run %s\n", tmp)
 
 	// Split
-	run := strings.Split(tmp, " ")
+	run, err := shlex.Split(tmp)
+	if err != nil {
+		return err
+	}
+	env, err := shlex.Split(envCmd[p.System()])
+	if err != nil {
+		return err
+	}
 
 	// Run the command
-	return p.run(run)
+	return p.run(run, env)
 }
 
 // Uninstall a single package from the system.
@@ -200,18 +229,26 @@ func (p *Package) Uninstall(name []string) error {
 	log.Printf("[DEBUG] packages:Uninstall will run %s\n", tmp)
 
 	// Split
-	run := strings.Split(tmp, " ")
+	run, err := shlex.Split(tmp)
+	if err != nil {
+		return err
+	}
+	env, err := shlex.Split(envCmd[p.System()])
+	if err != nil {
+		return err
+	}
 
 	// Run the command
-	return p.run(run)
+	return p.run(run, env)
 }
 
 // run executes the named command and returns an error unless
 // the execution launched and the return-code was zero.
-func (p *Package) run(run []string) error {
+func (p *Package) run(run []string, env []string) error {
 
 	// Run
 	cmd := exec.Command(run[0], run[1:]...)
+	cmd.Env = append(cmd.Environ(), env...)
 	if err := cmd.Start(); err != nil {
 		return err
 	}
