@@ -52,4 +52,32 @@ func TestArrayParam(t *testing.T) {
 		t.Fatalf("Got result for missing key")
 	}
 
+	// Get String as one element array
+	array = ArrayCastParam(args, "foo")
+
+	// confirm we have only one element
+	if len(array) != 1 {
+		t.Fatalf("String cast as array should return single element array")
+	}
+
+	// check value of only element; should be string value
+	if array[0] != "bar" {
+		t.Fatalf("failed to get single element string value")
+	}
+
+	// check array cast of array behaves like native array
+	array = ArrayCastParam(args, "family")
+
+	// confirm length matches expectation
+	if len(array) != len(input) {
+		t.Fatalf("Unexpected length")
+	}
+
+	// And values
+	for i, v := range input {
+		if array[i] != v {
+			t.Fatalf("array mismatch for value %d", i)
+		}
+	}
+
 }

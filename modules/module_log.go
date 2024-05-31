@@ -34,25 +34,15 @@ func (f *LogModule) Check(args map[string]interface{}) error {
 func (f *LogModule) Execute(args map[string]interface{}) (bool, error) {
 
 	// Get the message/messages to log.
-	arg, ok := args["message"]
+	strs := ArrayCastParam(args, "message")
 
 	// Ensure that we've got something
-	if !ok {
+	if len(strs) < 1 {
 		return false, fmt.Errorf("missing 'message' parameter")
 	}
 
-	// string?
-	str, ok := arg.(string)
-	if ok {
-		log.Print("[USER] " + str)
-		return true, nil
-	}
-
-	// otherwise we assume it is an array of messages
-	strs := arg.([]string)
-
 	// process each argument
-	for _, str = range strs {
+	for _, str := range strs {
 		log.Print("[USER] " + str)
 	}
 

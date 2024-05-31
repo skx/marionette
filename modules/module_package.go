@@ -52,26 +52,6 @@ func (pm *PackageModule) Check(args map[string]interface{}) error {
 	return nil
 }
 
-// getPackages returns the packages we're operating upon.
-func (pm *PackageModule) getPackages(args map[string]interface{}) []string {
-
-	packages := []string{}
-
-	// Single package?
-	p := StringParam(args, "package")
-	if p != "" {
-		packages = append(packages, p)
-	}
-
-	// Array of packages?
-	a := ArrayParam(args, "package")
-	if len(a) > 0 {
-		packages = append(packages, a...)
-	}
-
-	return packages
-}
-
 // Execute is part of the module-api, and is invoked to run a rule.
 func (pm *PackageModule) Execute(args map[string]interface{}) (bool, error) {
 
@@ -88,7 +68,7 @@ func (pm *PackageModule) Execute(args map[string]interface{}) (bool, error) {
 	}
 
 	// Get the packages we're working with
-	packages := pm.getPackages(args)
+	packages := ArrayCastParam(args, "package")
 
 	// Do we need to update?
 	//

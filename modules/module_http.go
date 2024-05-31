@@ -72,8 +72,8 @@ func (f *HTTPModule) Execute(args map[string]interface{}) (bool, error) {
 		return false, err
 	}
 
-	// Add any headers.
-	headers := ArrayParam(args, "headers")
+	// Add any headers, whether string or array
+	headers := ArrayCastParam(args, "headers")
 	if len(headers) > 0 {
 		for _, header := range headers {
 			parts := strings.SplitN(header, ":", 2)

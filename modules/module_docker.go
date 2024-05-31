@@ -135,23 +135,12 @@ func (dm *DockerModule) installImage(img string) error {
 // Execute is part of the module-api, and is invoked to run a rule.
 func (dm *DockerModule) Execute(args map[string]interface{}) (bool, error) {
 
-	// We might have multiple images to fetch
-	var images []string
-
-	// Single image?
-	p := StringParam(args, "image")
-	if p != "" {
-		images = append(images, p)
-	}
+	// No need to check if we have images as this was already done
+	// in Check()
+	images := ArrayCastParam(args, "image")
 
 	// Force the pull?
 	force := StringParam(args, "force")
-
-	// Array of packages?
-	a := ArrayParam(args, "image")
-	if len(a) > 0 {
-		images = append(images, a...)
-	}
 
 	// installed something?
 	installed := false
