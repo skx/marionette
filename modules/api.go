@@ -8,6 +8,11 @@ import (
 	"github.com/skx/marionette/environment"
 )
 
+const (
+	checkString = iota
+	onlyArray   = iota
+)
+
 // ModuleConstructor is the signature of a constructor-function.
 type ModuleConstructor func(cfg *config.Config, env *environment.Environment) ModuleAPI
 
@@ -73,6 +78,18 @@ func StringParam(vars map[string]interface{}, param string) string {
 //
 // If the parameter was not present an empty array is returned.
 func ArrayParam(vars map[string]interface{}, param string) []string {
+	return arrayBuildParam(vars, param, onlyArray)
+}
+
+// ArrayCastParam returns the named parameter as a string array
+// regardless if the param is stringable or an array of stringables
+//
+// If the parameter was not present an empty array is returned.
+func ArrayCastParam(vars map[string]interface{}, param string) []string {
+	return arrayBuildParam(vars, param, checkString)
+}
+
+func arrayBuildParam(vars map[string]interface{}, param string, stringFlag int) []string {
 
 	var empty []string
 
@@ -80,6 +97,15 @@ func ArrayParam(vars map[string]interface{}, param string) []string {
 	val, ok := vars[param]
 	if !ok {
 		return empty
+	}
+
+	// Can it be cast into a string?
+	// Then return an array with just the one string
+	if stringFlag == checkString {
+		str, valid := val.(string)
+		if valid {
+			return []string{str}
+		}
 	}
 
 	// Can it be cast into a string array?

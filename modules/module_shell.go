@@ -42,31 +42,13 @@ func (f *ShellModule) Check(args map[string]interface{}) error {
 // Execute is part of the module-api, and is invoked to run a rule.
 func (f *ShellModule) Execute(args map[string]interface{}) (bool, error) {
 
+	// get command(s)
+	cmds := ArrayCastParam(args, "command")
+
 	// Ensure we have one or more commands to run.
-	_, ok := args["command"]
-	if !ok {
+	if len(cmds) < 1 {
 		return false, fmt.Errorf("missing 'command' parameter")
 	}
-
-	// Get the argument
-	arg := args["command"]
-
-	// if it is a string process it
-	str, ok := arg.(string)
-	if ok {
-
-		// we return an error if the command failed
-		err := f.executeSingle(str, args)
-		if err != nil {
-			return false, err
-		}
-
-		// otherwise we always assume a change was made
-		return true, nil
-	}
-
-	// otherwise we assume it is an array of commands
-	cmds := arg.([]string)
 
 	// process each argument
 	for _, cmd := range cmds {

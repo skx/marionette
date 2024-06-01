@@ -37,25 +37,13 @@ func (f *DirectoryModule) Check(args map[string]interface{}) error {
 func (f *DirectoryModule) Execute(args map[string]interface{}) (bool, error) {
 
 	// Ensure we have one or more targets to process
-	_, ok := args["target"]
-	if !ok {
+	dirs := ArrayCastParam(args, "target")
+	if len(dirs) < 1 {
 		return false, fmt.Errorf("missing 'target' parameter")
-	}
-
-	// Get the argument
-	arg := args["target"]
-
-	// if it is a string process it
-	str, ok := arg.(string)
-	if ok {
-		return f.executeSingle(str, args)
 	}
 
 	// default to not being changed
 	changed := false
-
-	// otherwise we assume it is an array
-	dirs := arg.([]string)
 
 	// process each argument
 	for _, arg := range dirs {
