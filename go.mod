@@ -8,6 +8,7 @@ require (
 	github.com/docker/distribution v2.8.0+incompatible // indirect
 	github.com/docker/docker v20.10.12+incompatible
 	github.com/go-sql-driver/mysql v1.6.0
+	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.7.4 // indirect
 	github.com/hashicorp/logutils v1.0.0
