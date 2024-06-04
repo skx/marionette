@@ -302,6 +302,10 @@ In addition to these conditional functions the following primitives are built in
   * Returns the SHA1-digest of the given value.
 * `upper(txt)`
   * Converts the given string to upper-case.
+* `newer(file1, file2)`
+  * Returns true if file1 has a newer modification time than file2.
+* `older(file1, file2)`
+  * Returns true if file1 has an older modification time than file2.
 
 
 
