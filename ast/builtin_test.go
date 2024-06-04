@@ -3,8 +3,11 @@ package ast
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/skx/marionette/file"
 )
@@ -30,7 +33,7 @@ func TestFunctionArgs(t *testing.T) {
 		}
 	}
 
-	// one arg functions
+	// number of args for each function; -1 to ignore arg check
 	m := make(map[string]int)
 	m["contains"] = 2
 	m["empty"] = 1
@@ -58,6 +61,8 @@ func TestFunctionArgs(t *testing.T) {
 	m["success"] = 1
 	m["unset"] = 1
 	m["upper"] = 1
+	m["newer"] = -1
+	m["older"] = -1
 	one := []string{"1"}
 	two := []string{"23", "34"}
 
@@ -87,9 +92,9 @@ func TestFunctionArgs(t *testing.T) {
 				_, err = fun(nil, two)
 			})
 			if err != nil {
-				t.Fatalf("unexpected error with 2 args")
+				t.Fatalf("unexpected error with 2 args for function '%s' with error: %s", name, err)
 			}
-		} else {
+		} else if valid != -1 {
 			t.Fatalf("unhandled test-case for function '%s'", name)
 		}
 
@@ -119,6 +124,25 @@ func TestFunctions(t *testing.T) {
 		// If non-empty we expect an error, and it should match
 		// this text.
 		Error string
+	}
+
+	var tmpfile [2]string
+	for idx := range tmpfile {
+		file, err := ioutil.TempFile(os.TempDir(), "marionette_go_test_")
+		if err != nil {
+			fmt.Printf("ERROR: can't create temporary files for tests, bailing")
+			os.Exit(2)
+		}
+		defer os.Remove(file.Name())
+
+		tmpfile[idx] = file.Name()
+		file.Close()
+
+		// we need to sleep because some filesystems only have 1 second
+		// granularity for timestamps
+		if idx%2 == 0 {
+			time.Sleep(time.Second)
+		}
 	}
 
 	tests := []TestCase{
@@ -441,6 +465,78 @@ func TestFunctions(t *testing.T) {
 		TestCase{Name: "set",
 			Input: []string{
 				"",
+			},
+			Output: &Boolean{Value: false},
+		},
+		// test newer and older for other arg lengths
+		TestCase{Name: "newer",
+			Input: []string{
+				tmpfile[0],
+			},
+			Error: "requires two arguments",
+		},
+		TestCase{Name: "newer",
+			Input: []string{
+				tmpfile[0],
+				tmpfile[1],
+				tmpfile[1],
+			},
+			Error: "requires two arguments",
+		},
+		TestCase{Name: "older",
+			Input: []string{
+				tmpfile[0],
+			},
+			Error: "requires two arguments",
+		},
+		TestCase{Name: "older",
+			Input: []string{
+				tmpfile[0],
+				tmpfile[1],
+				tmpfile[1],
+			},
+			Error: "requires two arguments",
+		},
+		// and then functional tests
+		TestCase{Name: "newer",
+			Input: []string{
+				tmpfile[0],
+				tmpfile[1],
+			},
+			Output: &Boolean{Value: false},
+		},
+		TestCase{Name: "newer",
+			Input: []string{
+				tmpfile[0],
+				tmpfile[0],
+			},
+			Output: &Boolean{Value: false},
+		},
+		TestCase{Name: "newer",
+			Input: []string{
+				tmpfile[1],
+				tmpfile[0],
+			},
+			Output: &Boolean{Value: true},
+		},
+		TestCase{Name: "older",
+			Input: []string{
+				tmpfile[0],
+				tmpfile[1],
+			},
+			Output: &Boolean{Value: true},
+		},
+		TestCase{Name: "older",
+			Input: []string{
+				tmpfile[0],
+				tmpfile[0],
+			},
+			Output: &Boolean{Value: false},
+		},
+		TestCase{Name: "older",
+			Input: []string{
+				tmpfile[1],
+				tmpfile[0],
 			},
 			Output: &Boolean{Value: false},
 		},

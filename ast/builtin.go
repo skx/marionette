@@ -76,6 +76,8 @@ func init() {
 	FUNCTIONS["success"] = fnSuccess
 	FUNCTIONS["unset"] = fnEmpty // duplicate
 	FUNCTIONS["upper"] = fnUpper
+	FUNCTIONS["newer"] = fnNewer
+	FUNCTIONS["older"] = fnOlder
 
 	STDIN = bufio.NewReader(os.Stdin)
 
@@ -187,8 +189,9 @@ func fnFailure(env *environment.Environment, args []string) (Object, error) {
 }
 
 // fnField returns the numbered field from the given text.  Much like awk:
-//   field( "Steve Kemp", 0) -> "Steve"
-//   field( "Steve Kemp", 1) -> "Kemp"
+//
+//	field( "Steve Kemp", 0) -> "Steve"
+//	field( "Steve Kemp", 1) -> "Kemp"
 func fnField(env *environment.Environment, args []string) (Object, error) {
 
 	if len(args) != 2 {
@@ -538,4 +541,65 @@ func fnUpper(env *environment.Environment, args []string) (Object, error) {
 	}
 
 	return &String{Value: strings.ToUpper(args[0])}, nil
+}
+
+func fnNewer(env *environment.Environment, args []string) (Object, error) {
+
+	// get modification times for only two existing filenames
+	modTime, err := modTimes("newer", args)
+	if err != nil {
+		return nil, err
+	}
+
+	// if the modTime of the first file is newer return TRUE
+	// FALSE otherwise
+	if modTime[0].After(modTime[1]) {
+		return TRUE, nil
+	} else {
+		return FALSE, nil
+	}
+}
+
+func fnOlder(env *environment.Environment, args []string) (Object, error) {
+
+	// get modification times for only two existing filenames
+	modTime, err := modTimes("older", args)
+	if err != nil {
+		return nil, err
+	}
+
+	// if the modTime of the first file is older return TRUE
+	// FALSE otherwise
+	if modTime[0].Before(modTime[1]) {
+		return TRUE, nil
+	} else {
+		return FALSE, nil
+	}
+}
+
+func modTimes(funcName string, args []string) ([]time.Time, error) {
+
+	// Only two arguments is supported.
+	if len(args) != 2 {
+		return nil, fmt.Errorf("'%s' requires two arguments", funcName)
+	}
+
+	modTime := make([]time.Time, 2)
+
+	// Check that both files exist; if not return an error
+	// then get the last modified time
+	for idx, filename := range args {
+		if !file.Exists(filename) {
+			return nil, fmt.Errorf("file does not exist: \"%s\"", filename)
+		}
+
+		fileInfo, err := os.Stat(filename)
+		if err != nil {
+			return nil, err
+		}
+
+		modTime[idx] = fileInfo.ModTime()
+	}
+
+	return modTime, nil
 }
