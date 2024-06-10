@@ -133,7 +133,11 @@ func main() {
 
 	// Ensure we got at least one recipe to execute.
 	if len(flag.Args()) < 1 {
-		fmt.Printf("Usage %s file1 file2 .. fileN\n", os.Args[0])
+
+		fmt.Printf("Usage:\n\n")
+		fmt.Printf("   marionette [flags] ./rules.txt ./rules2.txt ... ./rulesN.txt\n\n")
+		fmt.Printf("Flags:\n\n")
+		flag.PrintDefaults()
 		return
 	}
 
